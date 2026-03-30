@@ -1,18 +1,18 @@
 export default function Home() {
   return (
-    <main style={{
-      height: "100vh",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundImage: "url('/truck.jpg')",
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      color: "white",
-      fontSize: "3rem",
-      fontWeight: "bold"
-    }}>
-      Elite Routiers 🚛🔥
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "black",
+        color: "white",
+        fontSize: "48px",
+        fontWeight: "bold",
+      }}
+    >
+      Elite Routiers
     </main>
   );
 }

@@ -1,12 +1,10 @@
-import background from "./truck.jpg";
-
 export default function Home() {
   return (
     <main
       style={{
         width: "100vw",
         height: "100vh",
-        backgroundImage: `url(${background.src})`,
+        backgroundImage: "url('/truck.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",

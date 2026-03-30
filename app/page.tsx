@@ -4,7 +4,7 @@ export default function Home() {
       style={{
         width: "100vw",
         height: "100vh",
-        backgroundImage: "url('/truck.jpg')",
+        backgroundImage: "url('/fondsite.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",

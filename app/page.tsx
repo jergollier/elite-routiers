@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 
 export default function Home() {
   const cookieStore = cookies() as any;
-const steamId = cookieStore.get("steamId")?.value;
+  const steamId = cookieStore.get("steamId")?.value;
 
   return (
     <div
@@ -34,11 +34,24 @@ const steamId = cookieStore.get("steamId")?.value;
             fontSize: "1.3rem",
             textDecoration: "none",
             fontWeight: "bold",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.9)",
-            border: "1px solid rgba(255,255,255,0.2)",
+            boxShadow: "0 0 20px rgba(0, 200, 255, 0.6)",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLAnchorElement).style.boxShadow =
+              "0 0 30px rgba(0, 200, 255, 1)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLAnchorElement).style.boxShadow =
+              "0 0 20px rgba(0, 200, 255, 0.6)";
           }}
         >
-          🎮 Se connecter avec Steam
+          <img
+            src="/steam.png"
+            alt="Steam"
+            style={{ width: "32px", height: "32px", objectFit: "contain" }}
+          />
+          Se connecter avec Steam
         </a>
       ) : (
         <div

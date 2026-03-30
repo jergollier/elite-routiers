@@ -1,7 +1,6 @@
 import { RelyingParty } from "openid";
 import { NextResponse } from "next/server";
 
-// TON DOMAINE VERCEL
 const realm = "https://elite-routiers.vercel.app";
 const returnUrl = `${realm}/api/steam/callback`;
 

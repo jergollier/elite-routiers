@@ -5,34 +5,31 @@ const realm = "https://elite-routiers.vercel.app";
 const returnUrl = `${realm}/api/steam/callback`;
 
 export async function GET(request: NextRequest) {
-  const relyingParty = new RelyingParty(returnUrl, realm, true, false, []);
+  const rp = new RelyingParty(returnUrl, realm, true, false, []);
 
   return await new Promise<Response>((resolve) => {
-    relyingParty.verifyAssertion(
-      request.url,
-      (err: any, result: any) => {
-        if (err || !result?.authenticated || !result?.claimedIdentifier) {
-          resolve(NextResponse.redirect(new URL("/", request.url)));
-          return;
-        }
-
-        const steamId = result.claimedIdentifier.split("/").pop();
-        if (!steamId) {
-          resolve(NextResponse.redirect(new URL("/", request.url)));
-          return;
-        }
-
-        const response = NextResponse.redirect(new URL("/", request.url));
-        response.cookies.set("steamId", steamId, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "lax",
-          path: "/",
-          maxAge: 60 * 60 * 24 * 7,
-        });
-
-        resolve(response);
+    rp.verifyAssertion(request.url, (err: any, result: any) => {
+      if (err || !result?.authenticated || !result?.claimedIdentifier) {
+        resolve(NextResponse.redirect(new URL("/", request.url)));
+        return;
       }
-    );
+
+      const steamId = result.claimedIdentifier.split("/").pop();
+      if (!steamId) {
+        resolve(NextResponse.redirect(new URL("/", request.url)));
+        return;
+      }
+
+      const response = NextResponse.redirect(new URL("/", request.url));
+      response.cookies.set("steamId", steamId, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+
+      resolve(response);
+    });
   });
 }

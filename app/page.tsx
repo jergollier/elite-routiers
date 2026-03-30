@@ -4,16 +4,11 @@ export default function Home() {
       style={{
         width: "100vw",
         height: "100vh",
-        background: "red",
-        color: "white",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "60px",
-        fontWeight: "bold",
+        backgroundImage: "url('/truck.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
-    >
-      TEST VERCEL ROUGE
-    </main>
+    />
   );
 }

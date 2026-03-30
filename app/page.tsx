@@ -1,4 +1,9 @@
+import { cookies } from "next/headers";
+
 export default function Home() {
+  const cookieStore = cookies() as any;
+const steamId = cookieStore.get("steamId")?.value;
+
   return (
     <div
       style={{
@@ -11,38 +16,66 @@ export default function Home() {
         position: "relative",
       }}
     >
-      <a
-        href="#"
-        style={{
-          position: "absolute",
-          bottom: "120px", // remonte le bouton
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          alignItems: "center",
-          gap: "15px",
-          background: "#000000",
-          color: "white",
-          padding: "18px 45px",
-          borderRadius: "999px",
-          fontSize: "1.3rem",
-          textDecoration: "none",
-          fontWeight: "bold",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.9)",
-          border: "1px solid rgba(255,255,255,0.2)",
-        }}
-      >
-        <img
-          src="/steam.png"
-          alt="Steam"
+      {!steamId ? (
+        <a
+          href="/api/steam/login"
           style={{
-            width: "32px",
-            height: "32px",
-            objectFit: "contain",
+            position: "absolute",
+            bottom: "120px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            background: "#000",
+            color: "white",
+            padding: "18px 45px",
+            borderRadius: "999px",
+            fontSize: "1.3rem",
+            textDecoration: "none",
+            fontWeight: "bold",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.9)",
+            border: "1px solid rgba(255,255,255,0.2)",
           }}
-        />
-        Se connecter avec Steam
-      </a>
+        >
+          🎮 Se connecter avec Steam
+        </a>
+      ) : (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "120px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            background: "#000",
+            color: "white",
+            padding: "18px 28px",
+            borderRadius: "999px",
+            fontSize: "1.1rem",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.9)",
+            border: "1px solid rgba(255,255,255,0.2)",
+          }}
+        >
+          <span>Connecté avec Steam</span>
+          <span style={{ opacity: 0.8 }}>ID : {steamId}</span>
+
+          <a
+            href="/api/steam/logout"
+            style={{
+              color: "white",
+              textDecoration: "none",
+              border: "1px solid rgba(255,255,255,0.25)",
+              padding: "8px 14px",
+              borderRadius: "999px",
+            }}
+          >
+            Déconnexion
+          </a>
+        </div>
+      )}
     </div>
   );
 }

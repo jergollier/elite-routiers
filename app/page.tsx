@@ -1,62 +1,53 @@
 export default function Home() {
   return (
-    <div
-      style={{
-        position: "relative",
-        width: "100vw",
-        height: "100vh",
-        overflow: "hidden",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <img
-        src="/bg.jpg"
-        alt="fond"
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          zIndex: 0,
-        }}
-      />
+    <div className="container">
+      <div className="overlay"></div>
 
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(0,0,0,0.35)",
-          zIndex: 1,
-        }}
-      />
-
-      <button
-        style={{
-          position: "relative",
-          zIndex: 2,
-          backgroundColor: "#171a21",
-          color: "white",
-          padding: "18px 40px",
-          borderRadius: "10px",
-          fontSize: "20px",
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-        }}
-      >
-        <img
-          src="/steam.svg"
-          alt="Steam"
-          style={{ width: "28px", height: "28px" }}
-        />
+      <button className="steamBtn">
+        <img src="/steam.svg" alt="steam" />
         Connexion avec Steam
       </button>
+
+      <style jsx>{`
+        .container {
+          width: 100vw;
+          height: 100vh;
+          background-image: url("/bg.jpg");
+          background-size: cover;
+          background-position: center;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          position: relative;
+        }
+
+        .overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.4);
+        }
+
+        .steamBtn {
+          position: relative;
+          z-index: 2;
+          background: #171a21;
+          color: white;
+          padding: 18px 40px;
+          border-radius: 10px;
+          font-size: 20px;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .steamBtn img {
+          width: 28px;
+          height: 28px;
+        }
+      `}</style>
     </div>
   );
 }

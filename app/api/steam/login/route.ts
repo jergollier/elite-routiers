@@ -6,17 +6,10 @@ const returnUrl = `${realm}/api/steam/callback`;
 
 export async function GET() {
   const rp = new RelyingParty(returnUrl, realm, true, false, []);
-  const url = "https://steamcommunity.com/openid";
-
-  return await new Promise<Response>((resolve) => {
-    rp.authenticate(url, false, (err: any, authUrl: any) => {
-      if (err || !authUrl) {
-        resolve(
-          NextResponse.json({ error: "Impossible de lancer Steam" }, { status: 500 })
-        );
-        return;
-      }
-      resolve(NextResponse.redirect(authUrl));
+  return new Promise((resolve) => {
+    rp.authenticate("https://steamcommunity.com/openid", false, (err: any, authUrl: any) => {
+      if (err || !authUrl) resolve(NextResponse.json({ error: "Impossible de lancer Steam" }, { status: 500 }));
+      else resolve(NextResponse.redirect(authUrl));
     });
   });
 }

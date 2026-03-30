@@ -1,3 +1,16 @@
 export default function Home() {
-  return <main>RESET OK</main>;
+  return (
+    <div style={{ width: "100vw", height: "100vh", margin: 0 }}>
+      <img
+        src="/truck.jpg"
+        alt="fond"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block",
+        }}
+      />
+    </div>
+  );
 }

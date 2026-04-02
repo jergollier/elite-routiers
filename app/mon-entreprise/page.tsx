@@ -400,15 +400,59 @@ export default async function MonEntreprisePage() {
                           borderRadius: "12px",
                           padding: "14px",
                           border: "1px solid rgba(255,255,255,0.08)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
                         }}
                       >
                         <div
-                          style={{ fontWeight: "bold", marginBottom: "6px" }}
+                          style={{
+                            width: "42px",
+                            height: "42px",
+                            borderRadius: "999px",
+                            overflow: "hidden",
+                            background: "rgba(255,255,255,0.08)",
+                            flexShrink: 0,
+                            border: "1px solid rgba(255,255,255,0.12)",
+                          }}
                         >
-                          {membre.user?.username || "Utilisateur Steam"}
+                          {membre.user?.avatar ? (
+                            <img
+                              src={membre.user.avatar}
+                              alt="Avatar Steam"
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                display: "block",
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "12px",
+                                opacity: 0.7,
+                              }}
+                            >
+                              ?
+                            </div>
+                          )}
                         </div>
-                        <div style={{ opacity: 0.85 }}>
-                          {membre.role.replaceAll("_", " ")}
+
+                        <div>
+                          <div
+                            style={{ fontWeight: "bold", marginBottom: "4px" }}
+                          >
+                            {membre.user?.username || "Utilisateur Steam"}
+                          </div>
+                          <div style={{ opacity: 0.85 }}>
+                            {membre.role.replaceAll("_", " ")}
+                          </div>
                         </div>
                       </div>
                     ))
@@ -466,7 +510,8 @@ export default async function MonEntreprisePage() {
                     style={{
                       width: `${cuvePourcent}%`,
                       height: "100%",
-                      background: "linear-gradient(90deg, #22c55e, #eab308)",
+                      background:
+                        "linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #22c55e 100%)",
                     }}
                   />
                 </div>

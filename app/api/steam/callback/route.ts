@@ -89,7 +89,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       },
     });
 
-    const response = NextResponse.redirect(`${baseUrl}/societe`);
+    const response = NextResponse.redirect(`${baseUrl}`);
 
     response.cookies.set("steamId", steamId, {
       httpOnly: true,

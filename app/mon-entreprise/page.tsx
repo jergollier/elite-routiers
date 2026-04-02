@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Menu from "@/app/components/Menu";
 
@@ -38,7 +39,16 @@ export default async function MonEntreprisePage() {
   }
 
   const membership = user.memberships[0];
-  const entreprise = membership.entreprise as any;
+  const entreprise = membership.entreprise;
+
+  const rolesAutorisesBureau = [
+    "DIRECTEUR",
+    "SOUS_DIRECTEUR",
+    "CHEF_EQUIPE",
+    "CHEF_ATELIER",
+  ];
+
+  const peutAccederBureau = rolesAutorisesBureau.includes(membership.role);
 
   const argentSociete = 125000;
   const cuveMax = 10000;
@@ -118,6 +128,8 @@ export default async function MonEntreprisePage() {
             borderBottom: "1px solid rgba(255,255,255,0.15)",
             background: "rgba(0,0,0,0.35)",
             backdropFilter: "blur(6px)",
+            gap: "20px",
+            flexWrap: "wrap",
           }}
         >
           <div style={{ fontSize: "28px", fontWeight: "bold" }}>
@@ -130,11 +142,36 @@ export default async function MonEntreprisePage() {
               alignItems: "center",
               gap: "20px",
               fontWeight: "bold",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
             }}
           >
             <span>Entreprise : {entreprise.nom}</span>
             <span>Rôle : {membership.role.replaceAll("_", " ")}</span>
-            <span>Connecté</span>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "rgba(255,255,255,0.08)",
+                padding: "8px 14px",
+                borderRadius: "999px",
+                border: "1px solid rgba(255,255,255,0.12)",
+              }}
+            >
+              <span
+                style={{
+                  width: "10px",
+                  height: "10px",
+                  borderRadius: "50%",
+                  background: "#22c55e",
+                  display: "inline-block",
+                  boxShadow: "0 0 8px #22c55e",
+                }}
+              />
+              <span>Connecté</span>
+            </div>
           </div>
         </header>
 
@@ -183,7 +220,7 @@ export default async function MonEntreprisePage() {
                   right: "24px",
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "end",
+                  alignItems: "flex-end",
                   gap: "20px",
                   flexWrap: "wrap",
                 }}
@@ -192,6 +229,7 @@ export default async function MonEntreprisePage() {
                   <h1 style={{ margin: 0, fontSize: "36px" }}>
                     {entreprise.nom}
                   </h1>
+
                   <div
                     style={{
                       marginTop: "8px",
@@ -205,25 +243,56 @@ export default async function MonEntreprisePage() {
 
                 <div
                   style={{
-                    background: "rgba(0,0,0,0.45)",
-                    padding: "14px 18px",
-                    borderRadius: "12px",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    minWidth: "220px",
+                    display: "flex",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                    justifyContent: "flex-end",
                   }}
                 >
                   <div
                     style={{
-                      fontSize: "13px",
-                      opacity: 0.85,
-                      marginBottom: "6px",
+                      background: "rgba(0,0,0,0.45)",
+                      padding: "14px 18px",
+                      borderRadius: "12px",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      minWidth: "220px",
                     }}
                   >
-                    Argent de la société
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        opacity: 0.85,
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Argent de la société
+                    </div>
+                    <div style={{ fontSize: "28px", fontWeight: "bold" }}>
+                      {argentSociete.toLocaleString("fr-FR")} €
+                    </div>
                   </div>
-                  <div style={{ fontSize: "28px", fontWeight: "bold" }}>
-                    {argentSociete.toLocaleString("fr-FR")} €
-                  </div>
+
+                  {peutAccederBureau && (
+                    <Link
+                      href={`/entreprise/${entreprise.id}/gestion`}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "160px",
+                        padding: "14px 18px",
+                        borderRadius: "12px",
+                        background: "#171a21",
+                        color: "white",
+                        textDecoration: "none",
+                        fontWeight: "bold",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        boxShadow: "0 0 20px rgba(0,0,0,0.25)",
+                      }}
+                    >
+                      Bureau
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
@@ -356,8 +425,8 @@ export default async function MonEntreprisePage() {
                     paddingRight: "6px",
                   }}
                 >
-                  {entreprise.membres?.length > 0 ? (
-                    entreprise.membres.map((membre: any) => (
+                  {entreprise.membres.length > 0 ? (
+                    entreprise.membres.map((membre) => (
                       <div
                         key={membre.id}
                         style={{

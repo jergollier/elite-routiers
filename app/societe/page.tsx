@@ -16,6 +16,13 @@ export default async function SocietePage() {
     orderBy: {
       createdAt: "desc",
     },
+    include: {
+      _count: {
+        select: {
+          chauffeurs: true,
+        },
+      },
+    },
   });
 
   const chauffeurs = [
@@ -171,38 +178,62 @@ export default async function SocietePage() {
                     borderRadius: "12px",
                     overflow: "hidden",
                     border: "1px solid rgba(255,255,255,0.08)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
                   }}
                 >
+                  <div>
+                    <div
+                      style={{
+                        height: "80px",
+                        backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    />
+
+                    <div style={{ padding: "10px" }}>
+                      <div
+                        style={{
+                          fontWeight: "bold",
+                          fontSize: "15px",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        {entreprise.nom}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          opacity: 0.8,
+                          marginBottom: "10px",
+                        }}
+                      >
+                        [{entreprise.abreviation}]
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: "13px",
+                          marginBottom: "12px",
+                          opacity: 0.9,
+                        }}
+                      >
+                        🚛 Chauffeurs : {entreprise._count.chauffeurs}
+                      </div>
+                    </div>
+                  </div>
+
                   <div
                     style={{
-                      height: "80px",
-                      backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
+                      padding: "10px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
                     }}
-                  />
-
-                  <div style={{ padding: "10px" }}>
-                    <div
-                      style={{
-                        fontWeight: "bold",
-                        fontSize: "15px",
-                        marginBottom: "4px",
-                      }}
-                    >
-                      {entreprise.nom}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        opacity: 0.8,
-                        marginBottom: "10px",
-                      }}
-                    >
-                      [{entreprise.abreviation}]
-                    </div>
-
+                  >
                     <Link
                       href={`/entreprise/${entreprise.id}`}
                       style={{
@@ -218,6 +249,23 @@ export default async function SocietePage() {
                       }}
                     >
                       Voir entreprise
+                    </Link>
+
+                    <Link
+                      href={`/entreprise/${entreprise.id}/postuler`}
+                      style={{
+                        display: "block",
+                        textAlign: "center",
+                        padding: "9px",
+                        background: "#2563eb",
+                        borderRadius: "8px",
+                        color: "white",
+                        textDecoration: "none",
+                        fontWeight: "bold",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Postuler
                     </Link>
                   </div>
                 </div>

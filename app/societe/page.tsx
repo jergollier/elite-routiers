@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import Menu from "@/app/components/Menu";
 
 export default async function SocietePage() {
   const cookieStore = await cookies();
@@ -82,18 +81,38 @@ export default async function SocietePage() {
               alignItems: "center",
               gap: "20px",
               fontWeight: "bold",
+              flexWrap: "wrap",
             }}
           >
             <span>Entreprises : {entreprises.length}</span>
             <span>Chauffeurs : {chauffeurs.length}</span>
-            <span>Connecté</span>
+
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  width: "10px",
+                  height: "10px",
+                  borderRadius: "50%",
+                  backgroundColor: "#22c55e",
+                  display: "inline-block",
+                  boxShadow: "0 0 8px rgba(34,197,94,0.8)",
+                }}
+              />
+              Steam connecté
+            </span>
           </div>
         </header>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "260px 1fr 300px",
+            gridTemplateColumns: "260px 1fr 280px",
             gap: "20px",
             padding: "20px",
             flex: 1,
@@ -158,6 +177,17 @@ export default async function SocietePage() {
 
               <button style={menuButtonStyle}>Classement</button>
               <button style={menuButtonStyle}>Paramètres</button>
+
+              <Link
+                href="/api/logout"
+                style={{
+                  ...logoutButtonStyle,
+                  textDecoration: "none",
+                  display: "block",
+                }}
+              >
+                Déconnexion
+              </Link>
             </nav>
           </aside>
 
@@ -217,8 +247,8 @@ export default async function SocietePage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                  gap: "16px",
+                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                  gap: "14px",
                 }}
               >
                 {entreprises.map((entreprise) => (
@@ -229,19 +259,27 @@ export default async function SocietePage() {
                       borderRadius: "14px",
                       overflow: "hidden",
                       border: "1px solid rgba(255,255,255,0.1)",
+                      display: "flex",
+                      flexDirection: "column",
                     }}
                   >
                     <div
                       style={{
-                        height: "140px",
+                        height: "100px",
                         backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                       }}
                     />
 
-                    <div style={{ padding: "16px" }}>
-                      <h3 style={{ marginTop: 0, marginBottom: "12px" }}>
+                    <div style={{ padding: "14px" }}>
+                      <h3
+                        style={{
+                          marginTop: 0,
+                          marginBottom: "10px",
+                          fontSize: "22px",
+                        }}
+                      >
                         {entreprise.nom}
                       </h3>
 
@@ -252,6 +290,7 @@ export default async function SocietePage() {
                           gap: "8px",
                           marginBottom: "8px",
                           fontWeight: "bold",
+                          fontSize: "14px",
                         }}
                       >
                         <span
@@ -268,15 +307,15 @@ export default async function SocietePage() {
                         {entreprise.recrutement ? "Recrute" : "Ne recrute pas"}
                       </div>
 
-                      <div style={{ marginBottom: "6px", opacity: 0.9 }}>
+                      <div style={{ marginBottom: "6px", opacity: 0.9, fontSize: "14px" }}>
                         Abréviation : {entreprise.abreviation}
                       </div>
 
-                      <div style={{ marginBottom: "6px", opacity: 0.9 }}>
+                      <div style={{ marginBottom: "6px", opacity: 0.9, fontSize: "14px" }}>
                         Jeu : {entreprise.jeu}
                       </div>
 
-                      <div style={{ marginBottom: "16px", opacity: 0.9 }}>
+                      <div style={{ marginBottom: "14px", opacity: 0.9, fontSize: "14px" }}>
                         Transport : {entreprise.typeTransport}
                       </div>
 
@@ -319,22 +358,49 @@ export default async function SocietePage() {
                 gap: "12px",
               }}
             >
-              {chauffeurs.map((chauffeur) => (
-                <div
-                  key={chauffeur.id}
-                  style={{
-                    background: "rgba(255,255,255,0.08)",
-                    borderRadius: "12px",
-                    padding: "14px",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
-                >
-                  <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
-                    {chauffeur.nom}
+              {chauffeurs.map((chauffeur) => {
+                const enLigne = chauffeur.statut === "En ligne";
+
+                return (
+                  <div
+                    key={chauffeur.id}
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      borderRadius: "12px",
+                      padding: "14px",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                      {chauffeur.nom}
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        opacity: 0.95,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "10px",
+                          height: "10px",
+                          borderRadius: "50%",
+                          backgroundColor: enLigne ? "#22c55e" : "#ef4444",
+                          display: "inline-block",
+                          boxShadow: enLigne
+                            ? "0 0 8px rgba(34,197,94,0.8)"
+                            : "0 0 8px rgba(239,68,68,0.8)",
+                        }}
+                      />
+                      {chauffeur.statut}
+                    </div>
                   </div>
-                  <div style={{ opacity: 0.85 }}>{chauffeur.statut}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </aside>
         </div>
@@ -349,6 +415,17 @@ const menuButtonStyle = {
   border: "none",
   background: "rgba(255,255,255,0.08)",
   color: "white",
+  textAlign: "left" as const,
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const logoutButtonStyle = {
+  padding: "12px 14px",
+  borderRadius: "10px",
+  border: "none",
+  background: "rgba(180, 35, 35, 0.35)",
+  color: "#ff4d4d",
   textAlign: "left" as const,
   fontWeight: "bold",
   cursor: "pointer",

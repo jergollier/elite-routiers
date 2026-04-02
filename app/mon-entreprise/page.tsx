@@ -272,6 +272,25 @@ export default async function MonEntreprisePage() {
                 <button style={menuButtonStyle}>Classement</button>
                 <button style={menuButtonStyle}>Paramètres</button>
               </nav>
+
+              <a
+  href="/api/logout"
+  style={{
+    padding: "12px 14px",
+    borderRadius: "10px",
+    border: "none",
+    background: "rgba(255,80,80,0.2)",
+    color: "#ff4d4d",
+    textAlign: "left",
+    fontWeight: "bold",
+    cursor: "pointer",
+    textDecoration: "none",
+    display: "block",
+    marginTop: "10px",
+  }}
+>
+  Déconnexion
+</a>
             </aside>
 
             <section

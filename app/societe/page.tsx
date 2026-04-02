@@ -231,13 +231,16 @@ export default async function SocietePage() {
                             height: "10px",
                             borderRadius: "50%",
                             display: "inline-block",
-                            background: entreprise.recrutement ? "#22c55e" : "#ef4444",
+                            background: entreprise.recrutement
+                              ? "#22c55e"
+                              : "#ef4444",
                             boxShadow: entreprise.recrutement
                               ? "0 0 8px #22c55e"
                               : "0 0 8px #ef4444",
                           }}
                         />
-                        Recrutement : {entreprise.recrutement ? "Ouvert" : "Fermé"}
+                        Recrutement :{" "}
+                        {entreprise.recrutement ? "Ouvert" : "Fermé"}
                       </div>
 
                       <div
@@ -303,7 +306,6 @@ export default async function SocietePage() {
                           background: "rgba(255,255,255,0.12)",
                           borderRadius: "8px",
                           color: "rgba(255,255,255,0.7)",
-                          textDecoration: "none",
                           fontWeight: "bold",
                           fontSize: "13px",
                           cursor: "not-allowed",

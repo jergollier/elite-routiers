@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import Menu from "@/app/components/Menu";
 
 type PageProps = {
   params: Promise<{
@@ -31,6 +30,14 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
     },
     include: {
       owner: true,
+      membres: {
+        include: {
+          user: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
     },
   });
 
@@ -38,15 +45,25 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const estProprietaire = entreprise.ownerSteamId === steamId;
+  const directeurs = entreprise.membres.filter(
+    (membre) => membre.role === "DIRECTEUR"
+  );
 
-  const chauffeurs = [
-    {
-      id: 1,
-      nom: entreprise.owner.username || "Patron",
-      statut: "Directeur",
-    },
-  ];
+  const sousDirecteurs = entreprise.membres.filter(
+    (membre) => membre.role === "SOUS_DIRECTEUR"
+  );
+
+  const chefsEquipe = entreprise.membres.filter(
+    (membre) => membre.role === "CHEF_EQUIPE"
+  );
+
+  const chefsAtelier = entreprise.membres.filter(
+    (membre) => membre.role === "CHEF_ATELIER"
+  );
+
+  const chauffeurs = entreprise.membres.filter(
+    (membre) => membre.role === "CHAUFFEUR"
+  );
 
   return (
     <main
@@ -149,7 +166,14 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
                 }}
               >
                 <h1 style={{ margin: 0, fontSize: "38px" }}>{entreprise.nom}</h1>
-                <div style={{ marginTop: "8px", fontWeight: "bold", opacity: 0.95 }}>
+
+                <div
+                  style={{
+                    marginTop: "8px",
+                    fontWeight: "bold",
+                    opacity: 0.95,
+                  }}
+                >
                   [{entreprise.abreviation}] • {entreprise.jeu}
                 </div>
               </div>
@@ -209,9 +233,7 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
                   flexWrap: "wrap",
                 }}
               >
-                {estProprietaire ? (
-                  <button style={mainButtonStyle}>Gérer mon entreprise</button>
-                ) : entreprise.recrutement ? (
+                {entreprise.recrutement ? (
                   <button style={mainButtonStyle}>Postuler</button>
                 ) : (
                   <button
@@ -233,57 +255,100 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "20px",
+              gap: "16px",
             }}
           >
-            <div
-              style={{
-                background: "rgba(0, 0, 0, 0.45)",
-                borderRadius: "16px",
-                padding: "20px",
-                backdropFilter: "blur(6px)",
-                boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-              }}
-            >
+            <div style={asideBoxStyle}>
               <h2 style={{ marginTop: 0, marginBottom: "16px" }}>Direction</h2>
 
-              <div style={sideCardStyle}>
-                <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
-                  {entreprise.owner.username || "Utilisateur Steam"}
-                </div>
-                <div style={{ opacity: 0.85 }}>
-                  {estProprietaire ? "Votre entreprise" : "Directeur"}
-                </div>
-              </div>
+              {directeurs.length > 0 ? (
+                directeurs.map((membre) => (
+                  <div key={membre.id} style={sideCardStyle}>
+                    <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
+                      {membre.user.username || "Utilisateur Steam"}
+                    </div>
+                    <div style={{ opacity: 0.85 }}>Directeur</div>
+                  </div>
+                ))
+              ) : (
+                <div style={emptyTextStyle}>Aucun directeur affiché</div>
+              )}
             </div>
 
-            <div
-              style={{
-                background: "rgba(0, 0, 0, 0.45)",
-                borderRadius: "16px",
-                padding: "20px",
-                backdropFilter: "blur(6px)",
-                boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-              }}
-            >
+            {sousDirecteurs.length > 0 && (
+              <div style={asideBoxStyle}>
+                <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
+                  Sous-directeurs
+                </h2>
+
+                <div style={stackStyle}>
+                  {sousDirecteurs.map((membre) => (
+                    <div key={membre.id} style={sideCardStyle}>
+                      <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
+                        {membre.user.username || "Utilisateur Steam"}
+                      </div>
+                      <div style={{ opacity: 0.85 }}>Sous-directeur</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {chefsEquipe.length > 0 && (
+              <div style={asideBoxStyle}>
+                <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
+                  Chefs d’équipe
+                </h2>
+
+                <div style={stackStyle}>
+                  {chefsEquipe.map((membre) => (
+                    <div key={membre.id} style={sideCardStyle}>
+                      <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
+                        {membre.user.username || "Utilisateur Steam"}
+                      </div>
+                      <div style={{ opacity: 0.85 }}>Chef d’équipe</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {chefsAtelier.length > 0 && (
+              <div style={asideBoxStyle}>
+                <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
+                  Chef atelier
+                </h2>
+
+                <div style={stackStyle}>
+                  {chefsAtelier.map((membre) => (
+                    <div key={membre.id} style={sideCardStyle}>
+                      <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
+                        {membre.user.username || "Utilisateur Steam"}
+                      </div>
+                      <div style={{ opacity: 0.85 }}>Chef atelier</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={asideBoxStyle}>
               <h2 style={{ marginTop: 0, marginBottom: "16px" }}>Chauffeurs</h2>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                }}
-              >
-                {chauffeurs.map((chauffeur) => (
-                  <div key={chauffeur.id} style={sideCardStyle}>
-                    <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
-                      {chauffeur.nom}
+              {chauffeurs.length > 0 ? (
+                <div style={stackStyle}>
+                  {chauffeurs.map((membre) => (
+                    <div key={membre.id} style={sideCardStyle}>
+                      <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
+                        {membre.user.username || "Utilisateur Steam"}
+                      </div>
+                      <div style={{ opacity: 0.85 }}>Chauffeur</div>
                     </div>
-                    <div style={{ opacity: 0.85 }}>{chauffeur.statut}</div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={emptyTextStyle}>Aucun chauffeur pour le moment</div>
+              )}
             </div>
           </aside>
         </div>
@@ -304,6 +369,14 @@ const contentCardStyle = {
   borderRadius: "14px",
   padding: "20px",
   border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const asideBoxStyle = {
+  background: "rgba(0, 0, 0, 0.45)",
+  borderRadius: "16px",
+  padding: "20px",
+  backdropFilter: "blur(6px)",
+  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
 };
 
 const sideCardStyle = {
@@ -332,4 +405,14 @@ const mainButtonStyle = {
   color: "white",
   fontWeight: "bold",
   cursor: "pointer",
+};
+
+const stackStyle = {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: "12px",
+};
+
+const emptyTextStyle = {
+  opacity: 0.7,
 };

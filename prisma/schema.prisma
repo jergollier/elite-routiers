@@ -6,34 +6,60 @@ datasource db {
   provider = "postgresql"
 }
 
+enum RoleEntreprise {
+  DIRECTEUR
+  SOUS_DIRECTEUR
+  CHEF_EQUIPE
+  CHEF_ATELIER
+  CHAUFFEUR
+}
+
 model User {
-  id           String       @id @default(cuid())
-  steamId      String       @unique
-  username     String?
-  avatar       String?
-  age          Int?
-  region       String?
-  email        String?      @unique
-  password     String?
-  createdAt    DateTime     @default(now())
-  entreprises  Entreprise[]
+  id                String              @id @default(cuid())
+  steamId           String              @unique
+  username          String?
+  avatar            String?
+  age               Int?
+  region            String?
+  email             String?             @unique
+  password          String?
+  createdAt         DateTime            @default(now())
+
+  entreprisesCreees Entreprise[]        @relation("EntrepriseOwner")
+  memberships       EntrepriseMembre[]
 }
 
 model Entreprise {
-  id             Int      @id @default(autoincrement())
+  id             Int                 @id @default(autoincrement())
   nom            String
-  abreviation    String   @db.VarChar(3)
+  abreviation    String              @db.VarChar(3)
   villeETS2      String?
   villeATS       String?
   jeu            String
   typeTransport  String
   description    String
-  recrutement    Boolean  @default(true)
+  recrutement    Boolean             @default(true)
   banniere       String?
   ownerSteamId   String
-  createdAt      DateTime @default(now())
+  createdAt      DateTime            @default(now())
 
-  owner          User     @relation(fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
+  owner          User                @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
+  membres        EntrepriseMembre[]
 
   @@index([ownerSteamId])
+}
+
+model EntrepriseMembre {
+  id            Int             @id @default(autoincrement())
+  userId        String
+  entrepriseId  Int
+  role          RoleEntreprise  @default(CHAUFFEUR)
+  createdAt     DateTime        @default(now())
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entreprise    Entreprise      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entrepriseId])
+  @@index([entrepriseId])
+  @@index([userId])
 }

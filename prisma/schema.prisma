@@ -1,38 +1,20 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
-}
-
-datasource db {
-  provider = "postgresql"
-}
-
-model User {
-  id        String   @id @default(cuid())
-  steamId   String   @unique
-  username  String?
-  avatar    String?
-  age       Int?
-  region    String?
-  createdAt DateTime @default(now())
-
-}
-
-generator client {
   provider = "prisma-client-js"
-  output   = "../app/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-  id           Int          @id @default(autoincrement())
+  id           String       @id @default(cuid())
   steamId      String       @unique
-  email        String       @unique
-  password     String
+  username     String?
+  avatar       String?
+  age          Int?
+  region       String?
+  email        String?      @unique
+  password     String?
   createdAt    DateTime     @default(now())
   entreprises  Entreprise[]
 }

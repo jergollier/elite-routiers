@@ -1,14 +1,9 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 
 export default async function Home() {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
-
-  if (steamId) {
-    redirect("/societe");
-  }
 
   return (
     <main
@@ -22,20 +17,37 @@ export default async function Home() {
         backgroundPosition: "center",
       }}
     >
-      <a
-        href="/api/steam"
-        style={{
-          padding: "20px 30px",
-          background: "#171a21",
-          borderRadius: "10px",
-          color: "white",
-          fontWeight: "bold",
-          textDecoration: "none",
-          fontSize: "20px",
-        }}
-      >
-        Se connecter avec Steam
-      </a>
+      {!steamId ? (
+        <a
+          href="/api/steam"
+          style={{
+            padding: "20px 30px",
+            background: "#171a21",
+            borderRadius: "10px",
+            color: "white",
+            fontWeight: "bold",
+            textDecoration: "none",
+            fontSize: "20px",
+          }}
+        >
+          Se connecter avec Steam
+        </a>
+      ) : (
+        <Link
+          href="/societe"
+          style={{
+            padding: "20px 30px",
+            background: "#171a21",
+            borderRadius: "10px",
+            color: "white",
+            fontWeight: "bold",
+            textDecoration: "none",
+            fontSize: "20px",
+          }}
+        >
+          Accéder au site
+        </Link>
+      )}
     </main>
   );
 }

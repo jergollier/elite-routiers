@@ -18,6 +18,14 @@ export default async function SocietePage() {
     },
   });
 
+  const chauffeurs = [
+    { id: 1, nom: "RoutierMax", statut: "connecté" },
+    { id: 2, nom: "Pierre_ETS2", statut: "déconnecté" },
+    { id: 3, nom: "Camion59", statut: "connecté" },
+    { id: 4, nom: "TruckMan", statut: "déconnecté" },
+    { id: 5, nom: "BossDuBitume", statut: "connecté" },
+  ];
+
   return (
     <main
       style={{
@@ -63,15 +71,47 @@ export default async function SocietePage() {
             Elite Routiers
           </div>
 
-          <span style={{ fontWeight: "bold" }}>
-            Entreprises : {entreprises.length}
-          </span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "18px",
+              fontWeight: "bold",
+              flexWrap: "wrap",
+            }}
+          >
+            <div>Entreprises : {entreprises.length}</div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "rgba(255,255,255,0.08)",
+                padding: "8px 14px",
+                borderRadius: "999px",
+                border: "1px solid rgba(255,255,255,0.12)",
+              }}
+            >
+              <span
+                style={{
+                  width: "10px",
+                  height: "10px",
+                  borderRadius: "50%",
+                  background: "#22c55e",
+                  display: "inline-block",
+                  boxShadow: "0 0 8px #22c55e",
+                }}
+              />
+              <span>Connexion Steam OK</span>
+            </div>
+          </div>
         </header>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "260px 1fr",
+            gridTemplateColumns: "260px 1fr 280px",
             gap: "20px",
             padding: "20px",
             flex: 1,
@@ -96,9 +136,10 @@ export default async function SocietePage() {
                 marginBottom: "20px",
                 flexWrap: "wrap",
                 gap: "10px",
+                alignItems: "center",
               }}
             >
-              <h2 style={{ margin: 0 }}>Entreprises</h2>
+              <h2 style={{ margin: 0 }}>Entreprises du site</h2>
 
               <Link
                 href="/societe/create"
@@ -118,9 +159,8 @@ export default async function SocietePage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: "16px",
+                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gap: "14px",
               }}
             >
               {entreprises.map((entreprise) => (
@@ -135,23 +175,27 @@ export default async function SocietePage() {
                 >
                   <div
                     style={{
-                      height: "100px",
-                      backgroundImage: `url('${
-                        entreprise.banniere || "/truck.jpg"
-                      }')`,
+                      height: "80px",
+                      backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
                       backgroundSize: "cover",
                       backgroundPosition: "center",
                     }}
                   />
 
-                  <div style={{ padding: "12px" }}>
-                    <div style={{ fontWeight: "bold" }}>
+                  <div style={{ padding: "10px" }}>
+                    <div
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: "15px",
+                        marginBottom: "4px",
+                      }}
+                    >
                       {entreprise.nom}
                     </div>
 
                     <div
                       style={{
-                        fontSize: "13px",
+                        fontSize: "12px",
                         opacity: 0.8,
                         marginBottom: "10px",
                       }}
@@ -164,12 +208,13 @@ export default async function SocietePage() {
                       style={{
                         display: "block",
                         textAlign: "center",
-                        padding: "10px",
+                        padding: "9px",
                         background: "#171a21",
                         borderRadius: "8px",
                         color: "white",
                         textDecoration: "none",
                         fontWeight: "bold",
+                        fontSize: "13px",
                       }}
                     >
                       Voir entreprise
@@ -179,10 +224,87 @@ export default async function SocietePage() {
               ))}
 
               {entreprises.length === 0 && (
-                <div>Aucune entreprise pour le moment.</div>
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    textAlign: "center",
+                    padding: "20px",
+                    background: "rgba(255,255,255,0.05)",
+                    borderRadius: "12px",
+                  }}
+                >
+                  Aucune entreprise pour le moment.
+                </div>
               )}
             </div>
           </section>
+
+          <aside
+            style={{
+              background: "rgba(0, 0, 0, 0.45)",
+              borderRadius: "16px",
+              padding: "20px",
+              backdropFilter: "blur(6px)",
+              boxShadow: "0 0 20px rgba(0,0,0,0.4)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <h2 style={{ marginTop: 0, marginBottom: "18px" }}>Chauffeurs</h2>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              {chauffeurs.map((chauffeur) => {
+                const isConnected = chauffeur.statut === "connecté";
+
+                return (
+                  <div
+                    key={chauffeur.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      padding: "12px",
+                      borderRadius: "10px",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div style={{ fontWeight: "bold" }}>{chauffeur.nom}</div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        fontSize: "13px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "10px",
+                          height: "10px",
+                          borderRadius: "50%",
+                          display: "inline-block",
+                          background: isConnected ? "#22c55e" : "#ef4444",
+                          boxShadow: isConnected
+                            ? "0 0 8px #22c55e"
+                            : "0 0 8px #ef4444",
+                        }}
+                      />
+                      <span>{chauffeur.statut}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
         </div>
       </div>
     </main>

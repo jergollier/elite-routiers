@@ -118,7 +118,7 @@ export default async function SocietePage() {
 
               {/* BOUTON QUI MARCHE */}
               <a
-  href="/societe/creer"
+  href="/societe/create"
   style={{
     ...menuButtonStyle,
     textDecoration: "none",

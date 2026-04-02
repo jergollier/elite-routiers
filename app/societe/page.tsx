@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
 export default async function SocietePage() {
   const cookieStore = await cookies();
@@ -10,26 +11,17 @@ export default async function SocietePage() {
     redirect("/");
   }
 
-  const entreprises = [
-    {
-      id: 1,
-      nom: "Transports du Nord",
-      image: "/truck.jpg",
-      recrute: true,
+  const entreprises = await prisma.entreprise.findMany({
+    orderBy: {
+      createdAt: "desc",
     },
-    {
-      id: 2,
-      nom: "Atlantic Road",
-      image: "/truck.jpg",
-      recrute: false,
+  });
+
+  const monEntreprise = await prisma.entreprise.findFirst({
+    where: {
+      ownerSteamId: steamId,
     },
-    {
-      id: 3,
-      nom: "Elite Cargo",
-      image: "/truck.jpg",
-      recrute: true,
-    },
-  ];
+  });
 
   const chauffeurs = [
     { id: 1, nom: "RoutierMax", statut: "En ligne" },
@@ -91,8 +83,8 @@ export default async function SocietePage() {
               fontWeight: "bold",
             }}
           >
-            <span>Entreprises : 3</span>
-            <span>Chauffeurs : 4</span>
+            <span>Entreprises : {entreprises.length}</span>
+            <span>Chauffeurs : {chauffeurs.length}</span>
             <span>Connecté</span>
           </div>
         </header>
@@ -127,9 +119,32 @@ export default async function SocietePage() {
             >
               <button style={menuButtonStyle}>Accueil</button>
               <button style={menuButtonStyle}>Mon profil</button>
-              <button style={menuButtonStyle}>Mon entreprise</button>
 
-              <a
+              {monEntreprise ? (
+                <Link
+                  href={`/entreprise/${monEntreprise.id}`}
+                  style={{
+                    ...menuButtonStyle,
+                    textDecoration: "none",
+                    display: "block",
+                  }}
+                >
+                  Mon entreprise
+                </Link>
+              ) : (
+                <button
+                  style={{
+                    ...menuButtonStyle,
+                    opacity: 0.5,
+                    cursor: "not-allowed",
+                  }}
+                  disabled
+                >
+                  Mon entreprise
+                </button>
+              )}
+
+              <Link
                 href="/societe/create"
                 style={{
                   ...menuButtonStyle,
@@ -138,7 +153,7 @@ export default async function SocietePage() {
                 }}
               >
                 Créer une entreprise
-              </a>
+              </Link>
 
               <button style={menuButtonStyle}>Classement</button>
               <button style={menuButtonStyle}>Paramètres</button>
@@ -186,63 +201,100 @@ export default async function SocietePage() {
               </div>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: "16px",
-              }}
-            >
-              {entreprises.map((entreprise) => (
-                <div
-                  key={entreprise.id}
-                  style={{
-                    background: "rgba(255,255,255,0.08)",
-                    borderRadius: "14px",
-                    overflow: "hidden",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                  }}
-                >
+            {entreprises.length === 0 ? (
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  borderRadius: "14px",
+                  padding: "20px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                Aucune entreprise créée pour le moment.
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "16px",
+                }}
+              >
+                {entreprises.map((entreprise) => (
                   <div
+                    key={entreprise.id}
                     style={{
-                      height: "140px",
-                      backgroundImage: `url('${entreprise.image}')`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
+                      background: "rgba(255,255,255,0.08)",
+                      borderRadius: "14px",
+                      overflow: "hidden",
+                      border: "1px solid rgba(255,255,255,0.1)",
                     }}
-                  />
-
-                  <div style={{ padding: "16px" }}>
-                    <h3 style={{ marginTop: 0, marginBottom: "12px" }}>
-                      {entreprise.nom}
-                    </h3>
-
+                  >
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        marginBottom: "16px",
-                        fontWeight: "bold",
+                        height: "140px",
+                        backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
                       }}
-                    >
-                      <span
-                        style={{
-                          width: "10px",
-                          height: "10px",
-                          borderRadius: "50%",
-                          backgroundColor: entreprise.recrute ? "#22c55e" : "#ef4444",
-                          display: "inline-block",
-                        }}
-                      />
-                      {entreprise.recrute ? "Recrute" : "Ne recrute pas"}
-                    </div>
+                    />
 
-                    <button style={applyButtonStyle}>Postuler</button>
+                    <div style={{ padding: "16px" }}>
+                      <h3 style={{ marginTop: 0, marginBottom: "12px" }}>
+                        {entreprise.nom}
+                      </h3>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          marginBottom: "8px",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "10px",
+                            height: "10px",
+                            borderRadius: "50%",
+                            backgroundColor: entreprise.recrutement
+                              ? "#22c55e"
+                              : "#ef4444",
+                            display: "inline-block",
+                          }}
+                        />
+                        {entreprise.recrutement ? "Recrute" : "Ne recrute pas"}
+                      </div>
+
+                      <div style={{ marginBottom: "6px", opacity: 0.9 }}>
+                        Abréviation : {entreprise.abreviation}
+                      </div>
+
+                      <div style={{ marginBottom: "6px", opacity: 0.9 }}>
+                        Jeu : {entreprise.jeu}
+                      </div>
+
+                      <div style={{ marginBottom: "16px", opacity: 0.9 }}>
+                        Transport : {entreprise.typeTransport}
+                      </div>
+
+                      <Link
+                        href={`/entreprise/${entreprise.id}`}
+                        style={{
+                          ...applyButtonStyle,
+                          display: "block",
+                          textDecoration: "none",
+                          textAlign: "center",
+                        }}
+                      >
+                        Voir l’entreprise
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
 
           <aside

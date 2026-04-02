@@ -15,4 +15,42 @@ model User {
   age       Int?
   region    String?
   createdAt DateTime @default(now())
+
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  steamId      String       @unique
+  email        String       @unique
+  password     String
+  createdAt    DateTime     @default(now())
+  entreprises  Entreprise[]
+}
+
+model Entreprise {
+  id             Int      @id @default(autoincrement())
+  nom            String
+  abreviation    String   @db.VarChar(3)
+  ville          String
+  jeu            String
+  typeTransport  String
+  description    String
+  recrutement    Boolean  @default(true)
+  banniere       String?
+  ownerSteamId   String
+  createdAt      DateTime @default(now())
+
+  owner          User     @relation(fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
+
+  @@index([ownerSteamId])
 }

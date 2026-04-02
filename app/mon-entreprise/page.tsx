@@ -13,58 +13,32 @@ export default async function MonEntreprisePage() {
 
   const user = await prisma.user.findUnique({
     where: { steamId },
-  });
-
-  if (!user) {
-    redirect("/societe");
-  }
-
-  const entrepriseOwner = await prisma.entreprise.findFirst({
-    where: {
-      ownerSteamId: steamId,
-    },
     include: {
-      membres: {
+      memberships: {
         include: {
-          user: true,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-      },
-    },
-  });
-
-  const membership = await prisma.entrepriseMembre.findFirst({
-    where: {
-      userId: user.id,
-    },
-    include: {
-      entreprise: {
-        include: {
-          membres: {
+          entreprise: {
             include: {
-              user: true,
-            },
-            orderBy: {
-              createdAt: "asc",
+              membres: {
+                include: {
+                  user: true,
+                },
+                orderBy: {
+                  createdAt: "asc",
+                },
+              },
             },
           },
         },
       },
     },
-    orderBy: {
-      createdAt: "asc",
-    },
   });
 
-  const entreprise = entrepriseOwner || membership?.entreprise;
-
-  if (!entreprise) {
+  if (!user || user.memberships.length === 0) {
     redirect("/societe");
   }
 
-  const role = entrepriseOwner ? "DIRECTEUR" : membership?.role || "CHAUFFEUR";
+  const membership = user.memberships[0];
+  const entreprise = membership.entreprise as any;
 
   const argentSociete = 125000;
   const cuveMax = 10000;
@@ -159,26 +133,8 @@ export default async function MonEntreprisePage() {
             }}
           >
             <span>Entreprise : {entreprise.nom}</span>
-            <span>Rôle : {role.replaceAll("_", " ")}</span>
-            <span
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <span
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  backgroundColor: "#22c55e",
-                  display: "inline-block",
-                  boxShadow: "0 0 8px rgba(34,197,94,0.8)",
-                }}
-              />
-              Steam connecté
-            </span>
+            <span>Rôle : {membership.role.replaceAll("_", " ")}</span>
+            <span>Connecté</span>
           </div>
         </header>
 

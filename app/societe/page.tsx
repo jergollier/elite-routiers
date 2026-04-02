@@ -122,7 +122,7 @@ export default async function SocietePage() {
 
               {monEntreprise ? (
                 <Link
-                  href={`/entreprise/${monEntreprise.id}`}
+                  href="/mon-entreprise"
                   style={{
                     ...menuButtonStyle,
                     textDecoration: "none",

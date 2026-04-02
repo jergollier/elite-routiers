@@ -25,12 +25,6 @@ model User {
   password          String?
   createdAt         DateTime            @default(now())
 
-  livraisons        Int                 @default(0)
-  kilometres        Int                 @default(0)
-  infractions       Int                 @default(0)
-  accidents         Int                 @default(0)
-  revenus           Int                 @default(0)
-
   entreprisesCreees Entreprise[]        @relation("EntrepriseOwner")
   memberships       EntrepriseMembre[]
 }

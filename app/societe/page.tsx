@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 
 export default async function SocietePage() {
   const cookieStore = await cookies();
@@ -118,16 +117,16 @@ export default async function SocietePage() {
               <button style={menuButtonStyle}>Mon entreprise</button>
 
               {/* BOUTON QUI MARCHE */}
-              <Link
-                href="/societe/creer"
-                style={{
-                  ...menuButtonStyle,
-                  textDecoration: "none",
-                  display: "block",
-                }}
-              >
-                Créer une entreprise
-              </Link>
+              <a
+  href="/societe/creer"
+  style={{
+    ...menuButtonStyle,
+    textDecoration: "none",
+    display: "block",
+  }}
+>
+  Créer une entreprise
+</a>
 
               <button style={menuButtonStyle}>Classement</button>
               <button style={menuButtonStyle}>Paramètres</button>

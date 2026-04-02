@@ -16,6 +16,13 @@ export default async function SocietePage() {
     orderBy: {
       createdAt: "desc",
     },
+    include: {
+      _count: {
+        select: {
+          membres: true,
+        },
+      },
+    },
   });
 
   const chauffeurs = [
@@ -214,7 +221,7 @@ export default async function SocietePage() {
                           opacity: 0.9,
                         }}
                       >
-                        🚛 Chauffeurs : 0
+                        🚛 Chauffeurs : {entreprise._count.membres}
                       </div>
                     </div>
                   </div>

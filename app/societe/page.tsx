@@ -1,10 +1,15 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import Menu from "@/app/components/Menu";
 
-export default async function SocietePage() {
+type PageProps = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export default async function PostulerPage({ params }: PageProps) {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
 
@@ -12,26 +17,37 @@ export default async function SocietePage() {
     redirect("/");
   }
 
-  const entreprises = await prisma.entreprise.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      _count: {
-        select: {
-          membres: true,
+  const { id } = await params;
+  const entrepriseId = Number(id);
+
+  if (!entrepriseId || Number.isNaN(entrepriseId)) {
+    notFound();
+  }
+
+  const [entreprise, user] = await Promise.all([
+    prisma.entreprise.findUnique({
+      where: {
+        id: entrepriseId,
+      },
+      include: {
+        owner: true,
+        _count: {
+          select: {
+            membres: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.user.findUnique({
+      where: {
+        steamId,
+      },
+    }),
+  ]);
 
-  const chauffeurs = [
-    { id: 1, nom: "RoutierMax", statut: "connecté" },
-    { id: 2, nom: "Pierre_ETS2", statut: "déconnecté" },
-    { id: 3, nom: "Camion59", statut: "connecté" },
-    { id: 4, nom: "TruckMan", statut: "déconnecté" },
-    { id: 5, nom: "BossDuBitume", statut: "connecté" },
-  ];
+  if (!entreprise) {
+    notFound();
+  }
 
   return (
     <main
@@ -49,7 +65,7 @@ export default async function SocietePage() {
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.55)",
+          background: "rgba(0, 0, 0, 0.65)",
         }}
       />
 
@@ -78,59 +94,31 @@ export default async function SocietePage() {
             Elite Routiers
           </div>
 
-          <div
+          <Link
+            href={`/entreprise/${entreprise.id}`}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "18px",
+              color: "white",
+              textDecoration: "none",
               fontWeight: "bold",
-              flexWrap: "wrap",
             }}
           >
-            <div>Entreprises : {entreprises.length}</div>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "rgba(255,255,255,0.08)",
-                padding: "8px 14px",
-                borderRadius: "999px",
-                border: "1px solid rgba(255,255,255,0.12)",
-              }}
-            >
-              <span
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  background: "#22c55e",
-                  display: "inline-block",
-                  boxShadow: "0 0 8px #22c55e",
-                }}
-              />
-              <span>Connexion Steam OK</span>
-            </div>
-          </div>
+            ← Retour à l’entreprise
+          </Link>
         </header>
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "260px 1fr 280px",
-            gap: "20px",
-            padding: "20px",
-            flex: 1,
+            maxWidth: "1100px",
+            width: "100%",
+            margin: "0 auto",
+            padding: "24px",
           }}
         >
-          <Menu />
-
           <section
             style={{
               background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "16px",
-              padding: "20px",
+              borderRadius: "18px",
+              overflow: "hidden",
               backdropFilter: "blur(6px)",
               boxShadow: "0 0 20px rgba(0,0,0,0.4)",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -138,270 +126,398 @@ export default async function SocietePage() {
           >
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "20px",
-                flexWrap: "wrap",
-                gap: "10px",
-                alignItems: "center",
+                height: "240px",
+                backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                position: "relative",
               }}
             >
-              <h2 style={{ margin: 0 }}>Entreprises du site</h2>
-
-              <Link
-                href="/societe/create"
+              <div
                 style={{
-                  padding: "10px 16px",
-                  background: "#171a21",
-                  borderRadius: "10px",
-                  color: "white",
-                  textDecoration: "none",
-                  fontWeight: "bold",
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "linear-gradient(to top, rgba(0,0,0,0.88), rgba(0,0,0,0.20))",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "absolute",
+                  left: "24px",
+                  bottom: "24px",
+                  right: "24px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-end",
+                  gap: "16px",
+                  flexWrap: "wrap",
                 }}
               >
-                + Créer une entreprise
-              </Link>
+                <div>
+                  <h1 style={{ margin: 0, fontSize: "36px" }}>
+                    Postuler chez {entreprise.nom}
+                  </h1>
+
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      fontWeight: "bold",
+                      opacity: 0.95,
+                    }}
+                  >
+                    [{entreprise.abreviation}] • {entreprise.jeu}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    background: "rgba(255,255,255,0.10)",
+                    padding: "10px 14px",
+                    borderRadius: "999px",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    fontWeight: "bold",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "10px",
+                      height: "10px",
+                      borderRadius: "50%",
+                      display: "inline-block",
+                      background: entreprise.recrutement ? "#22c55e" : "#ef4444",
+                      boxShadow: entreprise.recrutement
+                        ? "0 0 8px #22c55e"
+                        : "0 0 8px #ef4444",
+                    }}
+                  />
+                  {entreprise.recrutement
+                    ? "Recrutement ouvert"
+                    : "Recrutement fermé"}
+                </div>
+              </div>
             </div>
 
             <div
               style={{
+                padding: "24px",
                 display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                gap: "14px",
+                gridTemplateColumns: "320px 1fr",
+                gap: "20px",
               }}
             >
-              {entreprises.map((entreprise) => (
-                <div
-                  key={entreprise.id}
+              <aside
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
+                <div style={boxStyle}>
+                  <h2 style={{ marginTop: 0, marginBottom: "14px" }}>
+                    Infos rapides
+                  </h2>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Entreprise</span>
+                    <span style={valueStyle}>{entreprise.nom}</span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Jeu</span>
+                    <span style={valueStyle}>{entreprise.jeu}</span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Transport</span>
+                    <span style={valueStyle}>{entreprise.typeTransport}</span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Membres</span>
+                    <span style={valueStyle}>{entreprise._count.membres}</span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Directeur</span>
+                    <span style={valueStyle}>
+                      {entreprise.owner.username || "Utilisateur Steam"}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={boxStyle}>
+                  <h2 style={{ marginTop: 0, marginBottom: "10px" }}>
+                    Avant de postuler
+                  </h2>
+
+                  <p style={smallTextStyle}>
+                    Remplis ce formulaire proprement. Cette page est prête
+                    visuellement. Ensuite on branchera l’envoi réel de la
+                    candidature en base de données.
+                  </p>
+                </div>
+              </aside>
+
+              <section style={boxStyle}>
+                <h2 style={{ marginTop: 0, marginBottom: "8px" }}>
+                  Formulaire de candidature
+                </h2>
+
+                <p
                   style={{
-                    background: "rgba(255,255,255,0.08)",
-                    borderRadius: "12px",
-                    overflow: "hidden",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    marginTop: 0,
+                    marginBottom: "20px",
+                    opacity: 0.85,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Présente-toi simplement pour donner envie au directeur de te
+                  recruter.
+                </p>
+
+                <form
+                  style={{
                     display: "flex",
                     flexDirection: "column",
-                    justifyContent: "space-between",
+                    gap: "16px",
                   }}
                 >
-                  <div>
-                    <div
-                      style={{
-                        height: "80px",
-                        backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }}
-                    />
-
-                    <div style={{ padding: "10px" }}>
-                      <div
-                        style={{
-                          fontWeight: "bold",
-                          fontSize: "15px",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        {entreprise.nom}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          opacity: 0.8,
-                          marginBottom: "8px",
-                        }}
-                      >
-                        [{entreprise.abreviation}]
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: "13px",
-                          marginBottom: "8px",
-                          opacity: 0.95,
-                          fontWeight: "bold",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: "10px",
-                            height: "10px",
-                            borderRadius: "50%",
-                            display: "inline-block",
-                            background: entreprise.recrutement
-                              ? "#22c55e"
-                              : "#ef4444",
-                            boxShadow: entreprise.recrutement
-                              ? "0 0 8px #22c55e"
-                              : "0 0 8px #ef4444",
-                          }}
-                        />
-                        Recrutement :{" "}
-                        {entreprise.recrutement ? "Ouvert" : "Fermé"}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: "13px",
-                          marginBottom: "12px",
-                          opacity: 0.9,
-                        }}
-                      >
-                        🚛 Chauffeurs : {entreprise._count.membres}
-                      </div>
+                  <div style={gridTwoStyle}>
+                    <div>
+                      <label style={inputLabelStyle}>Pseudo Steam</label>
+                      <input
+                        type="text"
+                        value={user?.username || "Utilisateur Steam"}
+                        disabled
+                        style={disabledInputStyle}
+                      />
                     </div>
+
+                    <div>
+                      <label style={inputLabelStyle}>Âge</label>
+                      <input
+                        type="number"
+                        placeholder="Ton âge"
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={gridTwoStyle}>
+                    <div>
+                      <label style={inputLabelStyle}>Région / Pays</label>
+                      <input
+                        type="text"
+                        placeholder="Exemple : France / Bourgogne"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={inputLabelStyle}>Jeu principal</label>
+                      <select defaultValue="ETS2" style={inputStyle}>
+                        <option value="ETS2">ETS2</option>
+                        <option value="ATS">ATS</option>
+                        <option value="LES_DEUX">Les deux</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={gridTwoStyle}>
+                    <div>
+                      <label style={inputLabelStyle}>Expérience</label>
+                      <select defaultValue="Intermédiaire" style={inputStyle}>
+                        <option value="DEBUTANT">Débutant</option>
+                        <option value="INTERMEDIAIRE">Intermédiaire</option>
+                        <option value="EXPERIMENTE">Expérimenté</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={inputLabelStyle}>Micro</label>
+                      <select defaultValue="Oui" style={inputStyle}>
+                        <option value="OUI">Oui</option>
+                        <option value="NON">Non</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={inputLabelStyle}>Disponibilités</label>
+                    <input
+                      type="text"
+                      placeholder="Exemple : le soir et le week-end"
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={inputLabelStyle}>
+                      Pourquoi veux-tu rejoindre cette entreprise ?
+                    </label>
+                    <textarea
+                      placeholder="Explique un peu ta motivation..."
+                      style={textareaStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={inputLabelStyle}>Message complémentaire</label>
+                    <textarea
+                      placeholder="Tu peux ajouter un petit message libre..."
+                      style={textareaStyle}
+                    />
                   </div>
 
                   <div
                     style={{
-                      padding: "10px",
                       display: "flex",
-                      flexDirection: "column",
-                      gap: "8px",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                      marginTop: "8px",
                     }}
                   >
-                    <Link
-                      href={`/entreprise/${entreprise.id}`}
-                      style={{
-                        display: "block",
-                        textAlign: "center",
-                        padding: "9px",
-                        background: "#171a21",
-                        borderRadius: "8px",
-                        color: "white",
-                        textDecoration: "none",
-                        fontWeight: "bold",
-                        fontSize: "13px",
-                      }}
-                    >
-                      Voir entreprise
-                    </Link>
-
                     {entreprise.recrutement ? (
-                      <Link
-                        href={`/entreprise/${entreprise.id}/postuler`}
-                        style={{
-                          display: "block",
-                          textAlign: "center",
-                          padding: "9px",
-                          background: "#2563eb",
-                          borderRadius: "8px",
-                          color: "white",
-                          textDecoration: "none",
-                          fontWeight: "bold",
-                          fontSize: "13px",
-                        }}
-                      >
-                        Postuler
-                      </Link>
+                      <button type="button" style={mainButtonStyle}>
+                        Envoyer ma candidature
+                      </button>
                     ) : (
-                      <div
+                      <button
+                        type="button"
                         style={{
-                          display: "block",
-                          textAlign: "center",
-                          padding: "9px",
-                          background: "rgba(255,255,255,0.12)",
-                          borderRadius: "8px",
-                          color: "rgba(255,255,255,0.7)",
-                          fontWeight: "bold",
-                          fontSize: "13px",
+                          ...mainButtonStyle,
+                          opacity: 0.5,
                           cursor: "not-allowed",
                         }}
+                        disabled
                       >
                         Recrutement fermé
-                      </div>
+                      </button>
                     )}
-                  </div>
-                </div>
-              ))}
 
-              {entreprises.length === 0 && (
-                <div
-                  style={{
-                    gridColumn: "1 / -1",
-                    textAlign: "center",
-                    padding: "20px",
-                    background: "rgba(255,255,255,0.05)",
-                    borderRadius: "12px",
-                  }}
-                >
-                  Aucune entreprise pour le moment.
-                </div>
-              )}
+                    <Link
+                      href={`/entreprise/${entreprise.id}`}
+                      style={secondaryButtonStyle}
+                    >
+                      Retour
+                    </Link>
+                  </div>
+                </form>
+              </section>
             </div>
           </section>
-
-          <aside
-            style={{
-              background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "16px",
-              padding: "20px",
-              backdropFilter: "blur(6px)",
-              boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <h2 style={{ marginTop: 0, marginBottom: "18px" }}>Chauffeurs</h2>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              {chauffeurs.map((chauffeur) => {
-                const isConnected = chauffeur.statut === "connecté";
-
-                return (
-                  <div
-                    key={chauffeur.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "10px",
-                      padding: "12px",
-                      borderRadius: "10px",
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <div style={{ fontWeight: "bold" }}>{chauffeur.nom}</div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        fontSize: "13px",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: "10px",
-                          height: "10px",
-                          borderRadius: "50%",
-                          display: "inline-block",
-                          background: isConnected ? "#22c55e" : "#ef4444",
-                          boxShadow: isConnected
-                            ? "0 0 8px #22c55e"
-                            : "0 0 8px #ef4444",
-                        }}
-                      />
-                      <span>{chauffeur.statut}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </aside>
         </div>
       </div>
     </main>
   );
 }
+
+const boxStyle = {
+  background: "rgba(255,255,255,0.08)",
+  borderRadius: "16px",
+  padding: "20px",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const infoLineStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "10px 0",
+  borderBottom: "1px solid rgba(255,255,255,0.06)",
+};
+
+const labelStyle = {
+  opacity: 0.8,
+};
+
+const valueStyle = {
+  fontWeight: "bold",
+};
+
+const smallTextStyle = {
+  margin: 0,
+  lineHeight: 1.6,
+  opacity: 0.9,
+};
+
+const gridTwoStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "16px",
+};
+
+const inputLabelStyle = {
+  display: "block",
+  marginBottom: "8px",
+  fontWeight: "bold",
+  fontSize: "14px",
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontSize: "14px",
+  outline: "none",
+  boxSizing: "border-box" as const,
+};
+
+const disabledInputStyle = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontSize: "14px",
+  outline: "none",
+  boxSizing: "border-box" as const,
+  opacity: 0.95,
+};
+
+const textareaStyle = {
+  width: "100%",
+  minHeight: "120px",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontSize: "14px",
+  outline: "none",
+  resize: "vertical" as const,
+  boxSizing: "border-box" as const,
+};
+
+const mainButtonStyle = {
+  padding: "12px 18px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+  textDecoration: "none",
+};
+
+const secondaryButtonStyle = {
+  padding: "12px 18px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+};

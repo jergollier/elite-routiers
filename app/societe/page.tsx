@@ -208,10 +208,36 @@ export default async function SocietePage() {
                         style={{
                           fontSize: "12px",
                           opacity: 0.8,
-                          marginBottom: "10px",
+                          marginBottom: "8px",
                         }}
                       >
                         [{entreprise.abreviation}]
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: "13px",
+                          marginBottom: "8px",
+                          opacity: 0.95,
+                          fontWeight: "bold",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "10px",
+                            height: "10px",
+                            borderRadius: "50%",
+                            display: "inline-block",
+                            background: entreprise.recrutement ? "#22c55e" : "#ef4444",
+                            boxShadow: entreprise.recrutement
+                              ? "0 0 8px #22c55e"
+                              : "0 0 8px #ef4444",
+                          }}
+                        />
+                        Recrutement : {entreprise.recrutement ? "Ouvert" : "Fermé"}
                       </div>
 
                       <div
@@ -251,22 +277,41 @@ export default async function SocietePage() {
                       Voir entreprise
                     </Link>
 
-                    <Link
-                      href={`/entreprise/${entreprise.id}/postuler`}
-                      style={{
-                        display: "block",
-                        textAlign: "center",
-                        padding: "9px",
-                        background: "#2563eb",
-                        borderRadius: "8px",
-                        color: "white",
-                        textDecoration: "none",
-                        fontWeight: "bold",
-                        fontSize: "13px",
-                      }}
-                    >
-                      Postuler
-                    </Link>
+                    {entreprise.recrutement ? (
+                      <Link
+                        href={`/entreprise/${entreprise.id}/postuler`}
+                        style={{
+                          display: "block",
+                          textAlign: "center",
+                          padding: "9px",
+                          background: "#2563eb",
+                          borderRadius: "8px",
+                          color: "white",
+                          textDecoration: "none",
+                          fontWeight: "bold",
+                          fontSize: "13px",
+                        }}
+                      >
+                        Postuler
+                      </Link>
+                    ) : (
+                      <div
+                        style={{
+                          display: "block",
+                          textAlign: "center",
+                          padding: "9px",
+                          background: "rgba(255,255,255,0.12)",
+                          borderRadius: "8px",
+                          color: "rgba(255,255,255,0.7)",
+                          textDecoration: "none",
+                          fontWeight: "bold",
+                          fontSize: "13px",
+                          cursor: "not-allowed",
+                        }}
+                      >
+                        Recrutement fermé
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

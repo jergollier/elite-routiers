@@ -120,10 +120,10 @@ export default async function CreerEntreprisePage() {
             </div>
 
             <div>
-              <label style={labelStyle}>Ville de la maison mère</label>
-              <select name="ville" required style={selectStyle} defaultValue="">
+              <label style={labelStyle}>Maison mère ETS2</label>
+              <select name="villeETS2" style={selectStyle} defaultValue="">
                 <option value="" style={optionStyle}>
-                  Choisir une ville
+                  Aucune ville ETS2
                 </option>
 
                 <optgroup label="ETS2">
@@ -137,6 +137,15 @@ export default async function CreerEntreprisePage() {
                     </option>
                   ))}
                 </optgroup>
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Maison mère ATS</label>
+              <select name="villeATS" style={selectStyle} defaultValue="">
+                <option value="" style={optionStyle}>
+                  Aucune ville ATS
+                </option>
 
                 <optgroup label="ATS">
                   {villesATS.map((ville) => (
@@ -228,7 +237,11 @@ export default async function CreerEntreprisePage() {
 
             <div>
               <label style={labelStyle}>Recrutement</label>
-              <select name="recrutement" style={selectStyle} defaultValue="ouvert">
+              <select
+                name="recrutement"
+                style={selectStyle}
+                defaultValue="ouvert"
+              >
                 <option value="ouvert" style={optionStyle}>
                   Ouvert
                 </option>
@@ -237,6 +250,10 @@ export default async function CreerEntreprisePage() {
                 </option>
               </select>
             </div>
+
+            <p style={{ margin: 0, opacity: 0.9, fontSize: "14px" }}>
+              Tu dois choisir au moins une maison mère : ETS2 ou ATS.
+            </p>
 
             <button type="submit" style={buttonStyle}>
               Créer l'entreprise

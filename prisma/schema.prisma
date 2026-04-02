@@ -23,7 +23,8 @@ model Entreprise {
   id             Int      @id @default(autoincrement())
   nom            String
   abreviation    String   @db.VarChar(3)
-  ville          String
+  villeETS2      String?
+  villeATS       String?
   jeu            String
   typeTransport  String
   description    String

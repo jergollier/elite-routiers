@@ -14,19 +14,31 @@ export async function POST(request: Request) {
     const formData = await request.formData();
 
     const nom = String(formData.get("nom") || "").trim();
-    const abreviation = String(formData.get("abreviation") || "").trim().toUpperCase();
-    const ville = String(formData.get("ville") || "").trim();
+    const abreviation = String(formData.get("abreviation") || "")
+      .trim()
+      .toUpperCase();
+    const villeETS2 = String(formData.get("villeETS2") || "").trim();
+    const villeATS = String(formData.get("villeATS") || "").trim();
     const jeu = String(formData.get("jeu") || "").trim();
     const typeTransport = String(formData.get("typeTransport") || "").trim();
     const description = String(formData.get("description") || "").trim();
     const banniere = String(formData.get("banniere") || "").trim();
-    const recrutementValue = String(formData.get("recrutement") || "ouvert").trim();
+    const recrutementValue = String(
+      formData.get("recrutement") || "ouvert"
+    ).trim();
 
     const recrutement = recrutementValue === "ouvert";
 
-    if (!nom || !abreviation || !ville || !jeu || !typeTransport || !description) {
+    if (!nom || !abreviation || !jeu || !typeTransport || !description) {
       return NextResponse.json(
         { error: "Tous les champs obligatoires doivent être remplis." },
+        { status: 400 }
+      );
+    }
+
+    if (!villeETS2 && !villeATS) {
+      return NextResponse.json(
+        { error: "Tu dois choisir au moins une maison mère ETS2 ou ATS." },
         { status: 400 }
       );
     }
@@ -64,7 +76,8 @@ export async function POST(request: Request) {
       data: {
         nom,
         abreviation,
-        ville,
+        villeETS2: villeETS2 || null,
+        villeATS: villeATS || null,
         jeu,
         typeTransport,
         description,

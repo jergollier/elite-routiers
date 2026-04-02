@@ -121,12 +121,18 @@ export default async function CreerEntreprisePage() {
 
             <div>
               <label style={labelStyle}>Ville de la maison mère</label>
-              <select name="ville" required style={inputStyle}>
-                <option value="">Choisir une ville</option>
+              <select name="ville" required style={selectStyle}>
+                <option value="" style={{ color: "black" }}>
+                  Choisir une ville
+                </option>
 
                 <optgroup label="ETS2">
                   {villesETS2.map((ville) => (
-                    <option key={`ets2-${ville}`} value={ville}>
+                    <option
+                      key={`ets2-${ville}`}
+                      value={ville}
+                      style={{ color: "black" }}
+                    >
                       {ville}
                     </option>
                   ))}
@@ -134,7 +140,11 @@ export default async function CreerEntreprisePage() {
 
                 <optgroup label="ATS">
                   {villesATS.map((ville) => (
-                    <option key={`ats-${ville}`} value={ville}>
+                    <option
+                      key={`ats-${ville}`}
+                      value={ville}
+                      style={{ color: "black" }}
+                    >
                       {ville}
                     </option>
                   ))}
@@ -144,24 +154,46 @@ export default async function CreerEntreprisePage() {
 
             <div>
               <label style={labelStyle}>Jeu principal</label>
-              <select name="jeu" required style={inputStyle}>
-                <option value="">Choisir un jeu</option>
-                <option value="ETS2">ETS2</option>
-                <option value="ATS">ATS</option>
-                <option value="Les deux">Les deux</option>
+              <select name="jeu" required style={selectStyle}>
+                <option value="" style={{ color: "black" }}>
+                  Choisir un jeu
+                </option>
+                <option value="ETS2" style={{ color: "black" }}>
+                  ETS2
+                </option>
+                <option value="ATS" style={{ color: "black" }}>
+                  ATS
+                </option>
+                <option value="Les deux" style={{ color: "black" }}>
+                  Les deux
+                </option>
               </select>
             </div>
 
             <div>
               <label style={labelStyle}>Type de transport</label>
-              <select name="typeTransport" required style={inputStyle}>
-                <option value="">Choisir un type</option>
-                <option value="General">Général</option>
-                <option value="Convoi exceptionnel">Convoi exceptionnel</option>
-                <option value="Citerne">Citerne</option>
-                <option value="Frigorifique">Frigorifique</option>
-                <option value="Bois">Bois</option>
-                <option value="Materiaux">Matériaux</option>
+              <select name="typeTransport" required style={selectStyle}>
+                <option value="" style={{ color: "black" }}>
+                  Choisir un type
+                </option>
+                <option value="General" style={{ color: "black" }}>
+                  Général
+                </option>
+                <option value="Convoi exceptionnel" style={{ color: "black" }}>
+                  Convoi exceptionnel
+                </option>
+                <option value="Citerne" style={{ color: "black" }}>
+                  Citerne
+                </option>
+                <option value="Frigorifique" style={{ color: "black" }}>
+                  Frigorifique
+                </option>
+                <option value="Bois" style={{ color: "black" }}>
+                  Bois
+                </option>
+                <option value="Materiaux" style={{ color: "black" }}>
+                  Matériaux
+                </option>
               </select>
             </div>
 
@@ -191,9 +223,13 @@ export default async function CreerEntreprisePage() {
 
             <div>
               <label style={labelStyle}>Recrutement</label>
-              <select name="recrutement" style={inputStyle}>
-                <option value="ouvert">Ouvert</option>
-                <option value="ferme">Fermé</option>
+              <select name="recrutement" style={selectStyle}>
+                <option value="ouvert" style={{ color: "black" }}>
+                  Ouvert
+                </option>
+                <option value="ferme" style={{ color: "black" }}>
+                  Fermé
+                </option>
               </select>
             </div>
 
@@ -220,6 +256,16 @@ const inputStyle = {
   border: "1px solid rgba(255,255,255,0.15)",
   background: "rgba(255,255,255,0.08)",
   color: "white",
+  outline: "none",
+};
+
+const selectStyle = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "white",
+  color: "black",
   outline: "none",
 };
 

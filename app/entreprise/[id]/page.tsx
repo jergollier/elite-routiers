@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import Menu from "@/app/components/Menu";
 
 type PageProps = {
   params: Promise<{

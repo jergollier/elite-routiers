@@ -30,7 +30,7 @@ export default async function Home() {
             fontSize: "20px",
           }}
         >
-          Connexion avec Steam
+          Se connecter avec Steam
         </a>
       ) : (
         <Link

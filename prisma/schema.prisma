@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  steamId   String   @unique
+  username  String?
+  avatar    String?
+  age       Int?
+  region    String?
+  createdAt DateTime @default(now())
+}

@@ -1,72 +1,53 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 
-export default async function LoginPage() {
+export default async function Home() {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
-
-  console.log("PAGE / steamId =", steamId);
-
-  if (steamId) {
-    redirect("/societe");
-  }
 
   return (
     <main
       style={{
-        minHeight: "100vh",
+        height: "100vh",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         backgroundImage: "url('/truck.jpg')",
         backgroundSize: "cover",
-        backgroundPosition: "center center",
-        backgroundRepeat: "no-repeat",
-        padding: "20px",
-        position: "relative",
+        backgroundPosition: "center",
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.25)",
-        }}
-      />
-
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "420px",
-          backgroundColor: "rgba(0, 0, 0, 0.45)",
-          backdropFilter: "blur(4px)",
-          padding: "30px",
-          borderRadius: "16px",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          position: "relative",
-          zIndex: 1,
-          boxShadow: "0 0 20px rgba(0, 0, 0, 0.8)",
-        }}
-      >
+      {!steamId ? (
         <a
           href="/api/steam"
           style={{
-            padding: "14px 20px",
-            borderRadius: "8px",
-            backgroundColor: "#171a21",
+            padding: "20px 30px",
+            background: "#171a21",
+            borderRadius: "10px",
             color: "white",
-            textDecoration: "none",
             fontWeight: "bold",
-            textAlign: "center",
-            width: "100%",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
+            textDecoration: "none",
+            fontSize: "20px",
           }}
         >
-          Se connecter avec Steam
+          Connexion avec Steam
         </a>
-      </div>
+      ) : (
+        <Link
+          href="/societe"
+          style={{
+            padding: "20px 30px",
+            background: "#171a21",
+            borderRadius: "10px",
+            color: "white",
+            fontWeight: "bold",
+            textDecoration: "none",
+            fontSize: "20px",
+          }}
+        >
+          Accéder au site
+        </Link>
+      )}
     </main>
   );
 }

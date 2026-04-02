@@ -121,8 +121,8 @@ export default async function CreerEntreprisePage() {
 
             <div>
               <label style={labelStyle}>Ville de la maison mère</label>
-              <select name="ville" required style={selectStyle}>
-                <option value="" style={{ color: "black" }}>
+              <select name="ville" required style={selectStyle} defaultValue="">
+                <option value="" style={optionStyle}>
                   Choisir une ville
                 </option>
 
@@ -131,7 +131,7 @@ export default async function CreerEntreprisePage() {
                     <option
                       key={`ets2-${ville}`}
                       value={ville}
-                      style={{ color: "black" }}
+                      style={optionStyle}
                     >
                       {ville}
                     </option>
@@ -143,7 +143,7 @@ export default async function CreerEntreprisePage() {
                     <option
                       key={`ats-${ville}`}
                       value={ville}
-                      style={{ color: "black" }}
+                      style={optionStyle}
                     >
                       {ville}
                     </option>
@@ -154,17 +154,17 @@ export default async function CreerEntreprisePage() {
 
             <div>
               <label style={labelStyle}>Jeu principal</label>
-              <select name="jeu" required style={selectStyle}>
-                <option value="" style={{ color: "black" }}>
+              <select name="jeu" required style={selectStyle} defaultValue="">
+                <option value="" style={optionStyle}>
                   Choisir un jeu
                 </option>
-                <option value="ETS2" style={{ color: "black" }}>
+                <option value="ETS2" style={optionStyle}>
                   ETS2
                 </option>
-                <option value="ATS" style={{ color: "black" }}>
+                <option value="ATS" style={optionStyle}>
                   ATS
                 </option>
-                <option value="Les deux" style={{ color: "black" }}>
+                <option value="Les deux" style={optionStyle}>
                   Les deux
                 </option>
               </select>
@@ -172,26 +172,31 @@ export default async function CreerEntreprisePage() {
 
             <div>
               <label style={labelStyle}>Type de transport</label>
-              <select name="typeTransport" required style={selectStyle}>
-                <option value="" style={{ color: "black" }}>
+              <select
+                name="typeTransport"
+                required
+                style={selectStyle}
+                defaultValue=""
+              >
+                <option value="" style={optionStyle}>
                   Choisir un type
                 </option>
-                <option value="General" style={{ color: "black" }}>
+                <option value="General" style={optionStyle}>
                   Général
                 </option>
-                <option value="Convoi exceptionnel" style={{ color: "black" }}>
+                <option value="Convoi exceptionnel" style={optionStyle}>
                   Convoi exceptionnel
                 </option>
-                <option value="Citerne" style={{ color: "black" }}>
+                <option value="Citerne" style={optionStyle}>
                   Citerne
                 </option>
-                <option value="Frigorifique" style={{ color: "black" }}>
+                <option value="Frigorifique" style={optionStyle}>
                   Frigorifique
                 </option>
-                <option value="Bois" style={{ color: "black" }}>
+                <option value="Bois" style={optionStyle}>
                   Bois
                 </option>
-                <option value="Materiaux" style={{ color: "black" }}>
+                <option value="Materiaux" style={optionStyle}>
                   Matériaux
                 </option>
               </select>
@@ -223,11 +228,11 @@ export default async function CreerEntreprisePage() {
 
             <div>
               <label style={labelStyle}>Recrutement</label>
-              <select name="recrutement" style={selectStyle}>
-                <option value="ouvert" style={{ color: "black" }}>
+              <select name="recrutement" style={selectStyle} defaultValue="ouvert">
+                <option value="ouvert" style={optionStyle}>
                   Ouvert
                 </option>
-                <option value="ferme" style={{ color: "black" }}>
+                <option value="ferme" style={optionStyle}>
                   Fermé
                 </option>
               </select>
@@ -264,9 +269,14 @@ const selectStyle = {
   padding: "12px",
   borderRadius: "10px",
   border: "1px solid rgba(255,255,255,0.15)",
-  background: "white",
-  color: "black",
+  backgroundColor: "#ffffff",
+  color: "#000000",
   outline: "none",
+};
+
+const optionStyle = {
+  backgroundColor: "#ffffff",
+  color: "#000000",
 };
 
 const buttonStyle = {

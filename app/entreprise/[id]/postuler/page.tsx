@@ -24,19 +24,26 @@ export default async function PostulerPage({ params }: PageProps) {
     notFound();
   }
 
-  const entreprise = await prisma.entreprise.findUnique({
-    where: {
-      id: entrepriseId,
-    },
-    include: {
-      owner: true,
-      _count: {
-        select: {
-          membres: true,
+  const [entreprise, user] = await Promise.all([
+    prisma.entreprise.findUnique({
+      where: {
+        id: entrepriseId,
+      },
+      include: {
+        owner: true,
+        _count: {
+          select: {
+            membres: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.user.findUnique({
+      where: {
+        steamId,
+      },
+    }),
+  ]);
 
   if (!entreprise) {
     notFound();
@@ -143,7 +150,7 @@ export default async function PostulerPage({ params }: PageProps) {
                   right: "24px",
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "end",
+                  alignItems: "flex-end",
                   gap: "16px",
                   flexWrap: "wrap",
                 }}
@@ -188,7 +195,9 @@ export default async function PostulerPage({ params }: PageProps) {
                         : "0 0 8px #ef4444",
                     }}
                   />
-                  {entreprise.recrutement ? "Recrutement ouvert" : "Recrutement fermé"}
+                  {entreprise.recrutement
+                    ? "Recrutement ouvert"
+                    : "Recrutement fermé"}
                 </div>
               </div>
             </div>
@@ -247,8 +256,9 @@ export default async function PostulerPage({ params }: PageProps) {
                   </h2>
 
                   <p style={smallTextStyle}>
-                    Remplis ce formulaire pour envoyer ta candidature à cette
-                    entreprise. Garde un message simple, propre et sérieux.
+                    Remplis ce formulaire proprement. Cette page est prête
+                    visuellement. Ensuite on branchera l’envoi réel de la
+                    candidature en base de données.
                   </p>
                 </div>
               </aside>
@@ -258,14 +268,22 @@ export default async function PostulerPage({ params }: PageProps) {
                   Formulaire de candidature
                 </h2>
 
-                <p style={{ marginTop: 0, marginBottom: "20px", opacity: 0.85 }}>
-                  Cette première version est visuelle. Ensuite on branchera le
-                  vrai envoi en base de données.
+                <p
+                  style={{
+                    marginTop: 0,
+                    marginBottom: "20px",
+                    opacity: 0.85,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Présente-toi simplement pour donner envie au directeur de te
+                  recruter.
                 </p>
 
                 <form
                   style={{
-                    display: "grid",
+                    display: "flex",
+                    flexDirection: "column",
                     gap: "16px",
                   }}
                 >
@@ -274,8 +292,9 @@ export default async function PostulerPage({ params }: PageProps) {
                       <label style={inputLabelStyle}>Pseudo Steam</label>
                       <input
                         type="text"
-                        placeholder="Ton pseudo Steam"
-                        style={inputStyle}
+                        value={user?.username || "Utilisateur Steam"}
+                        disabled
+                        style={disabledInputStyle}
                       />
                     </div>
 
@@ -301,10 +320,10 @@ export default async function PostulerPage({ params }: PageProps) {
 
                     <div>
                       <label style={inputLabelStyle}>Jeu principal</label>
-                      <select style={inputStyle}>
-                        <option>ETS2</option>
-                        <option>ATS</option>
-                        <option>Les deux</option>
+                      <select defaultValue="ETS2" style={inputStyle}>
+                        <option value="ETS2">ETS2</option>
+                        <option value="ATS">ATS</option>
+                        <option value="LES_DEUX">Les deux</option>
                       </select>
                     </div>
                   </div>
@@ -312,18 +331,18 @@ export default async function PostulerPage({ params }: PageProps) {
                   <div style={gridTwoStyle}>
                     <div>
                       <label style={inputLabelStyle}>Expérience</label>
-                      <select style={inputStyle}>
-                        <option>Débutant</option>
-                        <option>Intermédiaire</option>
-                        <option>Expérimenté</option>
+                      <select defaultValue="Intermédiaire" style={inputStyle}>
+                        <option value="DEBUTANT">Débutant</option>
+                        <option value="INTERMEDIAIRE">Intermédiaire</option>
+                        <option value="EXPERIMENTE">Expérimenté</option>
                       </select>
                     </div>
 
                     <div>
                       <label style={inputLabelStyle}>Micro</label>
-                      <select style={inputStyle}>
-                        <option>Oui</option>
-                        <option>Non</option>
+                      <select defaultValue="Oui" style={inputStyle}>
+                        <option value="OUI">Oui</option>
+                        <option value="NON">Non</option>
                       </select>
                     </div>
                   </div>
@@ -338,7 +357,9 @@ export default async function PostulerPage({ params }: PageProps) {
                   </div>
 
                   <div>
-                    <label style={inputLabelStyle}>Pourquoi veux-tu rejoindre cette entreprise ?</label>
+                    <label style={inputLabelStyle}>
+                      Pourquoi veux-tu rejoindre cette entreprise ?
+                    </label>
                     <textarea
                       placeholder="Explique un peu ta motivation..."
                       style={textareaStyle}
@@ -379,7 +400,10 @@ export default async function PostulerPage({ params }: PageProps) {
                       </button>
                     )}
 
-                    <Link href={`/entreprise/${entreprise.id}`} style={secondaryButtonStyle}>
+                    <Link
+                      href={`/entreprise/${entreprise.id}`}
+                      style={secondaryButtonStyle}
+                    >
                       Retour
                     </Link>
                   </div>
@@ -437,24 +461,41 @@ const inputLabelStyle = {
 
 const inputStyle = {
   width: "100%",
-  padding: "12px 14px",
+  padding: "12px",
   borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.10)",
-  background: "rgba(0,0,0,0.35)",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
   color: "white",
+  fontSize: "14px",
   outline: "none",
+  boxSizing: "border-box" as const,
+};
+
+const disabledInputStyle = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontSize: "14px",
+  outline: "none",
+  boxSizing: "border-box" as const,
+  opacity: 0.95,
 };
 
 const textareaStyle = {
   width: "100%",
   minHeight: "120px",
-  padding: "12px 14px",
+  padding: "12px",
   borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.10)",
-  background: "rgba(0,0,0,0.35)",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
   color: "white",
+  fontSize: "14px",
   outline: "none",
   resize: "vertical" as const,
+  boxSizing: "border-box" as const,
 };
 
 const mainButtonStyle = {

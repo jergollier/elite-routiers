@@ -98,20 +98,21 @@ export default async function GestionEntreprisePage({ params }: Props) {
     membreActuel.role === "DIRECTEUR" ||
     membreActuel.role === "SOUS_DIRECTEUR";
 
+  const peutGererCuve =
+    membreActuel.role === "DIRECTEUR" ||
+    membreActuel.role === "SOUS_DIRECTEUR" ||
+    membreActuel.role === "CHEF_ATELIER";
+
   async function updateEntreprise(formData: FormData) {
     "use server";
 
     const cookieStore = await cookies();
     const steamId = cookieStore.get("steamId")?.value;
 
-    if (!steamId) {
-      return;
-    }
+    if (!steamId) return;
 
     const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
-    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) {
-      return;
-    }
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
 
     const entreprise = await prisma.entreprise.findUnique({
       where: { id: entrepriseIdFromForm },
@@ -124,9 +125,7 @@ export default async function GestionEntreprisePage({ params }: Props) {
       },
     });
 
-    if (!entreprise) {
-      return;
-    }
+    if (!entreprise) return;
 
     const membreActuel = entreprise.membres.find(
       (membre) => membre.user?.steamId === steamId
@@ -144,19 +143,12 @@ export default async function GestionEntreprisePage({ params }: Props) {
     const jeu = (formData.get("jeu") as string)?.trim();
     const typeTransport = (formData.get("typeTransport") as string)?.trim();
 
-    if (!nom || !abreviationBrute || !jeu || !typeTransport) {
-      return;
-    }
+    if (!nom || !abreviationBrute || !jeu || !typeTransport) return;
 
     const abreviation = abreviationBrute.toUpperCase().slice(0, 3);
 
-    if (!JEUX.some((j) => j.value === jeu)) {
-      return;
-    }
-
-    if (!TYPES_TRANSPORT.some((t) => t.value === typeTransport)) {
-      return;
-    }
+    if (!JEUX.some((j) => j.value === jeu)) return;
+    if (!TYPES_TRANSPORT.some((t) => t.value === typeTransport)) return;
 
     await prisma.entreprise.update({
       where: { id: entrepriseIdFromForm },
@@ -180,16 +172,12 @@ export default async function GestionEntreprisePage({ params }: Props) {
     const cookieStore = await cookies();
     const steamId = cookieStore.get("steamId")?.value;
 
-    if (!steamId) {
-      return;
-    }
+    if (!steamId) return;
 
     const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
     const recrutementValue = formData.get("recrutement");
 
-    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) {
-      return;
-    }
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
 
     const entreprise = await prisma.entreprise.findUnique({
       where: { id: entrepriseIdFromForm },
@@ -202,9 +190,7 @@ export default async function GestionEntreprisePage({ params }: Props) {
       },
     });
 
-    if (!entreprise) {
-      return;
-    }
+    if (!entreprise) return;
 
     const membreActuel = entreprise.membres.find(
       (membre) => membre.user?.steamId === steamId
@@ -232,9 +218,122 @@ export default async function GestionEntreprisePage({ params }: Props) {
     revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
   }
 
-  const argentSociete = 125000;
-  const cuveMax = 10000;
-  const cuveActuelle = 6200;
+  async function remplirCuve(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+    const mode = String(formData.get("mode") || "");
+    const quantiteDemandee = Number(formData.get("quantite") || 0);
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_ATELIER"].includes(membreActuel.role)
+    ) {
+      return;
+    }
+
+    let nouvelleValeur = entreprise.cuveActuelle;
+
+    if (mode === "plein") {
+      nouvelleValeur = entreprise.cuveMax;
+    } else if (mode === "quantite") {
+      const quantite = Math.max(0, Math.floor(quantiteDemandee));
+      nouvelleValeur = Math.min(entreprise.cuveActuelle + quantite, entreprise.cuveMax);
+    } else {
+      return;
+    }
+
+    await prisma.entreprise.update({
+      where: { id: entrepriseIdFromForm },
+      data: {
+        cuveActuelle: nouvelleValeur,
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath("/mon-entreprise");
+  }
+
+  async function acheterExtensionCuve(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_ATELIER"].includes(membreActuel.role)
+    ) {
+      return;
+    }
+
+    if (entreprise.cuveMax >= 50000) return;
+    if (entreprise.argent < 20000) return;
+
+    const nouveauMax = Math.min(entreprise.cuveMax + 5000, 50000);
+
+    await prisma.entreprise.update({
+      where: { id: entrepriseIdFromForm },
+      data: {
+        cuveMax: nouveauMax,
+        argent: entreprise.argent - 20000,
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath("/mon-entreprise");
+  }
+
+  const argentSociete = entreprise.argent;
+  const cuveMax = entreprise.cuveMax;
+  const cuveActuelle = entreprise.cuveActuelle;
   const cuvePourcent = Math.max(
     0,
     Math.min(100, (cuveActuelle / cuveMax) * 100)
@@ -242,6 +341,7 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
   const prochaineExtension = cuveMax < 50000 ? cuveMax + 5000 : cuveMax;
   const extensionDisponible = cuveMax < 50000;
+  const peutAcheterExtension = extensionDisponible && argentSociete >= 20000;
 
   return (
     <main
@@ -704,19 +804,83 @@ export default async function GestionEntreprisePage({ params }: Props) {
                 </div>
               </div>
 
-              <div
+              <form
+                action={remplirCuve}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                <input type="hidden" name="entrepriseId" value={entreprise.id} />
+                <input type="hidden" name="mode" value="plein" />
+
+                {peutGererCuve ? (
+                  <button type="submit" style={btnPrimaryLarge}>
+                    Remplir la cuve à fond
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    style={{ ...btnPrimaryLarge, opacity: 0.5, cursor: "not-allowed" }}
+                    disabled
+                  >
+                    Remplir la cuve à fond
+                  </button>
+                )}
+              </form>
+
+              <form
+                action={remplirCuve}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                <input type="hidden" name="entrepriseId" value={entreprise.id} />
+                <input type="hidden" name="mode" value="quantite" />
+
+                <label style={labelStyle}>Ajouter une quantité</label>
+                <input
+                  type="number"
+                  name="quantite"
+                  min={1}
+                  max={cuveMax - cuveActuelle}
+                  placeholder="Exemple : 500"
+                  style={inputStyle}
+                  disabled={!peutGererCuve}
+                />
+
+                {peutGererCuve ? (
+                  <button type="submit" style={btnPrimaryLarge}>
+                    Ajouter la quantité
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    style={{ ...btnPrimaryLarge, opacity: 0.5, cursor: "not-allowed" }}
+                    disabled
+                  >
+                    Ajouter la quantité
+                  </button>
+                )}
+              </form>
+
+              <form
+                action={acheterExtensionCuve}
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   gap: "10px",
                 }}
               >
-                <button type="button" style={btnPrimaryLarge}>
-                  Remplir la cuve
-                </button>
+                <input type="hidden" name="entrepriseId" value={entreprise.id} />
 
-                {extensionDisponible ? (
-                  <button type="button" style={btnDarkLarge}>
+                {peutGererCuve && peutAcheterExtension ? (
+                  <button type="submit" style={btnDarkLarge}>
                     Acheter extension +5000 L ({prochaineExtension.toLocaleString("fr-FR")} L) - 20 000 €
                   </button>
                 ) : (
@@ -729,10 +893,14 @@ export default async function GestionEntreprisePage({ params }: Props) {
                     }}
                     disabled
                   >
-                    Capacité maximale atteinte
+                    {cuveMax >= 50000
+                      ? "Capacité maximale atteinte"
+                      : argentSociete < 20000
+                      ? "Pas assez d’argent pour l’extension"
+                      : "Extension indisponible"}
                   </button>
                 )}
-              </div>
+              </form>
             </div>
 
             <div style={boxStyle}>

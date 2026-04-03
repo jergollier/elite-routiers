@@ -43,6 +43,10 @@ model Entreprise {
   ownerSteamId   String
   createdAt      DateTime            @default(now())
 
+  argent         Int                 @default(125000)
+  cuveActuelle   Int                 @default(6200)
+  cuveMax        Int                 @default(10000)
+
   owner          User                @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
   membres        EntrepriseMembre[]
 

@@ -228,6 +228,12 @@ export default async function GestionEntreprisePage({ params }: Props) {
                   <div style={valueStyle}>{entreprise._count.membres}</div>
                 </div>
               </div>
+
+              {membreActuel.role === "DIRECTEUR" && (
+                <button type="button" style={btnDeleteEntreprise}>
+                  ❌ Supprimer l’entreprise
+                </button>
+              )}
             </div>
 
             <div style={boxStyle}>
@@ -310,22 +316,25 @@ export default async function GestionEntreprisePage({ params }: Props) {
                           <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
                             {membre.user?.username || "Utilisateur Steam"}
                           </div>
+
                           <div
-  style={{
-    fontSize: "12px",
-    fontWeight: "bold",
-    color:
-      membre.role === "DIRECTEUR"
-        ? "#facc15"
-        : membre.role === "SOUS_DIRECTEUR"
-        ? "#60a5fa"
-        : membre.role === "CHEF_EQUIPE"
-        ? "#22c55e"
-        : "#c084fc",
-  }}
->
-  {membre.role.replaceAll("_", " ")}
-</div>
+                            style={{
+                              fontSize: "12px",
+                              fontWeight: "bold",
+                              color:
+                                membre.role === "DIRECTEUR"
+                                  ? "#facc15"
+                                  : membre.role === "SOUS_DIRECTEUR"
+                                  ? "#60a5fa"
+                                  : membre.role === "CHEF_EQUIPE"
+                                  ? "#22c55e"
+                                  : membre.role === "CHEF_ATELIER"
+                                  ? "#f59e0b"
+                                  : "#c084fc",
+                            }}
+                          >
+                            {membre.role.replaceAll("_", " ")}
+                          </div>
                         </div>
                       </div>
 
@@ -594,4 +603,16 @@ const btnDarkLarge = {
   color: "white",
   cursor: "pointer",
   fontWeight: "bold",
+};
+
+const btnDeleteEntreprise = {
+  marginTop: "20px",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#dc2626",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+  width: "100%",
 };

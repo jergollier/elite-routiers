@@ -314,97 +314,170 @@ export default async function AttribuerCamionPage({ params }: Props) {
             >
               <section style={{ minWidth: 0 }}>
                 <form action={attribuerCamion} style={formCardStyle}>
-                  <div style={camionResumeStyle}>
-                    <div
-                      style={{
-                        width: "220px",
-                        maxWidth: "100%",
-                        borderRadius: "14px",
-                        overflow: "hidden",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      <img
-                        src={camion.image || "/truck.jpg"}
-                        alt={`${formatMarque(camion.marque)} ${camion.modele}`}
-                        style={{
-                          width: "100%",
-                          height: "160px",
-                          objectFit: "cover",
-                          display: "block",
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <h2 style={{ marginTop: 0, marginBottom: "8px" }}>
-                        {formatMarque(camion.marque)} {camion.modele}
-                      </h2>
-
-                      <div style={infoRowStyle}>
-                        <span style={labelStyle}>Chauffeur actuel</span>
-                        <span style={valueStyle}>
-                          {camion.chauffeur?.username || "Non attribué"}
-                        </span>
-                      </div>
-
-                      <div style={infoRowStyle}>
-                        <span style={labelStyle}>Statut</span>
-                        <span style={valueStyle}>{camion.statut}</span>
-                      </div>
-
-                      <div style={infoRowStyle}>
-                        <span style={labelStyle}>Entreprise</span>
-                        <span style={valueStyle}>{entreprise.nom}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ ...boxStyle, marginTop: "20px" }}>
-                    <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
-                      Liste des chauffeurs
-                    </h2>
-
-                    <div style={fieldGroupStyle}>
-                      <label style={labelInputStyle}>Choisir un chauffeur</label>
-                      <select
-                        name="chauffeurId"
-                        defaultValue={camion.chauffeurId || ""}
-                        style={whiteSelectStyle}
-                      >
-                        <option value="" style={whiteOptionStyle}>
-                          Non attribué
-                        </option>
-
-                        {chauffeurs.map((membre) => (
-                          <option
-                            key={membre.user.id}
-                            value={membre.user.id}
-                            style={whiteOptionStyle}
-                          >
-                            {membre.user.username || "Utilisateur sans pseudo"} —{" "}
-                            {membre.role}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
                   <div
                     style={{
                       display: "flex",
-                      gap: "12px",
-                      marginTop: "22px",
+                      gap: "20px",
+                      alignItems: "flex-start",
                       flexWrap: "wrap",
                     }}
                   >
-                    <button type="submit" style={mainButtonStyle}>
-                      Enregistrer l’attribution
-                    </button>
+                    <article style={camionCardStyle}>
+                      <div
+                        style={{
+                          height: "170px",
+                          borderRadius: "14px",
+                          overflow: "hidden",
+                          marginBottom: "14px",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <img
+                          src={camion.image || "/truck.jpg"}
+                          alt={`${formatMarque(camion.marque)} ${camion.modele}`}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            display: "block",
+                          }}
+                        />
+                      </div>
 
-                    <Link href="/camions" style={secondaryButtonStyle}>
-                      Annuler
-                    </Link>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "10px",
+                          marginBottom: "12px",
+                        }}
+                      >
+                        <div>
+                          <h2
+                            style={{
+                              margin: 0,
+                              fontSize: "20px",
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {formatMarque(camion.marque)}
+                          </h2>
+                          <div
+                            style={{
+                              marginTop: "4px",
+                              opacity: 0.82,
+                              fontSize: "14px",
+                            }}
+                          >
+                            {camion.modele}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            background: "rgba(255,255,255,0.06)",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            borderRadius: "999px",
+                            padding: "8px 12px",
+                            fontSize: "13px",
+                            fontWeight: "bold",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "50%",
+                              background:
+                                camion.statut === "DISPONIBLE"
+                                  ? "#22c55e"
+                                  : camion.statut === "EN_MISSION"
+                                  ? "#f59e0b"
+                                  : "#ef4444",
+                              boxShadow:
+                                camion.statut === "DISPONIBLE"
+                                  ? "0 0 10px rgba(34,197,94,0.85)"
+                                  : camion.statut === "EN_MISSION"
+                                  ? "0 0 10px rgba(245,158,11,0.85)"
+                                  : "0 0 10px rgba(239,68,68,0.85)",
+                              display: "inline-block",
+                            }}
+                          />
+                          {camion.statut === "DISPONIBLE"
+                            ? "Disponible"
+                            : camion.statut === "EN_MISSION"
+                            ? "En mission"
+                            : "En maintenance"}
+                        </div>
+                      </div>
+
+                      <div style={infoListStyle}>
+                        <div style={infoRowStyle}>
+                          <span style={labelStyle}>Chauffeur</span>
+                          <span style={valueStyle}>
+                            {camion.chauffeur?.username || "Non attribué"}
+                          </span>
+                        </div>
+
+                        <div style={infoRowStyle}>
+                          <span style={labelStyle}>Entreprise</span>
+                          <span style={valueStyle}>{entreprise.nom}</span>
+                        </div>
+                      </div>
+                    </article>
+
+                    <div style={{ flex: 1, minWidth: "280px" }}>
+                      <div style={{ ...boxStyle, marginBottom: "18px" }}>
+                        <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
+                          Liste des chauffeurs
+                        </h2>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Choisir un chauffeur</label>
+                          <select
+                            name="chauffeurId"
+                            defaultValue={camion.chauffeurId || ""}
+                            style={whiteSelectStyle}
+                          >
+                            <option value="" style={whiteOptionStyle}>
+                              Non attribué
+                            </option>
+
+                            {chauffeurs.map((membre) => (
+                              <option
+                                key={membre.user.id}
+                                value={membre.user.id}
+                                style={whiteOptionStyle}
+                              >
+                                {membre.user.username || "Utilisateur sans pseudo"} —{" "}
+                                {membre.role}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <button type="submit" style={mainButtonStyle}>
+                          Enregistrer l’attribution
+                        </button>
+
+                        <Link href="/camions" style={secondaryButtonStyle}>
+                          Annuler
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 </form>
               </section>
@@ -493,11 +566,21 @@ const formCardStyle = {
   boxShadow: "0 0 18px rgba(0,0,0,0.28)",
 };
 
-const camionResumeStyle = {
+const camionCardStyle = {
+  width: "320px",
+  maxWidth: "100%",
+  background: "rgba(255,255,255,0.08)",
+  borderRadius: "16px",
+  padding: "16px",
+  border: "1px solid rgba(255,255,255,0.08)",
+  backdropFilter: "blur(4px)",
+  boxShadow: "0 0 18px rgba(0,0,0,0.28)",
+};
+
+const infoListStyle = {
   display: "flex",
-  gap: "18px",
-  alignItems: "start",
-  flexWrap: "wrap" as const,
+  flexDirection: "column" as const,
+  gap: "8px",
 };
 
 const fieldGroupStyle = {

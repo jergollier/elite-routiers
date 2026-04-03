@@ -36,6 +36,13 @@ function formatTypeTransport(type: string) {
   return found ? found.label : type;
 }
 
+function formatExperience(experience: string) {
+  if (experience === "DEBUTANT") return "Débutant";
+  if (experience === "INTERMEDIAIRE") return "Intermédiaire";
+  if (experience === "EXPERIMENTE") return "Expérimenté";
+  return experience;
+}
+
 export default async function GestionEntreprisePage({ params }: Props) {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
@@ -56,6 +63,17 @@ export default async function GestionEntreprisePage({ params }: Props) {
     include: {
       owner: true,
       membres: {
+        include: {
+          user: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      candidatures: {
+        where: {
+          statut: "EN_ATTENTE",
+        },
         include: {
           user: true,
         },
@@ -102,6 +120,11 @@ export default async function GestionEntreprisePage({ params }: Props) {
     membreActuel.role === "DIRECTEUR" ||
     membreActuel.role === "SOUS_DIRECTEUR" ||
     membreActuel.role === "CHEF_ATELIER";
+
+  const peutGererCandidatures =
+    membreActuel.role === "DIRECTEUR" ||
+    membreActuel.role === "SOUS_DIRECTEUR" ||
+    membreActuel.role === "CHEF_EQUIPE";
 
   async function updateEntreprise(formData: FormData) {
     "use server";
@@ -329,6 +352,141 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
     revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
     revalidatePath("/mon-entreprise");
+  }
+
+  async function accepterCandidature(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const candidatureId = Number(formData.get("candidatureId"));
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+
+    if (!candidatureId || Number.isNaN(candidatureId)) return;
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_EQUIPE"].includes(membreActuel.role)
+    ) {
+      return;
+    }
+
+    const candidature = await prisma.entrepriseCandidature.findUnique({
+      where: { id: candidatureId },
+    });
+
+    if (!candidature) return;
+    if (candidature.entrepriseId !== entrepriseIdFromForm) return;
+    if (candidature.statut !== "EN_ATTENTE") return;
+
+    const membreExiste = await prisma.entrepriseMembre.findUnique({
+      where: {
+        userId_entrepriseId: {
+          userId: candidature.userId,
+          entrepriseId: entrepriseIdFromForm,
+        },
+      },
+    });
+
+    if (!membreExiste) {
+      await prisma.entrepriseMembre.create({
+        data: {
+          userId: candidature.userId,
+          entrepriseId: entrepriseIdFromForm,
+          role: "CHAUFFEUR",
+        },
+      });
+    }
+
+    await prisma.entrepriseCandidature.update({
+      where: { id: candidatureId },
+      data: {
+        statut: "ACCEPTEE",
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+    revalidatePath("/mon-entreprise");
+    revalidatePath("/societe");
+  }
+
+  async function refuserCandidature(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const candidatureId = Number(formData.get("candidatureId"));
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+
+    if (!candidatureId || Number.isNaN(candidatureId)) return;
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_EQUIPE"].includes(membreActuel.role)
+    ) {
+      return;
+    }
+
+    const candidature = await prisma.entrepriseCandidature.findUnique({
+      where: { id: candidatureId },
+    });
+
+    if (!candidature) return;
+    if (candidature.entrepriseId !== entrepriseIdFromForm) return;
+    if (candidature.statut !== "EN_ATTENTE") return;
+
+    await prisma.entrepriseCandidature.update({
+      where: { id: candidatureId },
+      data: {
+        statut: "REFUSEE",
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
   }
 
   const argentSociete = entreprise.argent;
@@ -714,11 +872,116 @@ export default async function GestionEntreprisePage({ params }: Props) {
             <div style={boxStyle}>
               <h2 style={{ marginTop: 0, marginBottom: "18px" }}>Candidatures</h2>
 
-              <div style={emptyCardStyle}>
-                Aucune candidature affichée pour le moment.
-                <br />
-                On branchera ici les candidatures à accepter ou refuser.
-              </div>
+              {entreprise.candidatures.length > 0 ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    maxHeight: "420px",
+                    overflowY: "auto",
+                    paddingRight: "4px",
+                  }}
+                >
+                  {entreprise.candidatures.map((candidature) => (
+                    <div
+                      key={candidature.id}
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        borderRadius: "12px",
+                        padding: "14px",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                        {candidature.user?.username || "Utilisateur Steam"}
+                      </div>
+
+                      <div style={miniTextStyle}>
+                        Âge : {candidature.age ?? "Non renseigné"}
+                      </div>
+                      <div style={miniTextStyle}>
+                        Région : {candidature.region || "Non renseignée"}
+                      </div>
+                      <div style={miniTextStyle}>
+                        Jeu : {formatJeu(candidature.jeuPrincipal)}
+                      </div>
+                      <div style={miniTextStyle}>
+                        Expérience : {formatExperience(candidature.experience)}
+                      </div>
+                      <div style={miniTextStyle}>
+                        Micro : {candidature.micro ? "Oui" : "Non"}
+                      </div>
+                      <div style={miniTextStyle}>
+                        Disponibilités : {candidature.disponibilites || "Non renseignées"}
+                      </div>
+
+                      <div style={{ marginTop: "10px" }}>
+                        <div style={labelStyle}>Motivation</div>
+                        <div style={textBlockStyle}>{candidature.motivation}</div>
+                      </div>
+
+                      {candidature.message && (
+                        <div style={{ marginTop: "10px" }}>
+                          <div style={labelStyle}>Message</div>
+                          <div style={textBlockStyle}>{candidature.message}</div>
+                        </div>
+                      )}
+
+                      {peutGererCandidatures ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "10px",
+                            marginTop: "14px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <form action={accepterCandidature}>
+                            <input
+                              type="hidden"
+                              name="candidatureId"
+                              value={candidature.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="entrepriseId"
+                              value={entreprise.id}
+                            />
+                            <button type="submit" style={btnAccept}>
+                              ✅ Accepter
+                            </button>
+                          </form>
+
+                          <form action={refuserCandidature}>
+                            <input
+                              type="hidden"
+                              name="candidatureId"
+                              value={candidature.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="entrepriseId"
+                              value={entreprise.id}
+                            />
+                            <button type="submit" style={btnDanger}>
+                              ❌ Refuser
+                            </button>
+                          </form>
+                        </div>
+                      ) : (
+                        <div style={{ ...miniTextStyle, marginTop: "12px" }}>
+                          Tu n’as pas les droits pour gérer les candidatures.
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={emptyCardStyle}>
+                  Aucune candidature en attente pour le moment.
+                </div>
+              )}
             </div>
 
             <div style={boxStyle}>
@@ -1170,4 +1433,29 @@ const btnDeleteEntreprise = {
   fontWeight: "bold",
   cursor: "pointer",
   width: "100%",
+};
+
+const btnAccept = {
+  padding: "8px 12px",
+  borderRadius: "8px",
+  border: "none",
+  background: "#22c55e",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const miniTextStyle = {
+  fontSize: "13px",
+  opacity: 0.9,
+  marginBottom: "4px",
+};
+
+const textBlockStyle = {
+  background: "rgba(0,0,0,0.25)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "10px",
+  padding: "10px",
+  lineHeight: 1.5,
+  whiteSpace: "pre-wrap" as const,
 };

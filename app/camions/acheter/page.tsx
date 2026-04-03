@@ -1,111 +1,32 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 
-function formatPrix(prix: number) {
-  return `${prix.toLocaleString("fr-FR")} €`;
-}
-
-const camionsCatalogue = [
-  {
-    id: "scania-s",
-    marque: "SCANIA",
-    modele: "S 770",
-    prix: 189000,
-    jeu: "ETS2",
-    puissance: "770 ch",
-    description:
-      "Un camion haut de gamme, puissant et parfait pour les longues distances.",
-    image:
-      "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: "volvo-fh16",
-    marque: "VOLVO",
-    modele: "FH16 750",
-    prix: 192000,
-    jeu: "ETS2",
-    puissance: "750 ch",
-    description:
-      "Confort premium, grande fiabilité et excellente présence sur la route.",
-    image:
-      "https://images.unsplash.com/photo-1592838064575-70ed626d3a0e?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: "daf-xgplus",
-    marque: "DAF",
-    modele: "XG+",
-    prix: 171000,
-    jeu: "ETS2",
-    puissance: "530 ch",
-    description:
-      "Cabine moderne, bonne rentabilité et camion idéal pour développer le parc.",
-    image:
-      "https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: "renault-t",
-    marque: "RENAULT",
-    modele: "T High",
-    prix: 164000,
-    jeu: "ETS2",
-    puissance: "520 ch",
-    description:
-      "Un très bon choix pour commencer avec un camion efficace et polyvalent.",
-    image:
-      "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: "kenworth-w900",
-    marque: "KENWORTH",
-    modele: "W900",
-    prix: 198000,
-    jeu: "ATS",
-    puissance: "605 ch",
-    description:
-      "Un grand classique américain avec énormément de caractère et de style.",
-    image:
-      "https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: "peterbilt-389",
-    marque: "PETERBILT",
-    modele: "389",
-    prix: 201000,
-    jeu: "ATS",
-    puissance: "565 ch",
-    description:
-      "Le mythe américain par excellence, parfait pour une flotte Elite Routiers.",
-    image:
-      "https://images.unsplash.com/photo-1502740479091-635887520276?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: "man-tgx",
-    marque: "MAN",
-    modele: "TGX",
-    prix: 176000,
-    jeu: "ETS2",
-    puissance: "640 ch",
-    description:
-      "Un excellent camion pour les gros trajets avec une cabine confortable.",
-    image:
-      "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: "iveco-sway",
-    marque: "IVECO",
-    modele: "S-Way",
-    prix: 158000,
-    jeu: "ETS2",
-    puissance: "570 ch",
-    description:
-      "Design moderne, très bon rapport qualité/prix et bon choix pour agrandir vite.",
-    image:
-      "https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=1200&q=80",
-  },
+const MARQUES = [
+  { value: "RENAULT", label: "Renault" },
+  { value: "SCANIA", label: "Scania" },
+  { value: "VOLVO", label: "Volvo" },
+  { value: "MAN", label: "MAN" },
+  { value: "DAF", label: "DAF" },
+  { value: "MERCEDES", label: "Mercedes-Benz" },
+  { value: "IVECO", label: "Iveco" },
+  { value: "KENWORTH", label: "Kenworth" },
+  { value: "PETERBILT", label: "Peterbilt" },
 ];
+
+const STATUTS = [
+  { value: "DISPONIBLE", label: "Disponible" },
+  { value: "EN_MISSION", label: "En mission" },
+  { value: "EN_MAINTENANCE", label: "En maintenance" },
+];
+
+function toNumber(value: FormDataEntryValue | null, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
 
 export default async function AcheterCamionPage() {
   const cookieStore = await cookies();
@@ -136,22 +57,89 @@ export default async function AcheterCamionPage() {
     redirect("/societe");
   }
 
-  const entrepriseId = monMembership.entrepriseId;
-
   const entreprise = await prisma.entreprise.findUnique({
-    where: { id: entrepriseId },
+    where: { id: monMembership.entrepriseId },
   });
 
   if (!entreprise) {
     redirect("/societe");
   }
 
-  const totalCamions = await prisma.camion.count({
-    where: {
-      entrepriseId,
-      actif: true,
-    },
-  });
+  const peutAjouterCamion =
+    monMembership.role === "DIRECTEUR" ||
+    monMembership.role === "SOUS_DIRECTEUR";
+
+  async function ajouterCamion(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) {
+      redirect("/");
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { steamId },
+      include: {
+        memberships: true,
+      },
+    });
+
+    if (!user) {
+      redirect("/");
+    }
+
+    const membership = user.memberships[0];
+
+    if (!membership) {
+      redirect("/societe");
+    }
+
+    const autorise =
+      membership.role === "DIRECTEUR" ||
+      membership.role === "SOUS_DIRECTEUR";
+
+    if (!autorise) {
+      redirect("/camions");
+    }
+
+    const marque = String(formData.get("marque") || "").trim();
+    const modele = String(formData.get("modele") || "").trim();
+    const image = String(formData.get("image") || "").trim();
+    const positionActuelle = String(formData.get("positionActuelle") || "").trim();
+    const statut = String(formData.get("statut") || "DISPONIBLE").trim();
+
+    const kilometrage = toNumber(formData.get("kilometrage"), 0);
+    const etat = toNumber(formData.get("etat"), 100);
+    const carburant = toNumber(formData.get("carburant"), 100);
+    const vidangeRestante = toNumber(formData.get("vidangeRestante"), 60000);
+    const revisionRestante = toNumber(formData.get("revisionRestante"), 120000);
+
+    if (!marque || !modele) {
+      redirect("/camions/acheter");
+    }
+
+    await prisma.camion.create({
+      data: {
+        entrepriseId: membership.entrepriseId,
+        marque,
+        modele,
+        image: image || "/truck.jpg",
+        kilometrage: Math.max(0, kilometrage),
+        etat: Math.max(0, Math.min(100, etat)),
+        carburant: Math.max(0, Math.min(100, carburant)),
+        positionActuelle: positionActuelle || null,
+        statut,
+        vidangeRestante: Math.max(0, vidangeRestante),
+        revisionRestante: Math.max(0, revisionRestante),
+        actif: true,
+      },
+    });
+
+    revalidatePath("/camions");
+    redirect("/camions");
+  }
 
   return (
     <main
@@ -211,7 +199,7 @@ export default async function AcheterCamionPage() {
               }}
             >
               <div>
-                <h1 style={{ margin: 0, fontSize: "34px" }}>Acheter un camion</h1>
+                <h1 style={{ margin: 0, fontSize: "34px" }}>Ajouter un camion</h1>
                 <p
                   style={{
                     marginTop: "8px",
@@ -220,7 +208,7 @@ export default async function AcheterCamionPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  Choisis un nouveau camion pour l’entreprise {entreprise.nom}
+                  Saisie manuelle du camion pour l’entreprise {entreprise.nom}
                 </p>
               </div>
 
@@ -233,133 +221,161 @@ export default async function AcheterCamionPage() {
               style={{
                 padding: "24px",
                 display: "grid",
-                gridTemplateColumns: "1fr 300px",
+                gridTemplateColumns: "1fr 320px",
                 gap: "20px",
                 alignItems: "start",
               }}
             >
               <section>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                    gap: "18px",
-                  }}
-                >
-                  {camionsCatalogue.map((camion) => (
-                    <article key={camion.id} style={truckCardStyle}>
-                      <div
-                        style={{
-                          height: "190px",
-                          borderRadius: "14px",
-                          overflow: "hidden",
-                          marginBottom: "14px",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                        }}
-                      >
-                        <img
-                          src={camion.image}
-                          alt={`${camion.marque} ${camion.modele}`}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            display: "block",
-                          }}
+                {!peutAjouterCamion ? (
+                  <div style={boxStyle}>
+                    <h2 style={{ marginTop: 0 }}>Accès refusé</h2>
+                    <p style={smallTextStyle}>
+                      Seul le directeur ou le sous-directeur peut ajouter un camion.
+                    </p>
+                  </div>
+                ) : (
+                  <form action={ajouterCamion} style={formCardStyle}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                        gap: "16px",
+                      }}
+                    >
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Marque</label>
+                        <select name="marque" defaultValue="SCANIA" style={inputStyle}>
+                          {MARQUES.map((marque) => (
+                            <option key={marque.value} value={marque.value}>
+                              {marque.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Modèle</label>
+                        <input
+                          name="modele"
+                          type="text"
+                          placeholder="Exemple : S 770"
+                          required
+                          style={inputStyle}
                         />
                       </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          gap: "10px",
-                          marginBottom: "12px",
-                        }}
-                      >
-                        <div>
-                          <h2
-                            style={{
-                              margin: 0,
-                              fontSize: "22px",
-                              lineHeight: 1.2,
-                            }}
-                          >
-                            {camion.marque}
-                          </h2>
-                          <div
-                            style={{
-                              marginTop: "4px",
-                              opacity: 0.82,
-                              fontSize: "14px",
-                            }}
-                          >
-                            {camion.modele}
-                          </div>
-                        </div>
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Photo du camion (URL)</label>
+                        <input
+                          name="image"
+                          type="text"
+                          placeholder="https://..."
+                          style={inputStyle}
+                        />
+                      </div>
 
-                        <div
-                          style={{
-                            background: "rgba(37,99,235,0.18)",
-                            border: "1px solid rgba(37,99,235,0.35)",
-                            color: "#93c5fd",
-                            borderRadius: "999px",
-                            padding: "7px 12px",
-                            fontSize: "12px",
-                            fontWeight: "bold",
-                            whiteSpace: "nowrap",
-                          }}
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Statut</label>
+                        <select
+                          name="statut"
+                          defaultValue="DISPONIBLE"
+                          style={inputStyle}
                         >
-                          {camion.jeu}
-                        </div>
+                          {STATUTS.map((statut) => (
+                            <option key={statut.value} value={statut.value}>
+                              {statut.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
-                      <p
-                        style={{
-                          marginTop: 0,
-                          marginBottom: "14px",
-                          lineHeight: 1.6,
-                          opacity: 0.9,
-                          minHeight: "72px",
-                        }}
-                      >
-                        {camion.description}
-                      </p>
-
-                      <div style={infoListStyle}>
-                        <div style={infoRowStyle}>
-                          <span style={labelStyle}>Puissance</span>
-                          <span style={valueStyle}>{camion.puissance}</span>
-                        </div>
-
-                        <div style={infoRowStyle}>
-                          <span style={labelStyle}>Prix</span>
-                          <span
-                            style={{
-                              ...valueStyle,
-                              color: "#22c55e",
-                              fontSize: "16px",
-                            }}
-                          >
-                            {formatPrix(camion.prix)}
-                          </span>
-                        </div>
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Kilométrage</label>
+                        <input
+                          name="kilometrage"
+                          type="number"
+                          min="0"
+                          defaultValue="0"
+                          style={inputStyle}
+                        />
                       </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "10px",
-                          marginTop: "18px",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <button style={mainButtonStyle}>Acheter</button>
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>État (%)</label>
+                        <input
+                          name="etat"
+                          type="number"
+                          min="0"
+                          max="100"
+                          defaultValue="100"
+                          style={inputStyle}
+                        />
                       </div>
-                    </article>
-                  ))}
-                </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Carburant (%)</label>
+                        <input
+                          name="carburant"
+                          type="number"
+                          min="0"
+                          max="100"
+                          defaultValue="100"
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Position actuelle</label>
+                        <input
+                          name="positionActuelle"
+                          type="text"
+                          placeholder="Exemple : Lyon"
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Vidange restante (km)</label>
+                        <input
+                          name="vidangeRestante"
+                          type="number"
+                          min="0"
+                          defaultValue="60000"
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Révision restante (km)</label>
+                        <input
+                          name="revisionRestante"
+                          type="number"
+                          min="0"
+                          defaultValue="120000"
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "12px",
+                        marginTop: "22px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <button type="submit" style={mainButtonStyle}>
+                        Enregistrer le camion
+                      </button>
+
+                      <Link href="/camions" style={secondaryButtonStyle}>
+                        Annuler
+                      </Link>
+                    </div>
+                  </form>
+                )}
               </section>
 
               <aside
@@ -370,34 +386,39 @@ export default async function AcheterCamionPage() {
                 }}
               >
                 <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "10px" }}>
-                    Résumé entreprise
+                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
+                    Qui peut ajouter
                   </h2>
 
                   <div style={infoRowStyle}>
-                    <span style={labelStyle}>Entreprise</span>
-                    <span style={valueStyle}>{entreprise.nom}</span>
+                    <span style={labelStyle}>Ton rôle</span>
+                    <span style={valueStyle}>{monMembership.role}</span>
                   </div>
 
                   <div style={infoRowStyle}>
-                    <span style={labelStyle}>Camions actifs</span>
-                    <span style={valueStyle}>{totalCamions}</span>
+                    <span style={labelStyle}>Directeur</span>
+                    <span style={valueStyle}>Oui</span>
                   </div>
 
                   <div style={infoRowStyle}>
-                    <span style={labelStyle}>Catalogue</span>
-                    <span style={valueStyle}>{camionsCatalogue.length}</span>
+                    <span style={labelStyle}>Sous-directeur</span>
+                    <span style={valueStyle}>Oui</span>
+                  </div>
+
+                  <div style={infoRowStyle}>
+                    <span style={labelStyle}>Autres rôles</span>
+                    <span style={valueStyle}>Non</span>
                   </div>
                 </div>
 
                 <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "10px" }}>
-                    Infos achat
+                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
+                    Infos camion
                   </h2>
 
                   <p style={smallTextStyle}>
-                    Cette page sert à choisir un nouveau camion pour agrandir le
-                    parc de ton entreprise.
+                    Ici, le responsable remplit manuellement tous les détails du
+                    camion avant l’ajout dans le parc.
                   </p>
 
                   <p
@@ -406,36 +427,26 @@ export default async function AcheterCamionPage() {
                       marginTop: "12px",
                     }}
                   >
-                    Pour l’instant, le bouton acheter est visuel. Ensuite on branchera
-                    l’achat réel à la base de données.
+                    La photo se met pour l’instant avec un lien image. Si tu veux,
+                    juste après je te fais la vraie version avec upload depuis le PC.
                   </p>
                 </div>
 
                 <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "10px" }}>
-                    Types disponibles
+                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
+                    Entreprise
                   </h2>
 
-                  <div style={legendRowStyle}>
-                    <span
-                      style={{
-                        ...legendDotStyle,
-                        background: "#2563eb",
-                        boxShadow: "0 0 10px rgba(37,99,235,0.85)",
-                      }}
-                    />
-                    Camions ETS2
+                  <div style={infoRowStyle}>
+                    <span style={labelStyle}>Nom</span>
+                    <span style={valueStyle}>{entreprise.nom}</span>
                   </div>
 
-                  <div style={legendRowStyle}>
-                    <span
-                      style={{
-                        ...legendDotStyle,
-                        background: "#22c55e",
-                        boxShadow: "0 0 10px rgba(34,197,94,0.85)",
-                      }}
-                    />
-                    Camions ATS
+                  <div style={infoRowStyle}>
+                    <span style={labelStyle}>Ajout autorisé</span>
+                    <span style={valueStyle}>
+                      {peutAjouterCamion ? "Oui" : "Non"}
+                    </span>
                   </div>
                 </div>
               </aside>
@@ -454,19 +465,35 @@ const boxStyle = {
   border: "1px solid rgba(255,255,255,0.08)",
 };
 
-const truckCardStyle = {
+const formCardStyle = {
   background: "rgba(255,255,255,0.08)",
   borderRadius: "16px",
-  padding: "16px",
+  padding: "20px",
   border: "1px solid rgba(255,255,255,0.08)",
   backdropFilter: "blur(4px)",
   boxShadow: "0 0 18px rgba(0,0,0,0.28)",
 };
 
-const infoListStyle = {
+const fieldGroupStyle = {
   display: "flex",
   flexDirection: "column" as const,
   gap: "8px",
+};
+
+const labelInputStyle = {
+  fontSize: "14px",
+  fontWeight: "bold",
+  opacity: 0.92,
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  outline: "none",
 };
 
 const infoRowStyle = {
@@ -503,7 +530,6 @@ const mainButtonStyle = {
   fontWeight: "bold",
   cursor: "pointer",
   textDecoration: "none",
-  width: "100%",
 };
 
 const secondaryButtonStyle = {
@@ -517,18 +543,5 @@ const secondaryButtonStyle = {
   textDecoration: "none",
   display: "inline-flex",
   alignItems: "center",
-};
-
-const legendRowStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
-  padding: "8px 0",
-};
-
-const legendDotStyle = {
-  width: "12px",
-  height: "12px",
-  borderRadius: "50%",
-  display: "inline-block",
+  justifyContent: "center",
 };

@@ -107,12 +107,14 @@ export default async function ModifierProfilPage() {
 
     const ageValue = formData.get("age")?.toString().trim() || "";
     const region = formData.get("region")?.toString().trim() || null;
+    const micro = formData.get("micro") === "oui";
     const jeuPrincipal = formData.get("jeuPrincipal")?.toString().trim() || null;
+    const styleConduite =
+      formData.get("styleConduite")?.toString().trim() || null;
     const typeTransportPrefere =
       formData.get("typeTransportPrefere")?.toString().trim() || null;
     const descriptionChauffeur =
       formData.get("descriptionChauffeur")?.toString().trim() || null;
-    const micro = formData.get("micro") === "oui";
 
     const age =
       ageValue === "" || Number.isNaN(Number(ageValue))
@@ -148,6 +150,7 @@ export default async function ModifierProfilPage() {
           region,
           micro,
           jeuPrincipal,
+          styleConduite,
           typeTransportPrefere,
           descriptionChauffeur,
         },
@@ -246,6 +249,7 @@ export default async function ModifierProfilPage() {
                   label="Pseudo Steam"
                   value={user.username || "Non renseigné"}
                 />
+
                 <ReadOnlyRow
                   label="Entreprise actuelle"
                   value={entrepriseActuelle}
@@ -271,8 +275,8 @@ export default async function ModifierProfilPage() {
                 </Field>
 
                 <Field label="Micro">
-                  <div style={radioGroupStyle}>
-                    <label style={radioLabelStyle}>
+                  <div style={choiceGridStyle}>
+                    <label style={choiceItemStyle}>
                       <input
                         type="radio"
                         name="micro"
@@ -282,7 +286,7 @@ export default async function ModifierProfilPage() {
                       <span>Oui</span>
                     </label>
 
-                    <label style={radioLabelStyle}>
+                    <label style={choiceItemStyle}>
                       <input
                         type="radio"
                         name="micro"
@@ -297,33 +301,139 @@ export default async function ModifierProfilPage() {
 
               <Card title="Profil routier">
                 <Field label="Jeu principal">
-                  <select
-                    name="jeuPrincipal"
-                    defaultValue={user.jeuPrincipal ?? ""}
-                    style={inputStyle}
-                  >
-                    <option value="">Choisir</option>
-                    <option value="ETS2">ETS2</option>
-                    <option value="ATS">ATS</option>
-                    <option value="LES_DEUX">Les deux</option>
-                  </select>
+                  <div style={choiceGridStyle}>
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="jeuPrincipal"
+                        value="ETS2"
+                        defaultChecked={user.jeuPrincipal === "ETS2"}
+                      />
+                      <span>ETS2</span>
+                    </label>
+
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="jeuPrincipal"
+                        value="ATS"
+                        defaultChecked={user.jeuPrincipal === "ATS"}
+                      />
+                      <span>ATS</span>
+                    </label>
+
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="jeuPrincipal"
+                        value="LES_DEUX"
+                        defaultChecked={user.jeuPrincipal === "LES_DEUX"}
+                      />
+                      <span>Les deux</span>
+                    </label>
+                  </div>
+                </Field>
+
+                <Field label="Style de conduite">
+                  <div style={choiceGridStyle}>
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="styleConduite"
+                        value="RP"
+                        defaultChecked={user.styleConduite === "RP"}
+                      />
+                      <span>RP</span>
+                    </label>
+
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="styleConduite"
+                        value="SEMI_RP"
+                        defaultChecked={user.styleConduite === "SEMI_RP"}
+                      />
+                      <span>Semi-RP</span>
+                    </label>
+                  </div>
                 </Field>
 
                 <Field label="Transport préféré">
-                  <select
-                    name="typeTransportPrefere"
-                    defaultValue={user.typeTransportPrefere ?? ""}
-                    style={inputStyle}
-                  >
-                    <option value="">Choisir</option>
-                    <option value="GENERAL">Général</option>
-                    <option value="FRIGORIFIQUE">Frigorifique</option>
-                    <option value="CITERNE">Citerne</option>
-                    <option value="CONVOI_EXCEPTIONNEL">Convoi exceptionnel</option>
-                    <option value="BENNE">Benne</option>
-                    <option value="FORESTIER">Forestier</option>
-                    <option value="CONTENEUR">Conteneur</option>
-                  </select>
+                  <div style={choiceGridStyle}>
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="typeTransportPrefere"
+                        value="GENERAL"
+                        defaultChecked={user.typeTransportPrefere === "GENERAL"}
+                      />
+                      <span>Général</span>
+                    </label>
+
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="typeTransportPrefere"
+                        value="FRIGORIFIQUE"
+                        defaultChecked={
+                          user.typeTransportPrefere === "FRIGORIFIQUE"
+                        }
+                      />
+                      <span>Frigorifique</span>
+                    </label>
+
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="typeTransportPrefere"
+                        value="CITERNE"
+                        defaultChecked={user.typeTransportPrefere === "CITERNE"}
+                      />
+                      <span>Citerne</span>
+                    </label>
+
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="typeTransportPrefere"
+                        value="CONVOI_EXCEPTIONNEL"
+                        defaultChecked={
+                          user.typeTransportPrefere === "CONVOI_EXCEPTIONNEL"
+                        }
+                      />
+                      <span>Convoi exceptionnel</span>
+                    </label>
+
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="typeTransportPrefere"
+                        value="BENNE"
+                        defaultChecked={user.typeTransportPrefere === "BENNE"}
+                      />
+                      <span>Benne</span>
+                    </label>
+
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="typeTransportPrefere"
+                        value="FORESTIER"
+                        defaultChecked={user.typeTransportPrefere === "FORESTIER"}
+                      />
+                      <span>Forestier</span>
+                    </label>
+
+                    <label style={choiceItemStyle}>
+                      <input
+                        type="radio"
+                        name="typeTransportPrefere"
+                        value="CONTENEUR"
+                        defaultChecked={user.typeTransportPrefere === "CONTENEUR"}
+                      />
+                      <span>Conteneur</span>
+                    </label>
+                  </div>
                 </Field>
 
                 <Field label="Présentation chauffeur">
@@ -519,19 +629,21 @@ const textareaStyle: React.CSSProperties = {
   fontFamily: "inherit",
 };
 
-const radioGroupStyle: React.CSSProperties = {
-  display: "flex",
-  gap: "16px",
-  flexWrap: "wrap",
+const choiceGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "10px",
 };
 
-const radioLabelStyle: React.CSSProperties = {
+const choiceItemStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "8px",
+  gap: "10px",
   background: "rgba(255,255,255,0.08)",
-  padding: "10px 12px",
+  border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: "10px",
+  padding: "10px 12px",
+  cursor: "pointer",
 };
 
 const checkboxGridStyle: React.CSSProperties = {

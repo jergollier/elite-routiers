@@ -174,6 +174,64 @@ export default async function GestionEntreprisePage({ params }: Props) {
     revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
   }
 
+  async function updateRecrutement(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) {
+      return;
+    }
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+    const recrutementValue = formData.get("recrutement");
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) {
+      return;
+    }
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) {
+      return;
+    }
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR"].includes(membreActuel.role)
+    ) {
+      return;
+    }
+
+    const recrutement = recrutementValue === "true";
+
+    await prisma.entreprise.update({
+      where: { id: entrepriseIdFromForm },
+      data: {
+        recrutement,
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath("/mon-entreprise");
+    revalidatePath("/societe");
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+  }
+
   const argentSociete = 125000;
   const cuveMax = 10000;
   const cuveActuelle = 6200;
@@ -675,6 +733,121 @@ export default async function GestionEntreprisePage({ params }: Props) {
                   </button>
                 )}
               </div>
+            </div>
+
+            <div style={boxStyle}>
+              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>Recrutement</h2>
+
+              <form
+                action={updateRecrutement}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                }}
+              >
+                <input type="hidden" name="entrepriseId" value={entreprise.id} />
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "10px",
+                  }}
+                >
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      background: entreprise.recrutement
+                        ? "rgba(34,197,94,0.18)"
+                        : "rgba(255,255,255,0.08)",
+                      border: entreprise.recrutement
+                        ? "1px solid rgba(34,197,94,0.45)"
+                        : "1px solid rgba(255,255,255,0.10)",
+                      borderRadius: "10px",
+                      padding: "12px",
+                      cursor: peutModifierInfos ? "pointer" : "default",
+                      fontWeight: "bold",
+                      opacity: peutModifierInfos ? 1 : 0.7,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="recrutement"
+                      value="true"
+                      defaultChecked={entreprise.recrutement === true}
+                      disabled={!peutModifierInfos}
+                    />
+                    <span>Ouvert</span>
+                  </label>
+
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      background: entreprise.recrutement === false
+                        ? "rgba(239,68,68,0.18)"
+                        : "rgba(255,255,255,0.08)",
+                      border: entreprise.recrutement === false
+                        ? "1px solid rgba(239,68,68,0.45)"
+                        : "1px solid rgba(255,255,255,0.10)",
+                      borderRadius: "10px",
+                      padding: "12px",
+                      cursor: peutModifierInfos ? "pointer" : "default",
+                      fontWeight: "bold",
+                      opacity: peutModifierInfos ? 1 : 0.7,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="recrutement"
+                      value="false"
+                      defaultChecked={entreprise.recrutement === false}
+                      disabled={!peutModifierInfos}
+                    />
+                    <span>Fermé</span>
+                  </label>
+                </div>
+
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    borderRadius: "12px",
+                    padding: "14px",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      opacity: 0.8,
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Statut actuel
+                  </div>
+
+                  <div style={{ fontWeight: "bold", fontSize: "16px" }}>
+                    {entreprise.recrutement
+                      ? "Recrutement ouvert"
+                      : "Recrutement fermé"}
+                  </div>
+                </div>
+
+                {peutModifierInfos ? (
+                  <button type="submit" style={btnPrimaryLarge}>
+                    💾 Enregistrer le recrutement
+                  </button>
+                ) : (
+                  <div style={emptyCardStyle}>
+                    Seuls le directeur et le sous-directeur peuvent modifier le
+                    recrutement.
+                  </div>
+                )}
+              </form>
             </div>
           </aside>
         </div>

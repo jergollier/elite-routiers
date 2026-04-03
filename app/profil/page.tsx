@@ -29,7 +29,9 @@ export default async function ProfilPage() {
     },
   });
 
-  if (!user) redirect("/");
+  if (!user) {
+    redirect("/");
+  }
 
   const entreprisePossedee = user.entreprisesCreees[0] ?? null;
   const membershipActif = user.memberships[0] ?? null;
@@ -45,6 +47,13 @@ export default async function ProfilPage() {
 
   const dlcsETS2 = user.dlcs.filter((d) => d.jeu === "ETS2");
   const dlcsATS = user.dlcs.filter((d) => d.jeu === "ATS");
+
+  const styleConduiteAffichage =
+    user.styleConduite === "RP"
+      ? "RP"
+      : user.styleConduite === "SEMI_RP"
+      ? "Semi-RP"
+      : "Non renseigné";
 
   return (
     <main
@@ -68,7 +77,6 @@ export default async function ProfilPage() {
         <Menu />
 
         <div style={{ display: "grid", gap: "20px" }}>
-          {/* HEADER */}
           <section
             style={{
               background: "rgba(0,0,0,0.55)",
@@ -85,7 +93,14 @@ export default async function ProfilPage() {
                 Profil de {user.username || "Chauffeur"}
               </h1>
 
-              <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  marginTop: "10px",
+                  flexWrap: "wrap",
+                }}
+              >
                 <Tag>{entrepriseActuelle}</Tag>
                 <Tag>{roleActuel}</Tag>
                 <Tag>{user.jeuPrincipal || "Non renseigné"}</Tag>
@@ -93,7 +108,6 @@ export default async function ProfilPage() {
             </div>
           </section>
 
-          {/* INFOS */}
           <section
             style={{
               background: "rgba(0,0,0,0.55)",
@@ -103,11 +117,23 @@ export default async function ProfilPage() {
               backdropFilter: "blur(6px)",
             }}
           >
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "15px",
+              }}
+            >
               <Card title="Informations générales">
                 <InfoRow label="Pseudo" value={user.username || "Non renseigné"} />
-                <InfoRow label="Âge" value={user.age?.toString() || "Non renseigné"} />
-                <InfoRow label="Région" value={user.region || "Non renseignée"} />
+                <InfoRow
+                  label="Âge"
+                  value={user.age?.toString() || "Non renseigné"}
+                />
+                <InfoRow
+                  label="Région"
+                  value={user.region || "Non renseignée"}
+                />
                 <InfoRow label="Micro" value={user.micro ? "Oui" : "Non"} />
               </Card>
 
@@ -115,12 +141,14 @@ export default async function ProfilPage() {
                 <InfoRow label="Rôle" value={roleActuel} />
                 <InfoRow label="Entreprise" value={entrepriseActuelle} />
                 <InfoRow label="Jeu" value={user.jeuPrincipal || "Non renseigné"} />
-                <InfoRow label="Transport" value={user.typeTransportPrefere || "Non renseigné"} />
+                <InfoRow
+                  label="Transport"
+                  value={user.typeTransportPrefere || "Non renseigné"}
+                />
               </Card>
             </div>
           </section>
 
-          {/* BAS */}
           <section
             style={{
               background: "rgba(0,0,0,0.55)",
@@ -130,37 +158,88 @@ export default async function ProfilPage() {
               backdropFilter: "blur(6px)",
             }}
           >
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "15px" }}>
-              
-              {/* CONDUITE */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.2fr 0.8fr",
+                gap: "15px",
+                alignItems: "start",
+              }}
+            >
               <Card title="Informations de conduite">
-                <InfoRow label="Style" value="RP / Semi-RP" />
+                <InfoRow label="Style" value={styleConduiteAffichage} />
 
-                <div style={{ marginTop: "10px" }}>
+                <div
+                  style={{
+                    marginTop: "12px",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    lineHeight: "1.6",
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
                   {user.descriptionChauffeur || "Aucune description"}
                 </div>
               </Card>
 
-              {/* DLC */}
               <Card title="DLC">
-                <strong>ETS2</strong>
-                {dlcsETS2.map((d) => (
-                  <ListLine key={d.id}>{d.nomDlc}</ListLine>
-                ))}
+                <div
+                  style={{
+                    maxHeight: "360px",
+                    overflowY: "auto",
+                    paddingRight: "8px",
+                    display: "grid",
+                    gap: "12px",
+                  }}
+                >
+                  <div>
+                    <strong style={{ display: "block", marginBottom: "8px" }}>
+                      ETS2
+                    </strong>
 
-                <strong style={{ marginTop: "10px", display: "block" }}>ATS</strong>
-                {dlcsATS.map((d) => (
-                  <ListLine key={d.id}>{d.nomDlc}</ListLine>
-                ))}
+                    {dlcsETS2.length > 0 ? (
+                      dlcsETS2.map((d) => (
+                        <ListLine key={d.id}>{d.nomDlc}</ListLine>
+                      ))
+                    ) : (
+                      <EmptyText>Aucun DLC ETS2</EmptyText>
+                    )}
+                  </div>
+
+                  <div>
+                    <strong style={{ display: "block", marginBottom: "8px" }}>
+                      ATS
+                    </strong>
+
+                    {dlcsATS.length > 0 ? (
+                      dlcsATS.map((d) => (
+                        <ListLine key={d.id}>{d.nomDlc}</ListLine>
+                      ))
+                    ) : (
+                      <EmptyText>Aucun DLC ATS</EmptyText>
+                    )}
+                  </div>
+                </div>
               </Card>
-
             </div>
           </section>
 
-          {/* BOUTONS */}
-          <div style={{ display: "flex", gap: "10px" }}>
-            <Link href="/site" style={btn}>Retour</Link>
-            <Link href="/profil/modifier" style={btnBlue}>Modifier</Link>
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <Link href="/societe" style={btn}>
+              Retour
+            </Link>
+
+            <Link href="/profil/modifier" style={btnBlue}>
+              Modifier
+            </Link>
           </div>
         </div>
       </div>
@@ -170,8 +249,14 @@ export default async function ProfilPage() {
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div style={{ background: "rgba(0,0,0,0.35)", padding: "15px", borderRadius: "12px" }}>
-      <h3>{title}</h3>
+    <div
+      style={{
+        background: "rgba(0,0,0,0.35)",
+        padding: "15px",
+        borderRadius: "12px",
+      }}
+    >
+      <h3 style={{ marginTop: 0, marginBottom: "12px" }}>{title}</h3>
       {children}
     </div>
   );
@@ -188,7 +273,13 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 function Tag({ children }: { children: ReactNode }) {
   return (
-    <span style={{ background: "rgba(255,255,255,0.1)", padding: "5px 10px", borderRadius: "10px" }}>
+    <span
+      style={{
+        background: "rgba(255,255,255,0.1)",
+        padding: "5px 10px",
+        borderRadius: "10px",
+      }}
+    >
       {children}
     </span>
   );
@@ -196,13 +287,26 @@ function Tag({ children }: { children: ReactNode }) {
 
 function ListLine({ children }: { children: ReactNode }) {
   return (
-    <div style={{ marginTop: "5px", opacity: 0.85 }}>
+    <div
+      style={{
+        marginTop: "6px",
+        opacity: 0.9,
+        background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: "8px",
+        padding: "8px 10px",
+      }}
+    >
       • {children}
     </div>
   );
 }
 
-const btn = {
+function EmptyText({ children }: { children: ReactNode }) {
+  return <div style={{ opacity: 0.7 }}>{children}</div>;
+}
+
+const btn: React.CSSProperties = {
   padding: "10px 20px",
   background: "rgba(255,255,255,0.1)",
   borderRadius: "10px",
@@ -210,7 +314,7 @@ const btn = {
   color: "white",
 };
 
-const btnBlue = {
+const btnBlue: React.CSSProperties = {
   ...btn,
   background: "rgba(0,100,255,0.6)",
 };

@@ -32,7 +32,7 @@ function getStatutConfig(statut: string) {
       };
     }
   }
-}
+
 
 function getBarColor(value: number) {
   if (value > 60) return "#22c55e";

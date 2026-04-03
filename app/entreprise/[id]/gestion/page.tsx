@@ -67,25 +67,16 @@ export default async function GestionEntreprisePage({ params }: Props) {
     redirect("/mon-entreprise");
   }
 
-  const nbDirecteurs = entreprise.membres.filter(
-    (membre) => membre.role === "DIRECTEUR"
-  ).length;
+  const argentSociete = 125000;
+  const cuveMax = 10000;
+  const cuveActuelle = 6200;
+  const cuvePourcent = Math.max(
+    0,
+    Math.min(100, (cuveActuelle / cuveMax) * 100)
+  );
 
-  const nbSousDirecteurs = entreprise.membres.filter(
-    (membre) => membre.role === "SOUS_DIRECTEUR"
-  ).length;
-
-  const nbChefsEquipe = entreprise.membres.filter(
-    (membre) => membre.role === "CHEF_EQUIPE"
-  ).length;
-
-  const nbChefsAtelier = entreprise.membres.filter(
-    (membre) => membre.role === "CHEF_ATELIER"
-  ).length;
-
-  const nbChauffeurs = entreprise.membres.filter(
-    (membre) => membre.role === "CHAUFFEUR"
-  ).length;
+  const prochaineExtension = cuveMax < 50000 ? cuveMax + 5000 : cuveMax;
+  const extensionDisponible = cuveMax < 50000;
 
   return (
     <main
@@ -177,18 +168,7 @@ export default async function GestionEntreprisePage({ params }: Props) {
               </span>
             </div>
 
-            <Link
-              href="/mon-entreprise"
-              style={{
-                padding: "10px 16px",
-                background: "#171a21",
-                borderRadius: "10px",
-                color: "white",
-                textDecoration: "none",
-                fontWeight: "bold",
-                border: "1px solid rgba(255,255,255,0.12)",
-              }}
-            >
+            <Link href="/mon-entreprise" style={headerButtonStyle}>
               Retour
             </Link>
           </div>
@@ -257,8 +237,8 @@ export default async function GestionEntreprisePage({ params }: Props) {
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "12px",
-                  maxHeight: "520px",
+                  gap: "10px",
+                  maxHeight: "560px",
                   overflowY: "auto",
                   paddingRight: "4px",
                 }}
@@ -268,14 +248,14 @@ export default async function GestionEntreprisePage({ params }: Props) {
                     <div
                       key={membre.id}
                       style={{
-                        background: "rgba(255,255,255,0.08)",
-                        borderRadius: "12px",
-                        padding: "14px",
-                        border: "1px solid rgba(255,255,255,0.08)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
                         gap: "12px",
+                        padding: "12px",
+                        borderRadius: "10px",
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.08)",
                         flexWrap: "wrap",
                       }}
                     >
@@ -284,17 +264,18 @@ export default async function GestionEntreprisePage({ params }: Props) {
                           display: "flex",
                           alignItems: "center",
                           gap: "12px",
+                          minWidth: "220px",
                         }}
                       >
                         <div
                           style={{
-                            width: "44px",
-                            height: "44px",
+                            width: "40px",
+                            height: "40px",
                             borderRadius: "999px",
                             overflow: "hidden",
                             background: "rgba(255,255,255,0.08)",
-                            flexShrink: 0,
                             border: "1px solid rgba(255,255,255,0.12)",
+                            flexShrink: 0,
                           }}
                         >
                           {membre.user?.avatar ? (
@@ -329,23 +310,30 @@ export default async function GestionEntreprisePage({ params }: Props) {
                           <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
                             {membre.user?.username || "Utilisateur Steam"}
                           </div>
-                          <div style={{ opacity: 0.85, fontSize: "14px" }}>
-                            {membre.user?.steamId || "Steam ID inconnu"}
+                          <div style={{ fontSize: "12px", opacity: 0.75 }}>
+                            {membre.role.replaceAll("_", " ")}
                           </div>
                         </div>
                       </div>
 
                       <div
                         style={{
-                          background: "rgba(0,0,0,0.35)",
-                          padding: "8px 12px",
-                          borderRadius: "10px",
-                          border: "1px solid rgba(255,255,255,0.10)",
-                          fontWeight: "bold",
-                          whiteSpace: "nowrap",
+                          display: "flex",
+                          gap: "8px",
+                          flexWrap: "wrap",
                         }}
                       >
-                        {membre.role.replaceAll("_", " ")}
+                        <button type="button" style={btnWarning}>
+                          ⚠️ Avertissement
+                        </button>
+
+                        <button type="button" style={btnPrimary}>
+                          🎖️ Grade
+                        </button>
+
+                        <button type="button" style={btnDanger}>
+                          ❌ Exclure
+                        </button>
                       </div>
                     </div>
                   ))
@@ -374,49 +362,116 @@ export default async function GestionEntreprisePage({ params }: Props) {
             </div>
 
             <div style={boxStyle}>
-              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>Organisation</h2>
+              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
+                Cuve de la société
+              </h2>
+
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  borderRadius: "12px",
+                  padding: "14px",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  marginBottom: "14px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "13px",
+                    opacity: 0.8,
+                    marginBottom: "6px",
+                  }}
+                >
+                  Argent de la société
+                </div>
+
+                <div style={{ fontSize: "24px", fontWeight: "bold" }}>
+                  {argentSociete.toLocaleString("fr-FR")} €
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  borderRadius: "12px",
+                  padding: "14px",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  marginBottom: "14px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "14px",
+                    opacity: 0.9,
+                    marginBottom: "10px",
+                  }}
+                >
+                  {cuveActuelle.toLocaleString("fr-FR")} L /{" "}
+                  {cuveMax.toLocaleString("fr-FR")} L
+                </div>
+
+                <div
+                  style={{
+                    width: "100%",
+                    height: "24px",
+                    borderRadius: "999px",
+                    background: "rgba(255,255,255,0.10)",
+                    overflow: "hidden",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${cuvePourcent}%`,
+                      height: "100%",
+                      background:
+                        "linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #22c55e 100%)",
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginTop: "8px",
+                    fontSize: "13px",
+                    opacity: 0.8,
+                  }}
+                >
+                  <span>0</span>
+                  <span>{cuveMax.toLocaleString("fr-FR")}</span>
+                </div>
+              </div>
 
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "12px",
+                  gap: "10px",
                 }}
               >
-                <div style={statCardStyle}>
-                  <span>Directeur</span>
-                  <strong>{nbDirecteurs}</strong>
-                </div>
+                <button type="button" style={btnPrimaryLarge}>
+                  Remplir la cuve
+                </button>
 
-                <div style={statCardStyle}>
-                  <span>Sous-directeur</span>
-                  <strong>{nbSousDirecteurs}</strong>
-                </div>
-
-                <div style={statCardStyle}>
-                  <span>Chef d’équipe</span>
-                  <strong>{nbChefsEquipe}</strong>
-                </div>
-
-                <div style={statCardStyle}>
-                  <span>Chef atelier</span>
-                  <strong>{nbChefsAtelier}</strong>
-                </div>
-
-                <div style={statCardStyle}>
-                  <span>Chauffeurs</span>
-                  <strong>{nbChauffeurs}</strong>
-                </div>
-
-                <div style={statCardStyle}>
-                  <span>Total membres</span>
-                  <strong>{entreprise._count.membres}</strong>
-                </div>
-
-                <div style={statCardStyle}>
-                  <span>Recrutement</span>
-                  <strong>{entreprise.recrutement ? "Actif" : "Fermé"}</strong>
-                </div>
+                {extensionDisponible ? (
+                  <button type="button" style={btnDarkLarge}>
+                    Acheter extension +5000 L ({prochaineExtension.toLocaleString("fr-FR")} L) - 20 000 €
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    style={{
+                      ...btnDarkLarge,
+                      opacity: 0.5,
+                      cursor: "not-allowed",
+                    }}
+                    disabled
+                  >
+                    Capacité maximale atteinte
+                  </button>
+                )}
               </div>
             </div>
           </aside>
@@ -459,16 +514,6 @@ const valueStyle = {
   fontSize: "16px",
 };
 
-const statCardStyle = {
-  background: "rgba(255,255,255,0.08)",
-  borderRadius: "12px",
-  padding: "14px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-};
-
 const emptyCardStyle = {
   background: "rgba(255,255,255,0.08)",
   borderRadius: "12px",
@@ -476,4 +521,64 @@ const emptyCardStyle = {
   border: "1px solid rgba(255,255,255,0.08)",
   lineHeight: 1.6,
   opacity: 0.9,
+};
+
+const headerButtonStyle = {
+  padding: "10px 16px",
+  background: "#171a21",
+  borderRadius: "10px",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: "bold",
+  border: "1px solid rgba(255,255,255,0.12)",
+};
+
+const btnPrimary = {
+  padding: "6px 10px",
+  borderRadius: "6px",
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const btnWarning = {
+  padding: "6px 10px",
+  borderRadius: "6px",
+  border: "none",
+  background: "#f59e0b",
+  color: "black",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const btnDanger = {
+  padding: "6px 10px",
+  borderRadius: "6px",
+  border: "none",
+  background: "#ef4444",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const btnPrimaryLarge = {
+  padding: "12px 16px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const btnDarkLarge = {
+  padding: "12px 16px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#171a21",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: "bold",
 };

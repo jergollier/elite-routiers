@@ -260,22 +260,10 @@ export default async function VoirCamionPage({ params }: Props) {
                       }}
                     >
                       <div>
-                        <h2
-                          style={{
-                            margin: 0,
-                            fontSize: "24px",
-                            lineHeight: 1.2,
-                          }}
-                        >
+                        <h2 style={{ margin: 0, fontSize: "24px" }}>
                           {formatMarque(camion.marque)}
                         </h2>
-                        <div
-                          style={{
-                            marginTop: "4px",
-                            opacity: 0.82,
-                            fontSize: "16px",
-                          }}
-                        >
+                        <div style={{ marginTop: "4px", opacity: 0.82 }}>
                           {camion.modele}
                         </div>
                       </div>
@@ -291,7 +279,6 @@ export default async function VoirCamionPage({ params }: Props) {
                           padding: "8px 12px",
                           fontSize: "13px",
                           fontWeight: "bold",
-                          whiteSpace: "nowrap",
                         }}
                       >
                         <span
@@ -301,7 +288,6 @@ export default async function VoirCamionPage({ params }: Props) {
                             borderRadius: "50%",
                             background: statut.color,
                             boxShadow: statut.glow,
-                            display: "inline-block",
                           }}
                         />
                         {statut.label}
@@ -347,90 +333,29 @@ export default async function VoirCamionPage({ params }: Props) {
 
                   <div style={{ flex: 1, minWidth: "280px" }}>
                     <div style={boxStyle}>
-                      <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
-                        Accessoires extérieurs
-                      </h2>
-
+                      <h2>Accessoires extérieurs</h2>
                       <div style={accessoiresBoxStyle}>
-                        {camion.accessoiresExterieur || "Aucun accessoire extérieur"}
+                        {camion.accessoiresExterieur || "Aucun"}
                       </div>
                     </div>
 
                     <div style={{ ...boxStyle, marginTop: "18px" }}>
-                      <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
-                        Accessoires intérieurs
-                      </h2>
-
+                      <h2>Accessoires intérieurs</h2>
                       <div style={accessoiresBoxStyle}>
-                        {camion.accessoiresInterieur || "Aucun accessoire intérieur"}
+                        {camion.accessoiresInterieur || "Aucun"}
                       </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "12px",
-                        marginTop: "22px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <Link
-                        href={`/camions/${camion.id}/modifier`}
-                        style={mainButtonLinkStyle}
-                      >
-                        Modifier
-                      </Link>
-
-                      <Link
-                        href={`/camions/${camion.id}/attribuer`}
-                        style={secondaryButtonStyle}
-                      >
-                        Attribuer
-                      </Link>
                     </div>
                   </div>
                 </div>
               </section>
 
-              <aside
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                }}
-              >
+              <aside style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                    Résumé
-                  </h2>
-
+                  <h2>Résumé</h2>
                   <div style={infoRowStyle}>
                     <span style={labelStyle}>Entreprise</span>
                     <span style={valueStyle}>{entreprise.nom}</span>
                   </div>
-
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Statut</span>
-                    <span style={valueStyle}>{statut.label}</span>
-                  </div>
-
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Chauffeur</span>
-                    <span style={valueStyle}>
-                      {camion.chauffeur?.username || "Non attribué"}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                    Infos techniques
-                  </h2>
-
-                  <p style={smallTextStyle}>
-                    Ici tu retrouves les informations principales du camion sans le
-                    prix ni la preuve d’achat.
-                  </p>
                 </div>
               </aside>
             </div>
@@ -445,18 +370,13 @@ const boxStyle = {
   background: "rgba(255,255,255,0.08)",
   borderRadius: "16px",
   padding: "20px",
-  border: "1px solid rgba(255,255,255,0.08)",
 };
 
 const camionCardStyle = {
   width: "360px",
-  maxWidth: "100%",
   background: "rgba(255,255,255,0.08)",
   borderRadius: "16px",
   padding: "16px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  backdropFilter: "blur(4px)",
-  boxShadow: "0 0 18px rgba(0,0,0,0.28)",
 };
 
 const infoListStyle = {
@@ -468,62 +388,26 @@ const infoListStyle = {
 const infoRowStyle = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "12px",
-  padding: "8px 0",
-  borderBottom: "1px solid rgba(255,255,255,0.06)",
 };
 
 const labelStyle = {
-  opacity: 0.82,
-  fontSize: "14px",
+  opacity: 0.8,
 };
 
 const valueStyle = {
   fontWeight: "bold",
-  fontSize: "14px",
-  textAlign: "right" as const,
 };
 
 const accessoiresBoxStyle = {
-  minHeight: "120px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "rgba(255,255,255,0.06)",
-  padding: "14px",
-  lineHeight: 1.6,
-  whiteSpace: "pre-wrap" as const,
-};
-
-const smallTextStyle = {
-  margin: 0,
-  lineHeight: 1.6,
-  opacity: 0.9,
-};
-
-const mainButtonLinkStyle = {
-  padding: "12px 18px",
-  borderRadius: "10px",
-  border: "none",
-  background: "#2563eb",
-  color: "white",
-  fontWeight: "bold",
-  cursor: "pointer",
-  textDecoration: "none",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
+  minHeight: "100px",
+  padding: "10px",
+  background: "rgba(255,255,255,0.05)",
 };
 
 const secondaryButtonStyle = {
-  padding: "12px 18px",
+  padding: "10px 14px",
   borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.12)",
   background: "rgba(255,255,255,0.08)",
   color: "white",
-  fontWeight: "bold",
-  cursor: "pointer",
   textDecoration: "none",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
 };

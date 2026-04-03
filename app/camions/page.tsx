@@ -30,7 +30,6 @@ function getStatutConfig(statut: string) {
         color: "#9ca3af",
         glow: "0 0 10px rgba(156,163,175,0.85)",
       };
-    }
   }
 }
 

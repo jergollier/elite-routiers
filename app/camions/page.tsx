@@ -32,7 +32,7 @@ function getStatutConfig(statut: string) {
       };
     }
   }
-
+}
 
 function getBarColor(value: number) {
   if (value > 60) return "#22c55e";
@@ -452,18 +452,8 @@ export default async function CamionsPage() {
                     Ajoute un nouveau camion à ton entreprise pour agrandir ton parc.
                   </p>
 
-                  <Link
-                    href="/camions/acheter"
-                    style={{
-                      ...mainButtonStyle,
-                      width: "100%",
-                      marginTop: "12px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    + Acheter un camion
+                  <Link href="/camions/acheter" style={buyButtonStyle}>
+                    Acheter un camion
                   </Link>
                 </div>
 
@@ -610,17 +600,6 @@ const barHeaderStyle = {
   marginBottom: "8px",
 };
 
-const mainButtonStyle = {
-  padding: "12px 18px",
-  borderRadius: "10px",
-  border: "none",
-  background: "#2563eb",
-  color: "white",
-  fontWeight: "bold",
-  cursor: "pointer",
-  textDecoration: "none",
-};
-
 const smallMainButtonLinkStyle = {
   padding: "10px 16px",
   borderRadius: "10px",
@@ -673,6 +652,24 @@ const smallSecondaryActionButtonStyle = {
   fontWeight: "bold",
   cursor: "pointer",
   minWidth: "90px",
+};
+
+const buyButtonStyle = {
+  width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box" as const,
+  marginTop: "12px",
+  padding: "12px 16px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const legendRowStyle = {

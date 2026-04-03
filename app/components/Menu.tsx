@@ -26,16 +26,29 @@ export default function Menu() {
           Accueil
         </Link>
 
-        <button style={menuButtonStyle}>Mon profil</button>
+        <Link href="/profil" style={menuLinkStyle}>
+          Mon profil
+        </Link>
 
         <Link href="/mon-entreprise" style={menuLinkStyle}>
           Mon entreprise
         </Link>
 
-        <button style={menuButtonStyle}>Finance</button>
-        <button style={menuButtonStyle}>Camion</button>
-        <button style={menuButtonStyle}>Classement</button>
-        <button style={menuButtonStyle}>Paramètres</button>
+        <Link href="/finance" style={menuLinkStyle}>
+          Finance
+        </Link>
+
+        <Link href="/camions" style={menuLinkStyle}>
+          Camion
+        </Link>
+
+        <button style={menuButtonStyle} type="button">
+          Classement
+        </button>
+
+        <button style={menuButtonStyle} type="button">
+          Paramètres
+        </button>
 
         <a href="/api/logout" style={logoutStyle}>
           Déconnexion

@@ -14,57 +14,19 @@ const MARQUES = [
   { value: MarqueCamion.DAF, label: "DAF" },
   { value: MarqueCamion.MERCEDES, label: "Mercedes-Benz" },
   { value: MarqueCamion.IVECO, label: "Iveco" },
+
   { value: MarqueCamion.KENWORTH, label: "Kenworth" },
   { value: MarqueCamion.PETERBILT, label: "Peterbilt" },
+  { value: MarqueCamion.FREIGHTLINER, label: "Freightliner" },
+  { value: MarqueCamion.INTERNATIONAL, label: "International" },
+  { value: MarqueCamion.MACK, label: "Mack" },
+  { value: MarqueCamion.WESTERN_STAR, label: "Western Star" },
 ];
 
-const CABINES = [
-  "Cabine basse",
-  "Cabine normale",
-  "Cabine haute",
-  "Cabine XL",
-  "Sleeper",
-  "Topline",
-];
-
-const CHASSIS = [
-  "4x2",
-  "6x2",
-  "6x4",
-  "8x4",
-  "Châssis long",
-  "Châssis moyen",
-];
-
-const MOTEURS = [
-  "400 ch",
-  "450 ch",
-  "500 ch",
-  "540 ch",
-  "580 ch",
-  "650 ch",
-  "730 ch",
-  "770 ch",
-];
-
-const TRANSMISSIONS = [
-  "6 vitesses",
-  "12 vitesses",
-  "12+2 vitesses",
-  "Automatique",
-  "I-Shift",
-  "Opticruise",
-];
-
-const PEINTURES = [
-  "Blanc",
-  "Noir",
-  "Rouge",
-  "Bleu",
-  "Gris",
-  "Jaune",
-  "Personnalisée",
-];
+function toNumber(value: FormDataEntryValue | null, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
 
 export default async function AcheterCamionPage() {
   const cookieStore = await cookies();
@@ -151,39 +113,82 @@ export default async function AcheterCamionPage() {
     const peinture = String(formData.get("peinture") || "").trim();
     const image = String(formData.get("image") || "").trim();
     const preuveAchat = String(formData.get("preuveAchat") || "").trim();
+    const accessoiresExterieur = String(formData.get("accessoiresExterieur") || "").trim();
+    const accessoiresInterieur = String(formData.get("accessoiresInterieur") || "").trim();
+    const prixAchat = toNumber(formData.get("prixAchat"), 0);
 
-    if (!modele) {
+    if (!modele || !marqueValue || prixAchat <= 0) {
       redirect("/camions/acheter");
     }
 
     const marque = Object.values(MarqueCamion).includes(marqueValue as MarqueCamion)
       ? (marqueValue as MarqueCamion)
-      : MarqueCamion.SCANIA;
+      : null;
 
-    await prisma.camion.create({
-      data: {
-        entrepriseId: membership.entrepriseId,
-        marque,
-        modele,
-        cabine: cabine || null,
-        chassis: chassis || null,
-        moteur: moteur || null,
-        transmission: transmission || null,
-        peinture: peinture || null,
-        image: image || "/truck.jpg",
-        preuveAchat: preuveAchat || null,
-        kilometrage: 0,
-        etat: 100,
-        carburant: 100,
-        positionActuelle: null,
-        statut: StatutCamion.DISPONIBLE,
-        vidangeRestante: 60000,
-        revisionRestante: 120000,
-        actif: true,
-      },
+    if (!marque) {
+      redirect("/camions/acheter");
+    }
+
+    const entrepriseActuelle = await prisma.entreprise.findUnique({
+      where: { id: membership.entrepriseId },
     });
 
+    if (!entrepriseActuelle) {
+      redirect("/societe");
+    }
+
+    if (entrepriseActuelle.argent < prixAchat) {
+      redirect("/camions/acheter");
+    }
+
+    await prisma.$transaction([
+      prisma.camion.create({
+        data: {
+          entrepriseId: membership.entrepriseId,
+          marque,
+          modele,
+          cabine: cabine || null,
+          chassis: chassis || null,
+          moteur: moteur || null,
+          transmission: transmission || null,
+          peinture: peinture || null,
+          image: image || "/truck.jpg",
+          preuveAchat: preuveAchat || null,
+          prixAchat,
+          accessoiresExterieur: accessoiresExterieur || null,
+          accessoiresInterieur: accessoiresInterieur || null,
+          kilometrage: 0,
+          etat: 100,
+          carburant: 100,
+          positionActuelle: null,
+          statut: StatutCamion.DISPONIBLE,
+          vidangeRestante: 60000,
+          revisionRestante: 120000,
+          actif: true,
+        },
+      }),
+      prisma.entreprise.update({
+        where: { id: membership.entrepriseId },
+        data: {
+          argent: {
+            decrement: prixAchat,
+          },
+        },
+      }),
+      prisma.finance.create({
+        data: {
+          entrepriseId: membership.entrepriseId,
+          chauffeurId: null,
+          type: "ACHAT_CAMION",
+          description: `Achat du camion ${marque} ${modele}`,
+          montant: -prixAchat,
+        },
+      }),
+    ]);
+
     revalidatePath("/camions");
+    revalidatePath("/camions/acheter");
+    revalidatePath("/societe");
     redirect("/camions");
   }
 
@@ -221,6 +226,7 @@ export default async function AcheterCamionPage() {
           style={{
             flex: 1,
             padding: "24px",
+            minWidth: 0,
           }}
         >
           <section
@@ -267,12 +273,12 @@ export default async function AcheterCamionPage() {
               style={{
                 padding: "24px",
                 display: "grid",
-                gridTemplateColumns: "1fr 320px",
+                gridTemplateColumns: "minmax(0, 1fr) 320px",
                 gap: "20px",
                 alignItems: "start",
               }}
             >
-              <section>
+              <section style={{ minWidth: 0 }}>
                 {!peutAjouterCamion ? (
                   <div style={boxStyle}>
                     <h2 style={{ marginTop: 0 }}>Accès refusé</h2>
@@ -281,153 +287,181 @@ export default async function AcheterCamionPage() {
                     </p>
                   </div>
                 ) : (
-                  <form action={ajouterCamion} style={formCardStyle}>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                        gap: "16px",
-                      }}
-                    >
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Marque</label>
-                        <select
-                          name="marque"
-                          defaultValue={MarqueCamion.SCANIA}
-                          style={inputStyle}
-                        >
-                          {MARQUES.map((item) => (
-                            <option key={item.value} value={item.value}>
-                              {item.label}
+                  <>
+                    <form action={ajouterCamion} style={formCardStyle}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                          gap: "16px",
+                        }}
+                      >
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Marque</label>
+                          <select name="marque" defaultValue="" style={inputStyle} required>
+                            <option value="" disabled>
+                              Choisir une marque
                             </option>
-                          ))}
-                        </select>
+                            {MARQUES.map((item) => (
+                              <option key={item.value} value={item.value}>
+                                {item.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Modèle</label>
+                          <input
+                            name="modele"
+                            type="text"
+                            placeholder="Exemple : S 770"
+                            required
+                            style={inputStyle}
+                          />
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Cabine</label>
+                          <input
+                            name="cabine"
+                            type="text"
+                            placeholder="Exemple : Topline"
+                            style={inputStyle}
+                          />
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Châssis</label>
+                          <input
+                            name="chassis"
+                            type="text"
+                            placeholder="Exemple : 6x4"
+                            style={inputStyle}
+                          />
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Moteur</label>
+                          <input
+                            name="moteur"
+                            type="text"
+                            placeholder="Exemple : 770 ch"
+                            style={inputStyle}
+                          />
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Transmission</label>
+                          <input
+                            name="transmission"
+                            type="text"
+                            placeholder="Exemple : Automatique"
+                            style={inputStyle}
+                          />
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Peinture</label>
+                          <input
+                            name="peinture"
+                            type="text"
+                            placeholder="Exemple : Blanc nacré"
+                            style={inputStyle}
+                          />
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Prix du camion (€)</label>
+                          <input
+                            name="prixAchat"
+                            type="number"
+                            min="1"
+                            placeholder="Exemple : 185000"
+                            required
+                            style={inputStyle}
+                          />
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Photo du camion (URL)</label>
+                          <input
+                            name="image"
+                            type="text"
+                            placeholder="https://..."
+                            style={inputStyle}
+                          />
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Preuve d’achat (URL image)</label>
+                          <input
+                            name="preuveAchat"
+                            type="text"
+                            placeholder="https://..."
+                            style={inputStyle}
+                          />
+                        </div>
                       </div>
 
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Modèle</label>
-                        <input
-                          name="modele"
-                          type="text"
-                          placeholder="Exemple : S 770"
-                          required
-                          style={inputStyle}
-                        />
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "12px",
+                          marginTop: "22px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <button type="submit" style={mainButtonStyle}>
+                          Enregistrer le camion
+                        </button>
+
+                        <Link href="/camions" style={secondaryButtonStyle}>
+                          Annuler
+                        </Link>
+                      </div>
+                    </form>
+
+                    <div style={{ ...formCardStyle, marginTop: "18px" }}>
+                      <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
+                        Accessoires
+                      </h2>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                          gap: "16px",
+                        }}
+                      >
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Accessoires extérieurs</label>
+                          <textarea
+                            name="accessoiresExterieur"
+                            form=""
+                            placeholder="Exemple : gyrophares, pare-buffle, jantes, trompes..."
+                            style={textareaStyle}
+                            disabled
+                          />
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                          <label style={labelInputStyle}>Accessoires intérieurs</label>
+                          <textarea
+                            name="accessoiresInterieur"
+                            form=""
+                            placeholder="Exemple : GPS, rideaux, tablette, volant personnalisé..."
+                            style={textareaStyle}
+                            disabled
+                          />
+                        </div>
                       </div>
 
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Cabine</label>
-                        <select
-                          name="cabine"
-                          defaultValue="Cabine haute"
-                          style={inputStyle}
-                        >
-                          {CABINES.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Châssis</label>
-                        <select
-                          name="chassis"
-                          defaultValue="4x2"
-                          style={inputStyle}
-                        >
-                          {CHASSIS.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Moteur</label>
-                        <select
-                          name="moteur"
-                          defaultValue="500 ch"
-                          style={inputStyle}
-                        >
-                          {MOTEURS.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Transmission</label>
-                        <select
-                          name="transmission"
-                          defaultValue="Automatique"
-                          style={inputStyle}
-                        >
-                          {TRANSMISSIONS.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Peinture</label>
-                        <select
-                          name="peinture"
-                          defaultValue="Blanc"
-                          style={inputStyle}
-                        >
-                          {PEINTURES.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Photo du camion (URL)</label>
-                        <input
-                          name="image"
-                          type="text"
-                          placeholder="https://..."
-                          style={inputStyle}
-                        />
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Preuve d’achat (URL image)</label>
-                        <input
-                          name="preuveAchat"
-                          type="text"
-                          placeholder="https://..."
-                          style={inputStyle}
-                        />
-                      </div>
+                      <p style={{ ...smallTextStyle, marginTop: "14px" }}>
+                        Bloc prêt visuellement. Juste après, je te le branche pour qu’il enregistre vraiment.
+                      </p>
                     </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "12px",
-                        marginTop: "22px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <button type="submit" style={mainButtonStyle}>
-                        Enregistrer le camion
-                      </button>
-
-                      <Link href="/camions" style={secondaryButtonStyle}>
-                        Annuler
-                      </Link>
-                    </div>
-                  </form>
+                  </>
                 )}
               </section>
 
@@ -466,23 +500,28 @@ export default async function AcheterCamionPage() {
 
                 <div style={boxStyle}>
                   <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                    Infos camion
+                    Budget entreprise
                   </h2>
 
-                  <p style={smallTextStyle}>
-                    Le directeur ou le sous-directeur remplit ici les informations
-                    principales du camion et la preuve d’achat.
+                  <div style={infoRowStyle}>
+                    <span style={labelStyle}>Argent disponible</span>
+                    <span style={valueStyle}>
+                      {entreprise.argent.toLocaleString("fr-FR")} €
+                    </span>
+                  </div>
+
+                  <p style={{ ...smallTextStyle, marginTop: "12px" }}>
+                    Quand le camion est enregistré, le prix est retiré directement de la société.
                   </p>
                 </div>
 
                 <div style={boxStyle}>
                   <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                    Suite prévue
+                    Infos camion
                   </h2>
 
                   <p style={smallTextStyle}>
-                    Après on fera une page à part pour ajouter les accessoires
-                    intérieurs et extérieurs.
+                    Ici le directeur remplit tout à la main : marque, modèle, technique, prix, photo et preuve d’achat.
                   </p>
                 </div>
               </aside>
@@ -514,6 +553,7 @@ const fieldGroupStyle = {
   display: "flex",
   flexDirection: "column" as const,
   gap: "8px",
+  minWidth: 0,
 };
 
 const labelInputStyle = {
@@ -524,12 +564,28 @@ const labelInputStyle = {
 
 const inputStyle = {
   width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box" as const,
   padding: "12px 14px",
   borderRadius: "10px",
   border: "1px solid rgba(255,255,255,0.12)",
   background: "rgba(255,255,255,0.08)",
   color: "white",
   outline: "none",
+};
+
+const textareaStyle = {
+  width: "100%",
+  maxWidth: "100%",
+  minHeight: "120px",
+  boxSizing: "border-box" as const,
+  padding: "12px 14px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  outline: "none",
+  resize: "vertical" as const,
 };
 
 const infoRowStyle = {

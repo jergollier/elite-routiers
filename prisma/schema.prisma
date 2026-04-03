@@ -36,6 +36,10 @@ enum MarqueCamion {
   IVECO
   KENWORTH
   PETERBILT
+  FREIGHTLINER
+  INTERNATIONAL
+  MACK
+  WESTERN_STAR
 }
 
 model User {
@@ -160,27 +164,30 @@ model Finance {
 }
 
 model Camion {
-  id               Int          @id @default(autoincrement())
-  entrepriseId     Int
-  chauffeurId      String?
-  marque           MarqueCamion
-  modele           String
-  cabine           String?
-  chassis          String?
-  moteur           String?
-  transmission     String?
-  peinture         String?
-  image            String?
-  preuveAchat      String?
-  kilometrage      Int          @default(0)
-  etat             Int          @default(100)
-  carburant        Int          @default(100)
-  positionActuelle String?
-  statut           StatutCamion @default(DISPONIBLE)
-  vidangeRestante  Int          @default(60000)
-  revisionRestante Int          @default(120000)
-  actif            Boolean      @default(true)
-  createdAt        DateTime     @default(now())
+  id                   Int          @id @default(autoincrement())
+  entrepriseId         Int
+  chauffeurId          String?
+  marque               MarqueCamion
+  modele               String
+  cabine               String?
+  chassis              String?
+  moteur               String?
+  transmission         String?
+  peinture             String?
+  image                String?
+  preuveAchat          String?
+  prixAchat            Int?         
+  accessoiresExterieur String?
+  accessoiresInterieur String?
+  kilometrage          Int          @default(0)
+  etat                 Int          @default(100)
+  carburant            Int          @default(100)
+  positionActuelle     String?
+  statut               StatutCamion @default(DISPONIBLE)
+  vidangeRestante      Int          @default(60000)
+  revisionRestante     Int          @default(120000)
+  actif                Boolean      @default(true)
+  createdAt            DateTime     @default(now())
 
   entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
   chauffeur  User?      @relation(fields: [chauffeurId], references: [id], onDelete: SetNull)

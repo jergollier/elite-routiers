@@ -4,23 +4,24 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
+import { MarqueCamion, StatutCamion, RoleEntreprise } from "@prisma/client";
 
 const MARQUES = [
-  { value: "RENAULT", label: "Renault" },
-  { value: "SCANIA", label: "Scania" },
-  { value: "VOLVO", label: "Volvo" },
-  { value: "MAN", label: "MAN" },
-  { value: "DAF", label: "DAF" },
-  { value: "MERCEDES", label: "Mercedes-Benz" },
-  { value: "IVECO", label: "Iveco" },
-  { value: "KENWORTH", label: "Kenworth" },
-  { value: "PETERBILT", label: "Peterbilt" },
+  { value: MarqueCamion.RENAULT, label: "Renault" },
+  { value: MarqueCamion.SCANIA, label: "Scania" },
+  { value: MarqueCamion.VOLVO, label: "Volvo" },
+  { value: MarqueCamion.MAN, label: "MAN" },
+  { value: MarqueCamion.DAF, label: "DAF" },
+  { value: MarqueCamion.MERCEDES, label: "Mercedes-Benz" },
+  { value: MarqueCamion.IVECO, label: "Iveco" },
+  { value: MarqueCamion.KENWORTH, label: "Kenworth" },
+  { value: MarqueCamion.PETERBILT, label: "Peterbilt" },
 ];
 
 const STATUTS = [
-  { value: "DISPONIBLE", label: "Disponible" },
-  { value: "EN_MISSION", label: "En mission" },
-  { value: "EN_MAINTENANCE", label: "En maintenance" },
+  { value: StatutCamion.DISPONIBLE, label: "Disponible" },
+  { value: StatutCamion.EN_MISSION, label: "En mission" },
+  { value: StatutCamion.EN_MAINTENANCE, label: "En maintenance" },
 ];
 
 function toNumber(value: FormDataEntryValue | null, fallback = 0) {
@@ -66,8 +67,8 @@ export default async function AcheterCamionPage() {
   }
 
   const peutAjouterCamion =
-    monMembership.role === "DIRECTEUR" ||
-    monMembership.role === "SOUS_DIRECTEUR";
+    monMembership.role === RoleEntreprise.DIRECTEUR ||
+    monMembership.role === RoleEntreprise.SOUS_DIRECTEUR;
 
   async function ajouterCamion(formData: FormData) {
     "use server";
@@ -97,18 +98,18 @@ export default async function AcheterCamionPage() {
     }
 
     const autorise =
-      membership.role === "DIRECTEUR" ||
-      membership.role === "SOUS_DIRECTEUR";
+      membership.role === RoleEntreprise.DIRECTEUR ||
+      membership.role === RoleEntreprise.SOUS_DIRECTEUR;
 
     if (!autorise) {
       redirect("/camions");
     }
 
-    const marque = String(formData.get("marque") || "").trim();
+    const marqueValue = String(formData.get("marque") || "").trim();
     const modele = String(formData.get("modele") || "").trim();
     const image = String(formData.get("image") || "").trim();
     const positionActuelle = String(formData.get("positionActuelle") || "").trim();
-    const statut = String(formData.get("statut") || "DISPONIBLE").trim();
+    const statutValue = String(formData.get("statut") || StatutCamion.DISPONIBLE).trim();
 
     const kilometrage = toNumber(formData.get("kilometrage"), 0);
     const etat = toNumber(formData.get("etat"), 100);
@@ -116,9 +117,17 @@ export default async function AcheterCamionPage() {
     const vidangeRestante = toNumber(formData.get("vidangeRestante"), 60000);
     const revisionRestante = toNumber(formData.get("revisionRestante"), 120000);
 
-    if (!marque || !modele) {
+    if (!modele) {
       redirect("/camions/acheter");
     }
+
+    const marque = Object.values(MarqueCamion).includes(marqueValue as MarqueCamion)
+      ? (marqueValue as MarqueCamion)
+      : MarqueCamion.SCANIA;
+
+    const statut = Object.values(StatutCamion).includes(statutValue as StatutCamion)
+      ? (statutValue as StatutCamion)
+      : StatutCamion.DISPONIBLE;
 
     await prisma.camion.create({
       data: {
@@ -245,7 +254,11 @@ export default async function AcheterCamionPage() {
                     >
                       <div style={fieldGroupStyle}>
                         <label style={labelInputStyle}>Marque</label>
-                        <select name="marque" defaultValue="SCANIA" style={inputStyle}>
+                        <select
+                          name="marque"
+                          defaultValue={MarqueCamion.SCANIA}
+                          style={inputStyle}
+                        >
                           {MARQUES.map((marque) => (
                             <option key={marque.value} value={marque.value}>
                               {marque.label}
@@ -279,7 +292,7 @@ export default async function AcheterCamionPage() {
                         <label style={labelInputStyle}>Statut</label>
                         <select
                           name="statut"
-                          defaultValue="DISPONIBLE"
+                          defaultValue={StatutCamion.DISPONIBLE}
                           style={inputStyle}
                         >
                           {STATUTS.map((statut) => (
@@ -419,16 +432,6 @@ export default async function AcheterCamionPage() {
                   <p style={smallTextStyle}>
                     Ici, le responsable remplit manuellement tous les détails du
                     camion avant l’ajout dans le parc.
-                  </p>
-
-                  <p
-                    style={{
-                      ...smallTextStyle,
-                      marginTop: "12px",
-                    }}
-                  >
-                    La photo se met pour l’instant avec un lien image. Si tu veux,
-                    juste après je te fais la vraie version avec upload depuis le PC.
                   </p>
                 </div>
 

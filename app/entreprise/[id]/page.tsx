@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
@@ -9,7 +10,7 @@ type PageProps = {
   }>;
 };
 
-export default async function EntrepriseDetailPage({ params }: PageProps) {
+export default async function PostulerPage({ params }: PageProps) {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
 
@@ -24,46 +25,153 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const entreprise = await prisma.entreprise.findUnique({
+  const [entreprise, user] = await Promise.all([
+    prisma.entreprise.findUnique({
+      where: {
+        id: entrepriseId,
+      },
+      include: {
+        owner: true,
+        _count: {
+          select: {
+            membres: true,
+          },
+        },
+      },
+    }),
+    prisma.user.findUnique({
+      where: {
+        steamId,
+      },
+      include: {
+        memberships: true,
+      },
+    }),
+  ]);
+
+  if (!entreprise || !user) {
+    notFound();
+  }
+
+  if (!entreprise.recrutement) {
+    redirect(`/entreprise/${entreprise.id}`);
+  }
+
+  const dejaMembre = user.memberships.some(
+    (membership) => membership.entrepriseId === entreprise.id
+  );
+
+  if (dejaMembre) {
+    redirect("/mon-entreprise");
+  }
+
+  const candidatureExistante = await prisma.entrepriseCandidature.findUnique({
     where: {
-      id: entrepriseId,
-    },
-    include: {
-      owner: true,
-      membres: {
-        include: {
-          user: true,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
+      userId_entrepriseId: {
+        userId: user.id,
+        entrepriseId: entreprise.id,
       },
     },
   });
 
-  if (!entreprise) {
-    notFound();
+  async function envoyerCandidature(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) {
+      redirect("/");
+    }
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) {
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { steamId },
+      include: {
+        memberships: true,
+      },
+    });
+
+    if (!user) {
+      return;
+    }
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+    });
+
+    if (!entreprise || !entreprise.recrutement) {
+      return;
+    }
+
+    const dejaMembre = user.memberships.some(
+      (membership) => membership.entrepriseId === entrepriseIdFromForm
+    );
+
+    if (dejaMembre) {
+      return;
+    }
+
+    const ageValue = formData.get("age") as string;
+    const region = ((formData.get("region") as string) || "").trim();
+    const jeuPrincipal = ((formData.get("jeuPrincipal") as string) || "").trim();
+    const experience = ((formData.get("experience") as string) || "").trim();
+    const microValue = (formData.get("micro") as string) || "NON";
+    const disponibilites = ((formData.get("disponibilites") as string) || "").trim();
+    const motivation = ((formData.get("motivation") as string) || "").trim();
+    const message = ((formData.get("message") as string) || "").trim();
+
+    const age = ageValue ? Number(ageValue) : null;
+    const micro = microValue === "OUI";
+
+    if (!jeuPrincipal || !experience || !motivation) {
+      return;
+    }
+
+    await prisma.entrepriseCandidature.upsert({
+      where: {
+        userId_entrepriseId: {
+          userId: user.id,
+          entrepriseId: entrepriseIdFromForm,
+        },
+      },
+      update: {
+        age: age && !Number.isNaN(age) ? age : null,
+        region: region || null,
+        jeuPrincipal,
+        experience,
+        micro,
+        disponibilites: disponibilites || null,
+        motivation,
+        message: message || null,
+        statut: "EN_ATTENTE",
+      },
+      create: {
+        userId: user.id,
+        entrepriseId: entrepriseIdFromForm,
+        age: age && !Number.isNaN(age) ? age : null,
+        region: region || null,
+        jeuPrincipal,
+        experience,
+        micro,
+        disponibilites: disponibilites || null,
+        motivation,
+        message: message || null,
+        statut: "EN_ATTENTE",
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/postuler`);
+    redirect(`/entreprise/${entrepriseIdFromForm}/postuler?success=1`);
   }
 
-  const directeurs = entreprise.membres.filter(
-    (membre) => membre.role === "DIRECTEUR"
-  );
-
-  const sousDirecteurs = entreprise.membres.filter(
-    (membre) => membre.role === "SOUS_DIRECTEUR"
-  );
-
-  const chefsEquipe = entreprise.membres.filter(
-    (membre) => membre.role === "CHEF_EQUIPE"
-  );
-
-  const chefsAtelier = entreprise.membres.filter(
-    (membre) => membre.role === "CHEF_ATELIER"
-  );
-
-  const chauffeurs = entreprise.membres.filter(
-    (membre) => membre.role === "CHAUFFEUR"
-  );
+  const success = false;
 
   return (
     <main
@@ -81,7 +189,7 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.60)",
+          background: "rgba(0, 0, 0, 0.65)",
         }}
       />
 
@@ -111,38 +219,38 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
           </div>
 
           <Link
-            href="/societe"
+            href={`/entreprise/${entreprise.id}`}
             style={{
               color: "white",
               textDecoration: "none",
               fontWeight: "bold",
             }}
           >
-            ← Retour à l'accueil
+            ← Retour à l’entreprise
           </Link>
         </header>
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 320px",
-            gap: "20px",
-            padding: "20px",
-            flex: 1,
+            maxWidth: "1100px",
+            width: "100%",
+            margin: "0 auto",
+            padding: "24px",
           }}
         >
           <section
             style={{
               background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "16px",
+              borderRadius: "18px",
               overflow: "hidden",
               backdropFilter: "blur(6px)",
               boxShadow: "0 0 20px rgba(0,0,0,0.4)",
+              border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
             <div
               style={{
-                height: "260px",
+                height: "240px",
                 backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
@@ -154,7 +262,7 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
                   position: "absolute",
                   inset: 0,
                   background:
-                    "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.15))",
+                    "linear-gradient(to top, rgba(0,0,0,0.88), rgba(0,0,0,0.20))",
                 }}
               />
 
@@ -163,256 +271,411 @@ export default async function EntrepriseDetailPage({ params }: PageProps) {
                   position: "absolute",
                   left: "24px",
                   bottom: "24px",
-                }}
-              >
-                <h1 style={{ margin: 0, fontSize: "38px" }}>{entreprise.nom}</h1>
-
-                <div
-                  style={{
-                    marginTop: "8px",
-                    fontWeight: "bold",
-                    opacity: 0.95,
-                  }}
-                >
-                  [{entreprise.abreviation}] • {entreprise.jeu}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ padding: "24px" }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: "14px",
-                  marginBottom: "24px",
-                }}
-              >
-                <div style={infoCardStyle}>
-                  <div style={labelSmallStyle}>Type de transport</div>
-                  <div style={valueStyle}>{entreprise.typeTransport}</div>
-                </div>
-
-                <div style={infoCardStyle}>
-                  <div style={labelSmallStyle}>Recrutement</div>
-                  <div style={valueStyle}>
-                    {entreprise.recrutement ? "Ouvert" : "Fermé"}
-                  </div>
-                </div>
-
-                <div style={infoCardStyle}>
-                  <div style={labelSmallStyle}>Maison mère ETS2</div>
-                  <div style={valueStyle}>{entreprise.villeETS2 || "Aucune"}</div>
-                </div>
-
-                <div style={infoCardStyle}>
-                  <div style={labelSmallStyle}>Maison mère ATS</div>
-                  <div style={valueStyle}>{entreprise.villeATS || "Aucune"}</div>
-                </div>
-              </div>
-
-              <div style={contentCardStyle}>
-                <h2 style={{ marginTop: 0 }}>Description</h2>
-                <p
-                  style={{
-                    marginBottom: 0,
-                    lineHeight: 1.7,
-                    whiteSpace: "pre-wrap",
-                    opacity: 0.95,
-                  }}
-                >
-                  {entreprise.description}
-                </p>
-              </div>
-
-              <div
-                style={{
-                  marginTop: "20px",
+                  right: "24px",
                   display: "flex",
-                  gap: "12px",
+                  justifyContent: "space-between",
+                  alignItems: "flex-end",
+                  gap: "16px",
                   flexWrap: "wrap",
                 }}
               >
-                {entreprise.recrutement ? (
-                  <button style={mainButtonStyle}>Postuler</button>
-                ) : (
-                  <button
+                <div>
+                  <h1 style={{ margin: 0, fontSize: "36px" }}>
+                    Postuler chez {entreprise.nom}
+                  </h1>
+
+                  <div
                     style={{
-                      ...mainButtonStyle,
-                      opacity: 0.5,
-                      cursor: "not-allowed",
+                      marginTop: "8px",
+                      fontWeight: "bold",
+                      opacity: 0.95,
                     }}
-                    disabled
                   >
-                    Recrutement fermé
-                  </button>
-                )}
+                    [{entreprise.abreviation}] • {entreprise.jeu}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    background: "rgba(255,255,255,0.10)",
+                    padding: "10px 14px",
+                    borderRadius: "999px",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    fontWeight: "bold",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "10px",
+                      height: "10px",
+                      borderRadius: "50%",
+                      display: "inline-block",
+                      background: entreprise.recrutement ? "#22c55e" : "#ef4444",
+                      boxShadow: entreprise.recrutement
+                        ? "0 0 8px #22c55e"
+                        : "0 0 8px #ef4444",
+                    }}
+                  />
+                  {entreprise.recrutement
+                    ? "Recrutement ouvert"
+                    : "Recrutement fermé"}
+                </div>
               </div>
+            </div>
+
+            <div
+              style={{
+                padding: "24px",
+                display: "grid",
+                gridTemplateColumns: "320px 1fr",
+                gap: "20px",
+              }}
+            >
+              <aside
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
+                <div style={boxStyle}>
+                  <h2 style={{ marginTop: 0, marginBottom: "14px" }}>
+                    Infos rapides
+                  </h2>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Entreprise</span>
+                    <span style={valueStyle}>{entreprise.nom}</span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Jeu</span>
+                    <span style={valueStyle}>{entreprise.jeu}</span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Transport</span>
+                    <span style={valueStyle}>{entreprise.typeTransport}</span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Membres</span>
+                    <span style={valueStyle}>{entreprise._count.membres}</span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Directeur</span>
+                    <span style={valueStyle}>
+                      {entreprise.owner.username || "Utilisateur Steam"}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={boxStyle}>
+                  <h2 style={{ marginTop: 0, marginBottom: "10px" }}>
+                    Avant de postuler
+                  </h2>
+
+                  <p style={smallTextStyle}>
+                    Remplis ce formulaire proprement pour envoyer ta candidature.
+                  </p>
+                </div>
+
+                {candidatureExistante && (
+                  <div style={boxStyle}>
+                    <h2 style={{ marginTop: 0, marginBottom: "10px" }}>
+                      Candidature actuelle
+                    </h2>
+                    <p style={smallTextStyle}>
+                      Statut : <strong>{candidatureExistante.statut.replaceAll("_", " ")}</strong>
+                    </p>
+                  </div>
+                )}
+              </aside>
+
+              <section style={boxStyle}>
+                <h2 style={{ marginTop: 0, marginBottom: "8px" }}>
+                  Formulaire de candidature
+                </h2>
+
+                <p
+                  style={{
+                    marginTop: 0,
+                    marginBottom: "20px",
+                    opacity: 0.85,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Présente-toi simplement pour donner envie au directeur de te recruter.
+                </p>
+
+                {success && (
+                  <div style={successStyle}>
+                    ✅ Ta candidature a été envoyée.
+                  </div>
+                )}
+
+                <form
+                  action={envoyerCandidature}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                  }}
+                >
+                  <input type="hidden" name="entrepriseId" value={entreprise.id} />
+
+                  <div style={gridTwoStyle}>
+                    <div>
+                      <label style={inputLabelStyle}>Pseudo Steam</label>
+                      <input
+                        type="text"
+                        value={user.username || "Utilisateur Steam"}
+                        disabled
+                        style={disabledInputStyle}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={inputLabelStyle}>Âge</label>
+                      <input
+                        type="number"
+                        name="age"
+                        defaultValue={candidatureExistante?.age ?? user.age ?? ""}
+                        placeholder="Ton âge"
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={gridTwoStyle}>
+                    <div>
+                      <label style={inputLabelStyle}>Région / Pays</label>
+                      <input
+                        type="text"
+                        name="region"
+                        defaultValue={candidatureExistante?.region ?? user.region ?? ""}
+                        placeholder="Exemple : France / Bourgogne"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={inputLabelStyle}>Jeu principal</label>
+                      <select
+                        name="jeuPrincipal"
+                        defaultValue={candidatureExistante?.jeuPrincipal ?? "ETS2"}
+                        style={inputStyle}
+                      >
+                        <option value="ETS2">ETS2</option>
+                        <option value="ATS">ATS</option>
+                        <option value="LES_DEUX">Les deux</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={gridTwoStyle}>
+                    <div>
+                      <label style={inputLabelStyle}>Expérience</label>
+                      <select
+                        name="experience"
+                        defaultValue={candidatureExistante?.experience ?? "INTERMEDIAIRE"}
+                        style={inputStyle}
+                      >
+                        <option value="DEBUTANT">Débutant</option>
+                        <option value="INTERMEDIAIRE">Intermédiaire</option>
+                        <option value="EXPERIMENTE">Expérimenté</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={inputLabelStyle}>Micro</label>
+                      <select
+                        name="micro"
+                        defaultValue={candidatureExistante?.micro ? "OUI" : "NON"}
+                        style={inputStyle}
+                      >
+                        <option value="OUI">Oui</option>
+                        <option value="NON">Non</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={inputLabelStyle}>Disponibilités</label>
+                    <input
+                      type="text"
+                      name="disponibilites"
+                      defaultValue={candidatureExistante?.disponibilites ?? ""}
+                      placeholder="Exemple : le soir et le week-end"
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={inputLabelStyle}>
+                      Pourquoi veux-tu rejoindre cette entreprise ?
+                    </label>
+                    <textarea
+                      name="motivation"
+                      defaultValue={candidatureExistante?.motivation ?? ""}
+                      placeholder="Explique un peu ta motivation..."
+                      style={textareaStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={inputLabelStyle}>Message complémentaire</label>
+                    <textarea
+                      name="message"
+                      defaultValue={candidatureExistante?.message ?? ""}
+                      placeholder="Tu peux ajouter un petit message libre..."
+                      style={textareaStyle}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                      marginTop: "8px",
+                    }}
+                  >
+                    <button type="submit" style={mainButtonStyle}>
+                      Envoyer ma candidature
+                    </button>
+
+                    <Link
+                      href={`/entreprise/${entreprise.id}`}
+                      style={secondaryButtonStyle}
+                    >
+                      Retour
+                    </Link>
+                  </div>
+                </form>
+              </section>
             </div>
           </section>
-
-          <aside
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px",
-            }}
-          >
-            <div style={asideBoxStyle}>
-              <h2 style={{ marginTop: 0, marginBottom: "16px" }}>Direction</h2>
-
-              {directeurs.length > 0 ? (
-                directeurs.map((membre) => (
-                  <div key={membre.id} style={sideCardStyle}>
-                    <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
-                      {membre.user.username || "Utilisateur Steam"}
-                    </div>
-                    <div style={{ opacity: 0.85 }}>Directeur</div>
-                  </div>
-                ))
-              ) : (
-                <div style={emptyTextStyle}>Aucun directeur affiché</div>
-              )}
-            </div>
-
-            {sousDirecteurs.length > 0 && (
-              <div style={asideBoxStyle}>
-                <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
-                  Sous-directeurs
-                </h2>
-
-                <div style={stackStyle}>
-                  {sousDirecteurs.map((membre) => (
-                    <div key={membre.id} style={sideCardStyle}>
-                      <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
-                        {membre.user.username || "Utilisateur Steam"}
-                      </div>
-                      <div style={{ opacity: 0.85 }}>Sous-directeur</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {chefsEquipe.length > 0 && (
-              <div style={asideBoxStyle}>
-                <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
-                  Chefs d’équipe
-                </h2>
-
-                <div style={stackStyle}>
-                  {chefsEquipe.map((membre) => (
-                    <div key={membre.id} style={sideCardStyle}>
-                      <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
-                        {membre.user.username || "Utilisateur Steam"}
-                      </div>
-                      <div style={{ opacity: 0.85 }}>Chef d’équipe</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {chefsAtelier.length > 0 && (
-              <div style={asideBoxStyle}>
-                <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
-                  Chef atelier
-                </h2>
-
-                <div style={stackStyle}>
-                  {chefsAtelier.map((membre) => (
-                    <div key={membre.id} style={sideCardStyle}>
-                      <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
-                        {membre.user.username || "Utilisateur Steam"}
-                      </div>
-                      <div style={{ opacity: 0.85 }}>Chef atelier</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div style={asideBoxStyle}>
-              <h2 style={{ marginTop: 0, marginBottom: "16px" }}>Chauffeurs</h2>
-
-              {chauffeurs.length > 0 ? (
-                <div style={stackStyle}>
-                  {chauffeurs.map((membre) => (
-                    <div key={membre.id} style={sideCardStyle}>
-                      <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
-                        {membre.user.username || "Utilisateur Steam"}
-                      </div>
-                      <div style={{ opacity: 0.85 }}>Chauffeur</div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={emptyTextStyle}>Aucun chauffeur pour le moment</div>
-              )}
-            </div>
-          </aside>
         </div>
       </div>
     </main>
   );
 }
 
-const infoCardStyle = {
+const boxStyle = {
   background: "rgba(255,255,255,0.08)",
-  borderRadius: "14px",
-  padding: "16px",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const contentCardStyle = {
-  background: "rgba(255,255,255,0.08)",
-  borderRadius: "14px",
-  padding: "20px",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const asideBoxStyle = {
-  background: "rgba(0, 0, 0, 0.45)",
   borderRadius: "16px",
   padding: "20px",
-  backdropFilter: "blur(6px)",
-  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-};
-
-const sideCardStyle = {
-  background: "rgba(255,255,255,0.08)",
-  borderRadius: "12px",
-  padding: "14px",
   border: "1px solid rgba(255,255,255,0.08)",
 };
 
-const labelSmallStyle = {
-  fontSize: "13px",
+const infoLineStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "10px 0",
+  borderBottom: "1px solid rgba(255,255,255,0.06)",
+};
+
+const labelStyle = {
   opacity: 0.8,
-  marginBottom: "8px",
 };
 
 const valueStyle = {
   fontWeight: "bold",
-  fontSize: "16px",
+};
+
+const smallTextStyle = {
+  margin: 0,
+  lineHeight: 1.6,
+  opacity: 0.9,
+};
+
+const gridTwoStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "16px",
+};
+
+const inputLabelStyle = {
+  display: "block",
+  marginBottom: "8px",
+  fontWeight: "bold",
+  fontSize: "14px",
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontSize: "14px",
+  outline: "none",
+  boxSizing: "border-box" as const,
+};
+
+const disabledInputStyle = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontSize: "14px",
+  outline: "none",
+  boxSizing: "border-box" as const,
+  opacity: 0.95,
+};
+
+const textareaStyle = {
+  width: "100%",
+  minHeight: "120px",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontSize: "14px",
+  outline: "none",
+  resize: "vertical" as const,
+  boxSizing: "border-box" as const,
 };
 
 const mainButtonStyle = {
   padding: "12px 18px",
   borderRadius: "10px",
   border: "none",
-  background: "#171a21",
+  background: "#2563eb",
   color: "white",
   fontWeight: "bold",
   cursor: "pointer",
+  textDecoration: "none",
 };
 
-const stackStyle = {
-  display: "flex",
-  flexDirection: "column" as const,
-  gap: "12px",
+const secondaryButtonStyle = {
+  padding: "12px 18px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
 };
 
-const emptyTextStyle = {
-  opacity: 0.7,
+const successStyle = {
+  marginBottom: "16px",
+  padding: "12px 14px",
+  borderRadius: "10px",
+  background: "rgba(34,197,94,0.18)",
+  border: "1px solid rgba(34,197,94,0.35)",
+  fontWeight: "bold",
 };

@@ -14,41 +14,49 @@ enum RoleEntreprise {
   CHAUFFEUR
 }
 
+enum StatutCandidature {
+  EN_ATTENTE
+  ACCEPTEE
+  REFUSEE
+}
+
 model User {
-  id                String              @id @default(cuid())
-  steamId           String              @unique
+  id                String                  @id @default(cuid())
+  steamId           String                  @unique
   username          String?
   avatar            String?
   age               Int?
   region            String?
-  email             String?             @unique
+  email             String?                 @unique
   password          String?
-  createdAt         DateTime            @default(now())
+  createdAt         DateTime                @default(now())
 
-  entreprisesCreees Entreprise[]        @relation("EntrepriseOwner")
+  entreprisesCreees Entreprise[]            @relation("EntrepriseOwner")
   memberships       EntrepriseMembre[]
+  candidatures      EntrepriseCandidature[]
 }
 
 model Entreprise {
-  id             Int                 @id @default(autoincrement())
+  id             Int                     @id @default(autoincrement())
   nom            String
-  abreviation    String              @db.VarChar(3)
+  abreviation    String                  @db.VarChar(3)
   villeETS2      String?
   villeATS       String?
   jeu            String
   typeTransport  String
   description    String
-  recrutement    Boolean             @default(true)
+  recrutement    Boolean                 @default(true)
   banniere       String?
   ownerSteamId   String
-  createdAt      DateTime            @default(now())
+  createdAt      DateTime                @default(now())
 
-  argent         Int                 @default(125000)
-  cuveActuelle   Int                 @default(6200)
-  cuveMax        Int                 @default(10000)
+  argent         Int                     @default(125000)
+  cuveActuelle   Int                     @default(6200)
+  cuveMax        Int                     @default(10000)
 
-  owner          User                @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
+  owner          User                    @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
   membres        EntrepriseMembre[]
+  candidatures   EntrepriseCandidature[]
 
   @@index([ownerSteamId])
 }
@@ -66,4 +74,28 @@ model EntrepriseMembre {
   @@unique([userId, entrepriseId])
   @@index([entrepriseId])
   @@index([userId])
+}
+
+model EntrepriseCandidature {
+  id               Int                @id @default(autoincrement())
+  userId           String
+  entrepriseId     Int
+  age              Int?
+  region           String?
+  jeuPrincipal     String
+  experience       String
+  micro            Boolean            @default(false)
+  disponibilites   String?
+  motivation       String
+  message          String?
+  statut           StatutCandidature  @default(EN_ATTENTE)
+  createdAt        DateTime           @default(now())
+
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entreprise       Entreprise         @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entrepriseId])
+  @@index([entrepriseId])
+  @@index([userId])
+  @@index([statut])
 }

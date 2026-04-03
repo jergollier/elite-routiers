@@ -164,14 +164,20 @@ export default async function FinancePage() {
           </div>
 
           <Link
-            href="/mon-entreprise"
+            href="/societe"
             style={{
               color: "white",
               textDecoration: "none",
               fontWeight: "bold",
+              padding: "10px 16px",
+              borderRadius: "10px",
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "rgba(255,255,255,0.08)",
+              display: "inline-flex",
+              alignItems: "center",
             }}
           >
-            ← Retour à mon entreprise
+            ← Retour à société
           </Link>
         </header>
 

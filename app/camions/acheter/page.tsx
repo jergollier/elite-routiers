@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
-import { MarqueCamion, StatutCamion, RoleEntreprise } from "@prisma/client";
+import { MarqueCamion, RoleEntreprise } from "@prisma/client";
 
 const MARQUES = [
   { value: MarqueCamion.RENAULT, label: "Renault" },
@@ -18,16 +18,53 @@ const MARQUES = [
   { value: MarqueCamion.PETERBILT, label: "Peterbilt" },
 ];
 
-const STATUTS = [
-  { value: StatutCamion.DISPONIBLE, label: "Disponible" },
-  { value: StatutCamion.EN_MISSION, label: "En mission" },
-  { value: StatutCamion.EN_MAINTENANCE, label: "En maintenance" },
+const CABINES = [
+  "Cabine basse",
+  "Cabine normale",
+  "Cabine haute",
+  "Cabine XL",
+  "Sleeper",
+  "Topline",
 ];
 
-function toNumber(value: FormDataEntryValue | null, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
+const CHASSIS = [
+  "4x2",
+  "6x2",
+  "6x4",
+  "8x4",
+  "Châssis long",
+  "Châssis moyen",
+];
+
+const MOTEURS = [
+  "400 ch",
+  "450 ch",
+  "500 ch",
+  "540 ch",
+  "580 ch",
+  "650 ch",
+  "730 ch",
+  "770 ch",
+];
+
+const TRANSMISSIONS = [
+  "6 vitesses",
+  "12 vitesses",
+  "12+2 vitesses",
+  "Automatique",
+  "I-Shift",
+  "Opticruise",
+];
+
+const PEINTURES = [
+  "Blanc",
+  "Noir",
+  "Rouge",
+  "Bleu",
+  "Gris",
+  "Jaune",
+  "Personnalisée",
+];
 
 export default async function AcheterCamionPage() {
   const cookieStore = await cookies();
@@ -107,15 +144,13 @@ export default async function AcheterCamionPage() {
 
     const marqueValue = String(formData.get("marque") || "").trim();
     const modele = String(formData.get("modele") || "").trim();
+    const cabine = String(formData.get("cabine") || "").trim();
+    const chassis = String(formData.get("chassis") || "").trim();
+    const moteur = String(formData.get("moteur") || "").trim();
+    const transmission = String(formData.get("transmission") || "").trim();
+    const peinture = String(formData.get("peinture") || "").trim();
     const image = String(formData.get("image") || "").trim();
-    const positionActuelle = String(formData.get("positionActuelle") || "").trim();
-    const statutValue = String(formData.get("statut") || StatutCamion.DISPONIBLE).trim();
-
-    const kilometrage = toNumber(formData.get("kilometrage"), 0);
-    const etat = toNumber(formData.get("etat"), 100);
-    const carburant = toNumber(formData.get("carburant"), 100);
-    const vidangeRestante = toNumber(formData.get("vidangeRestante"), 60000);
-    const revisionRestante = toNumber(formData.get("revisionRestante"), 120000);
+    const preuveAchat = String(formData.get("preuveAchat") || "").trim();
 
     if (!modele) {
       redirect("/camions/acheter");
@@ -125,24 +160,28 @@ export default async function AcheterCamionPage() {
       ? (marqueValue as MarqueCamion)
       : MarqueCamion.SCANIA;
 
-    const statut = Object.values(StatutCamion).includes(statutValue as StatutCamion)
-      ? (statutValue as StatutCamion)
-      : StatutCamion.DISPONIBLE;
-
     await prisma.camion.create({
       data: {
         entrepriseId: membership.entrepriseId,
         marque,
         modele,
         image: image || "/truck.jpg",
-        kilometrage: Math.max(0, kilometrage),
-        etat: Math.max(0, Math.min(100, etat)),
-        carburant: Math.max(0, Math.min(100, carburant)),
-        positionActuelle: positionActuelle || null,
-        statut,
-        vidangeRestante: Math.max(0, vidangeRestante),
-        revisionRestante: Math.max(0, revisionRestante),
         actif: true,
+
+        kilometrage: 0,
+        etat: 100,
+        carburant: 100,
+        positionActuelle: null,
+        statut: "DISPONIBLE",
+        vidangeRestante: 60000,
+        revisionRestante: 120000,
+
+        cabine,
+        chassis,
+        moteur,
+        transmission,
+        peinture,
+        preuveAchat,
       },
     });
 
@@ -217,7 +256,7 @@ export default async function AcheterCamionPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  Saisie manuelle du camion pour l’entreprise {entreprise.nom}
+                  Achat manuel du camion pour l’entreprise {entreprise.nom}
                 </p>
               </div>
 
@@ -245,28 +284,24 @@ export default async function AcheterCamionPage() {
                   </div>
                 ) : (
                   <form action={ajouterCamion} style={formCardStyle}>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                        gap: "16px",
-                      }}
-                    >
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Marque</label>
-                        <select
-                          name="marque"
-                          defaultValue={MarqueCamion.SCANIA}
-                          style={inputStyle}
-                        >
-                          {MARQUES.map((marque) => (
-                            <option key={marque.value} value={marque.value}>
-                              {marque.label}
-                            </option>
-                          ))}
-                        </select>
+                    <div style={fieldGroupStyle}>
+                      <label style={labelInputStyle}>Marque</label>
+                      <div style={choiceGridStyle}>
+                        {MARQUES.map((item) => (
+                          <label key={item.value} style={choiceCardStyle}>
+                            <input
+                              type="radio"
+                              name="marque"
+                              value={item.value}
+                              defaultChecked={item.value === MarqueCamion.SCANIA}
+                            />
+                            <span>{item.label}</span>
+                          </label>
+                        ))}
                       </div>
+                    </div>
 
+                    <div style={twoColumnsStyle}>
                       <div style={fieldGroupStyle}>
                         <label style={labelInputStyle}>Modèle</label>
                         <input
@@ -279,6 +314,97 @@ export default async function AcheterCamionPage() {
                       </div>
 
                       <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Peinture</label>
+                        <div style={choiceGridStyle}>
+                          {PEINTURES.map((item) => (
+                            <label key={item} style={choiceCardStyle}>
+                              <input
+                                type="radio"
+                                name="peinture"
+                                value={item}
+                                defaultChecked={item === "Blanc"}
+                              />
+                              <span>{item}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={twoColumnsStyle}>
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Cabine</label>
+                        <div style={choiceGridStyle}>
+                          {CABINES.map((item) => (
+                            <label key={item} style={choiceCardStyle}>
+                              <input
+                                type="radio"
+                                name="cabine"
+                                value={item}
+                                defaultChecked={item === "Cabine haute"}
+                              />
+                              <span>{item}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Châssis</label>
+                        <div style={choiceGridStyle}>
+                          {CHASSIS.map((item) => (
+                            <label key={item} style={choiceCardStyle}>
+                              <input
+                                type="radio"
+                                name="chassis"
+                                value={item}
+                                defaultChecked={item === "4x2"}
+                              />
+                              <span>{item}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={twoColumnsStyle}>
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Moteur</label>
+                        <div style={choiceGridStyle}>
+                          {MOTEURS.map((item) => (
+                            <label key={item} style={choiceCardStyle}>
+                              <input
+                                type="radio"
+                                name="moteur"
+                                value={item}
+                                defaultChecked={item === "500 ch"}
+                              />
+                              <span>{item}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Transmission</label>
+                        <div style={choiceGridStyle}>
+                          {TRANSMISSIONS.map((item) => (
+                            <label key={item} style={choiceCardStyle}>
+                              <input
+                                type="radio"
+                                name="transmission"
+                                value={item}
+                                defaultChecked={item === "Automatique"}
+                              />
+                              <span>{item}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={twoColumnsStyle}>
+                      <div style={fieldGroupStyle}>
                         <label style={labelInputStyle}>Photo du camion (URL)</label>
                         <input
                           name="image"
@@ -289,83 +415,11 @@ export default async function AcheterCamionPage() {
                       </div>
 
                       <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Statut</label>
-                        <select
-                          name="statut"
-                          defaultValue={StatutCamion.DISPONIBLE}
-                          style={inputStyle}
-                        >
-                          {STATUTS.map((statut) => (
-                            <option key={statut.value} value={statut.value}>
-                              {statut.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Kilométrage</label>
+                        <label style={labelInputStyle}>Preuve d’achat (URL image)</label>
                         <input
-                          name="kilometrage"
-                          type="number"
-                          min="0"
-                          defaultValue="0"
-                          style={inputStyle}
-                        />
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>État (%)</label>
-                        <input
-                          name="etat"
-                          type="number"
-                          min="0"
-                          max="100"
-                          defaultValue="100"
-                          style={inputStyle}
-                        />
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Carburant (%)</label>
-                        <input
-                          name="carburant"
-                          type="number"
-                          min="0"
-                          max="100"
-                          defaultValue="100"
-                          style={inputStyle}
-                        />
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Position actuelle</label>
-                        <input
-                          name="positionActuelle"
+                          name="preuveAchat"
                           type="text"
-                          placeholder="Exemple : Lyon"
-                          style={inputStyle}
-                        />
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Vidange restante (km)</label>
-                        <input
-                          name="vidangeRestante"
-                          type="number"
-                          min="0"
-                          defaultValue="60000"
-                          style={inputStyle}
-                        />
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Révision restante (km)</label>
-                        <input
-                          name="revisionRestante"
-                          type="number"
-                          min="0"
-                          defaultValue="120000"
+                          placeholder="https://..."
                           style={inputStyle}
                         />
                       </div>
@@ -375,7 +429,7 @@ export default async function AcheterCamionPage() {
                       style={{
                         display: "flex",
                         gap: "12px",
-                        marginTop: "22px",
+                        marginTop: "24px",
                         flexWrap: "wrap",
                       }}
                     >
@@ -386,6 +440,10 @@ export default async function AcheterCamionPage() {
                       <Link href="/camions" style={secondaryButtonStyle}>
                         Annuler
                       </Link>
+
+                      <button type="button" style={disabledButtonStyle}>
+                        Accessoires ext / int bientôt
+                      </button>
                     </div>
                   </form>
                 )}
@@ -430,27 +488,20 @@ export default async function AcheterCamionPage() {
                   </h2>
 
                   <p style={smallTextStyle}>
-                    Ici, le responsable remplit manuellement tous les détails du
-                    camion avant l’ajout dans le parc.
+                    Ici on enregistre l’achat du camion avec les vraies infos visibles
+                    directement à l’écran.
                   </p>
                 </div>
 
                 <div style={boxStyle}>
                   <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                    Entreprise
+                    Suite prévue
                   </h2>
 
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Nom</span>
-                    <span style={valueStyle}>{entreprise.nom}</span>
-                  </div>
-
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Ajout autorisé</span>
-                    <span style={valueStyle}>
-                      {peutAjouterCamion ? "Oui" : "Non"}
-                    </span>
-                  </div>
+                  <p style={smallTextStyle}>
+                    Après, on fera une partie spéciale pour les accessoires
+                    extérieurs et intérieurs du camion.
+                  </p>
                 </div>
               </aside>
             </div>
@@ -475,18 +526,28 @@ const formCardStyle = {
   border: "1px solid rgba(255,255,255,0.08)",
   backdropFilter: "blur(4px)",
   boxShadow: "0 0 18px rgba(0,0,0,0.28)",
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: "22px",
+};
+
+const twoColumnsStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "18px",
+  alignItems: "start",
 };
 
 const fieldGroupStyle = {
   display: "flex",
   flexDirection: "column" as const,
-  gap: "8px",
+  gap: "10px",
 };
 
 const labelInputStyle = {
-  fontSize: "14px",
+  fontSize: "16px",
   fontWeight: "bold",
-  opacity: 0.92,
+  opacity: 0.95,
 };
 
 const inputStyle = {
@@ -497,6 +558,24 @@ const inputStyle = {
   background: "rgba(255,255,255,0.08)",
   color: "white",
   outline: "none",
+};
+
+const choiceGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "10px",
+};
+
+const choiceCardStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  padding: "12px 12px",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  cursor: "pointer",
+  minHeight: "48px",
 };
 
 const infoRowStyle = {
@@ -520,8 +599,8 @@ const valueStyle = {
 
 const smallTextStyle = {
   margin: 0,
-  lineHeight: 1.6,
-  opacity: 0.9,
+  lineHeight: 1.7,
+  opacity: 0.92,
 };
 
 const mainButtonStyle = {
@@ -547,4 +626,14 @@ const secondaryButtonStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+};
+
+const disabledButtonStyle = {
+  padding: "12px 18px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.05)",
+  color: "rgba(255,255,255,0.65)",
+  fontWeight: "bold",
+  cursor: "not-allowed",
 };

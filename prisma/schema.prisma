@@ -165,7 +165,13 @@ model Camion {
   chauffeurId      String?
   marque           MarqueCamion
   modele           String
+  cabine           String?
+  chassis          String?
+  moteur           String?
+  transmission     String?
+  peinture         String?
   image            String?
+  preuveAchat      String?
   kilometrage      Int          @default(0)
   etat             Int          @default(100)
   carburant        Int          @default(100)

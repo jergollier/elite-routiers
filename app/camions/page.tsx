@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Menu from "@/app/components/Menu";
+import { prisma } from "@/lib/prisma";
 
 function getStatutConfig(statut: string) {
   switch (statut) {
@@ -11,13 +12,13 @@ function getStatutConfig(statut: string) {
         color: "#22c55e",
         glow: "0 0 10px rgba(34,197,94,0.85)",
       };
-    case "MISSION":
+    case "EN_MISSION":
       return {
         label: "En mission",
         color: "#f59e0b",
         glow: "0 0 10px rgba(245,158,11,0.85)",
       };
-    case "MAINTENANCE":
+    case "EN_MAINTENANCE":
       return {
         label: "En maintenance",
         color: "#ef4444",
@@ -38,6 +39,31 @@ function getBarColor(value: number) {
   return "#ef4444";
 }
 
+function formatMarque(marque: string) {
+  switch (marque) {
+    case "RENAULT":
+      return "Renault";
+    case "SCANIA":
+      return "Scania";
+    case "VOLVO":
+      return "Volvo";
+    case "MAN":
+      return "MAN";
+    case "DAF":
+      return "DAF";
+    case "MERCEDES":
+      return "Mercedes-Benz";
+    case "IVECO":
+      return "Iveco";
+    case "KENWORTH":
+      return "Kenworth";
+    case "PETERBILT":
+      return "Peterbilt";
+    default:
+      return marque;
+  }
+}
+
 export default async function CamionsPage() {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
@@ -46,120 +72,61 @@ export default async function CamionsPage() {
     redirect("/");
   }
 
-  const camions = [
-    {
-      id: 1,
-      image: "/truck.jpg",
-      marque: "Renault",
-      modele: "T High",
-      chauffeur: "Lucas",
-      km: 45230,
-      vidangeRestante: 42000,
-      revisionRestante: 95000,
-      etat: 85,
-      carburant: 72,
-      position: "Lyon",
-      statut: "DISPONIBLE",
+  const user = await prisma.user.findUnique({
+    where: { steamId },
+    include: {
+      memberships: {
+        include: {
+          entreprise: true,
+        },
+      },
     },
-    {
-      id: 2,
-      image: "/truck.jpg",
-      marque: "Scania",
-      modele: "S 580",
-      chauffeur: null,
-      km: 120540,
-      vidangeRestante: 12000,
-      revisionRestante: 38000,
-      etat: 68,
-      carburant: 44,
-      position: "Paris",
-      statut: "MISSION",
+  });
+
+  if (!user) {
+    redirect("/");
+  }
+
+  const monMembership = user.memberships[0];
+
+  if (!monMembership) {
+    redirect("/societe");
+  }
+
+  const entrepriseId = monMembership.entrepriseId;
+
+  const entreprise = await prisma.entreprise.findUnique({
+    where: { id: entrepriseId },
+  });
+
+  if (!entreprise) {
+    redirect("/societe");
+  }
+
+  const camions = await prisma.camion.findMany({
+    where: {
+      entrepriseId,
+      actif: true,
     },
-    {
-      id: 3,
-      image: "/truck.jpg",
-      marque: "Volvo",
-      modele: "FH16",
-      chauffeur: "Maxime",
-      km: 84500,
-      vidangeRestante: 5000,
-      revisionRestante: 18000,
-      etat: 49,
-      carburant: 16,
-      position: "Marseille",
-      statut: "MAINTENANCE",
+    include: {
+      chauffeur: true,
     },
-    {
-      id: 4,
-      image: "/truck.jpg",
-      marque: "MAN",
-      modele: "TGX",
-      chauffeur: "Thomas",
-      km: 30210,
-      vidangeRestante: 56000,
-      revisionRestante: 110000,
-      etat: 93,
-      carburant: 91,
-      position: "Bordeaux",
-      statut: "DISPONIBLE",
+    orderBy: {
+      createdAt: "desc",
     },
-    {
-      id: 5,
-      image: "/truck.jpg",
-      marque: "DAF",
-      modele: "XG+",
-      chauffeur: null,
-      km: 9100,
-      vidangeRestante: 60000,
-      revisionRestante: 120000,
-      etat: 99,
-      carburant: 100,
-      position: "Garage principal",
-      statut: "DISPONIBLE",
-    },
-    {
-      id: 6,
-      image: "/truck.jpg",
-      marque: "Mercedes-Benz",
-      modele: "Actros",
-      chauffeur: "Nicolas",
-      km: 66440,
-      vidangeRestante: 26000,
-      revisionRestante: 72000,
-      etat: 77,
-      carburant: 63,
-      position: "Toulouse",
-      statut: "MISSION",
-    },
-    {
-      id: 7,
-      image: "/truck.jpg",
-      marque: "Iveco",
-      modele: "S-Way",
-      chauffeur: "Pierre",
-      km: 138900,
-      vidangeRestante: 3000,
-      revisionRestante: 9000,
-      etat: 35,
-      carburant: 22,
-      position: "Lille",
-      statut: "MAINTENANCE",
-    },
-    {
-      id: 8,
-      image: "/truck.jpg",
-      marque: "Kenworth",
-      modele: "W900",
-      chauffeur: null,
-      km: 54100,
-      vidangeRestante: 30000,
-      revisionRestante: 67000,
-      etat: 81,
-      carburant: 58,
-      position: "Le Havre",
-      statut: "DISPONIBLE",
-    },
-  ];
+  });
+
+  const totalDisponibles = camions.filter(
+    (camion) => camion.statut === "DISPONIBLE"
+  ).length;
+
+  const totalMission = camions.filter(
+    (camion) => camion.statut === "EN_MISSION"
+  ).length;
+
+  const totalMaintenance = camions.filter(
+    (camion) => camion.statut === "EN_MAINTENANCE"
+  ).length;
 
   return (
     <main
@@ -228,7 +195,7 @@ export default async function CamionsPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  Consulte ton parc de camions, leur état, leur chauffeur et leur position actuelle.
+                  Parc camion de l’entreprise {entreprise.nom}
                 </p>
               </div>
 
@@ -247,189 +214,209 @@ export default async function CamionsPage() {
               }}
             >
               <section>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                    gap: "18px",
-                  }}
-                >
-                  {camions.map((camion) => {
-                    const statut = getStatutConfig(camion.statut);
-                    const vidangePourcent = Math.max(
-                      0,
-                      Math.min(100, (camion.vidangeRestante / 60000) * 100)
-                    );
-                    const revisionPourcent = Math.max(
-                      0,
-                      Math.min(100, (camion.revisionRestante / 120000) * 100)
-                    );
+                {camions.length === 0 ? (
+                  <div style={boxStyle}>
+                    <h2 style={{ marginTop: 0 }}>Aucun camion</h2>
+                    <p style={smallTextStyle}>
+                      Ton entreprise n’a encore aucun camion. Tu pourras en ajouter
+                      avec le bouton à droite.
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                      gap: "18px",
+                    }}
+                  >
+                    {camions.map((camion) => {
+                      const statut = getStatutConfig(camion.statut);
+                      const vidangePourcent = Math.max(
+                        0,
+                        Math.min(100, (camion.vidangeRestante / 60000) * 100)
+                      );
+                      const revisionPourcent = Math.max(
+                        0,
+                        Math.min(100, (camion.revisionRestante / 120000) * 100)
+                      );
 
-                    return (
-                      <article key={camion.id} style={truckCardStyle}>
-                        <div
-                          style={{
-                            height: "170px",
-                            borderRadius: "14px",
-                            overflow: "hidden",
-                            marginBottom: "14px",
-                            border: "1px solid rgba(255,255,255,0.08)",
-                          }}
-                        >
-                          <img
-                            src={camion.image}
-                            alt={`${camion.marque} ${camion.modele}`}
+                      return (
+                        <article key={camion.id} style={truckCardStyle}>
+                          <div
                             style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                              display: "block",
+                              height: "170px",
+                              borderRadius: "14px",
+                              overflow: "hidden",
+                              marginBottom: "14px",
+                              border: "1px solid rgba(255,255,255,0.08)",
                             }}
-                          />
-                        </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "10px",
-                            marginBottom: "12px",
-                          }}
-                        >
-                          <div>
-                            <h2
+                          >
+                            <img
+                              src={camion.image || "/truck.jpg"}
+                              alt={`${formatMarque(camion.marque)} ${camion.modele}`}
                               style={{
-                                margin: 0,
-                                fontSize: "20px",
-                                lineHeight: 1.2,
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                display: "block",
                               }}
-                            >
-                              {camion.marque}
-                            </h2>
-                            <div
-                              style={{
-                                marginTop: "4px",
-                                opacity: 0.82,
-                                fontSize: "14px",
-                              }}
-                            >
-                              {camion.modele}
-                            </div>
+                            />
                           </div>
 
                           <div
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: "8px",
-                              background: "rgba(255,255,255,0.06)",
-                              border: "1px solid rgba(255,255,255,0.08)",
-                              borderRadius: "999px",
-                              padding: "8px 12px",
-                              fontSize: "13px",
-                              fontWeight: "bold",
-                              whiteSpace: "nowrap",
+                              justifyContent: "space-between",
+                              gap: "10px",
+                              marginBottom: "12px",
                             }}
                           >
-                            <span
-                              style={{
-                                width: "10px",
-                                height: "10px",
-                                borderRadius: "50%",
-                                background: statut.color,
-                                boxShadow: statut.glow,
-                                display: "inline-block",
-                              }}
-                            />
-                            {statut.label}
-                          </div>
-                        </div>
+                            <div>
+                              <h2
+                                style={{
+                                  margin: 0,
+                                  fontSize: "20px",
+                                  lineHeight: 1.2,
+                                }}
+                              >
+                                {formatMarque(camion.marque)}
+                              </h2>
+                              <div
+                                style={{
+                                  marginTop: "4px",
+                                  opacity: 0.82,
+                                  fontSize: "14px",
+                                }}
+                              >
+                                {camion.modele}
+                              </div>
+                            </div>
 
-                        <div style={infoListStyle}>
-                          <div style={infoRowStyle}>
-                            <span style={labelStyle}>Chauffeur</span>
-                            <span style={valueStyle}>
-                              {camion.chauffeur || "Non attribué"}
-                            </span>
-                          </div>
-
-                          <div style={infoRowStyle}>
-                            <span style={labelStyle}>Kilométrage</span>
-                            <span style={valueStyle}>
-                              {camion.km.toLocaleString("fr-FR")} km
-                            </span>
-                          </div>
-
-                          <div style={infoRowStyle}>
-                            <span style={labelStyle}>État</span>
-                            <span style={valueStyle}>{camion.etat}%</span>
-                          </div>
-
-                          <div style={infoRowStyle}>
-                            <span style={labelStyle}>Carburant</span>
-                            <span style={valueStyle}>{camion.carburant}%</span>
-                          </div>
-
-                          <div style={infoRowStyle}>
-                            <span style={labelStyle}>Position</span>
-                            <span style={valueStyle}>{camion.position}</span>
-                          </div>
-                        </div>
-
-                        <div style={{ marginTop: "16px" }}>
-                          <div style={barHeaderStyle}>
-                            <span style={labelStyle}>Vidange</span>
-                            <span style={valueStyle}>
-                              {camion.vidangeRestante.toLocaleString("fr-FR")} km
-                            </span>
-                          </div>
-
-                          <div style={progressTrackStyle}>
                             <div
                               style={{
-                                ...progressFillStyle,
-                                width: `${vidangePourcent}%`,
-                                background: getBarColor(vidangePourcent),
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                background: "rgba(255,255,255,0.06)",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                                borderRadius: "999px",
+                                padding: "8px 12px",
+                                fontSize: "13px",
+                                fontWeight: "bold",
+                                whiteSpace: "nowrap",
                               }}
-                            />
+                            >
+                              <span
+                                style={{
+                                  width: "10px",
+                                  height: "10px",
+                                  borderRadius: "50%",
+                                  background: statut.color,
+                                  boxShadow: statut.glow,
+                                  display: "inline-block",
+                                }}
+                              />
+                              {statut.label}
+                            </div>
                           </div>
-                        </div>
 
-                        <div style={{ marginTop: "14px" }}>
-                          <div style={barHeaderStyle}>
-                            <span style={labelStyle}>Révision</span>
-                            <span style={valueStyle}>
-                              {camion.revisionRestante.toLocaleString("fr-FR")} km
-                            </span>
+                          <div style={infoListStyle}>
+                            <div style={infoRowStyle}>
+                              <span style={labelStyle}>Chauffeur</span>
+                              <span style={valueStyle}>
+                                {camion.chauffeur?.username || "Non attribué"}
+                              </span>
+                            </div>
+
+                            <div style={infoRowStyle}>
+                              <span style={labelStyle}>Kilométrage</span>
+                              <span style={valueStyle}>
+                                {camion.kilometrage.toLocaleString("fr-FR")} km
+                              </span>
+                            </div>
+
+                            <div style={infoRowStyle}>
+                              <span style={labelStyle}>État</span>
+                              <span style={valueStyle}>{camion.etat}%</span>
+                            </div>
+
+                            <div style={infoRowStyle}>
+                              <span style={labelStyle}>Carburant</span>
+                              <span style={valueStyle}>{camion.carburant}%</span>
+                            </div>
+
+                            <div style={infoRowStyle}>
+                              <span style={labelStyle}>Position</span>
+                              <span style={valueStyle}>
+                                {camion.positionActuelle || "Non définie"}
+                              </span>
+                            </div>
                           </div>
 
-                          <div style={progressTrackStyle}>
-                            <div
-                              style={{
-                                ...progressFillStyle,
-                                width: `${revisionPourcent}%`,
-                                background: getBarColor(revisionPourcent),
-                              }}
-                            />
-                          </div>
-                        </div>
+                          <div style={{ marginTop: "16px" }}>
+                            <div style={barHeaderStyle}>
+                              <span style={labelStyle}>Vidange</span>
+                              <span style={valueStyle}>
+                                {camion.vidangeRestante.toLocaleString("fr-FR")} km
+                              </span>
+                            </div>
 
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "10px",
-                            marginTop: "18px",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <button style={mainButtonStyle}>Voir</button>
-                          <button style={secondaryActionButtonStyle}>Attribuer</button>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
+                            <div style={progressTrackStyle}>
+                              <div
+                                style={{
+                                  ...progressFillStyle,
+                                  width: `${vidangePourcent}%`,
+                                  background: getBarColor(vidangePourcent),
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div style={{ marginTop: "14px" }}>
+                            <div style={barHeaderStyle}>
+                              <span style={labelStyle}>Révision</span>
+                              <span style={valueStyle}>
+                                {camion.revisionRestante.toLocaleString("fr-FR")} km
+                              </span>
+                            </div>
+
+                            <div style={progressTrackStyle}>
+                              <div
+                                style={{
+                                  ...progressFillStyle,
+                                  width: `${revisionPourcent}%`,
+                                  background: getBarColor(revisionPourcent),
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "10px",
+                              marginTop: "18px",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <Link
+                              href={`/camions/${camion.id}`}
+                              style={mainButtonLinkStyle}
+                            >
+                              Voir
+                            </Link>
+
+                            <button style={secondaryActionButtonStyle}>
+                              Attribuer
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
               </section>
 
               <aside
@@ -471,23 +458,17 @@ export default async function CamionsPage() {
 
                   <div style={infoRowStyle}>
                     <span style={labelStyle}>Disponibles</span>
-                    <span style={valueStyle}>
-                      {camions.filter((c) => c.statut === "DISPONIBLE").length}
-                    </span>
+                    <span style={valueStyle}>{totalDisponibles}</span>
                   </div>
 
                   <div style={infoRowStyle}>
                     <span style={labelStyle}>En mission</span>
-                    <span style={valueStyle}>
-                      {camions.filter((c) => c.statut === "MISSION").length}
-                    </span>
+                    <span style={valueStyle}>{totalMission}</span>
                   </div>
 
                   <div style={infoRowStyle}>
                     <span style={labelStyle}>Maintenance</span>
-                    <span style={valueStyle}>
-                      {camions.filter((c) => c.statut === "MAINTENANCE").length}
-                    </span>
+                    <span style={valueStyle}>{totalMaintenance}</span>
                   </div>
                 </div>
 
@@ -617,6 +598,20 @@ const mainButtonStyle = {
   fontWeight: "bold",
   cursor: "pointer",
   textDecoration: "none",
+};
+
+const mainButtonLinkStyle = {
+  padding: "12px 18px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const secondaryButtonStyle = {

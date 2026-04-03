@@ -6,7 +6,7 @@ import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 import { MarqueCamion, RoleEntreprise, StatutCamion } from "@prisma/client";
 
-const MARQUES = [
+const MARQUES_ETS2 = [
   { value: MarqueCamion.RENAULT, label: "Renault" },
   { value: MarqueCamion.SCANIA, label: "Scania" },
   { value: MarqueCamion.VOLVO, label: "Volvo" },
@@ -14,7 +14,9 @@ const MARQUES = [
   { value: MarqueCamion.DAF, label: "DAF" },
   { value: MarqueCamion.MERCEDES, label: "Mercedes-Benz" },
   { value: MarqueCamion.IVECO, label: "Iveco" },
+];
 
+const MARQUES_ATS = [
   { value: MarqueCamion.KENWORTH, label: "Kenworth" },
   { value: MarqueCamion.PETERBILT, label: "Peterbilt" },
   { value: MarqueCamion.FREIGHTLINER, label: "Freightliner" },
@@ -22,6 +24,8 @@ const MARQUES = [
   { value: MarqueCamion.MACK, label: "Mack" },
   { value: MarqueCamion.WESTERN_STAR, label: "Western Star" },
 ];
+
+const TOUTES_MARQUES = [...MARQUES_ETS2, ...MARQUES_ATS];
 
 function toNumber(value: FormDataEntryValue | null, fallback = 0) {
   const parsed = Number(value);
@@ -113,15 +117,21 @@ export default async function AcheterCamionPage() {
     const peinture = String(formData.get("peinture") || "").trim();
     const image = String(formData.get("image") || "").trim();
     const preuveAchat = String(formData.get("preuveAchat") || "").trim();
-    const accessoiresExterieur = String(formData.get("accessoiresExterieur") || "").trim();
-    const accessoiresInterieur = String(formData.get("accessoiresInterieur") || "").trim();
+    const accessoiresExterieur = String(
+      formData.get("accessoiresExterieur") || ""
+    ).trim();
+    const accessoiresInterieur = String(
+      formData.get("accessoiresInterieur") || ""
+    ).trim();
     const prixAchat = toNumber(formData.get("prixAchat"), 0);
 
-    if (!modele || !marqueValue || prixAchat <= 0) {
+    if (!marqueValue || !modele || prixAchat <= 0) {
       redirect("/camions/acheter");
     }
 
-    const marque = Object.values(MarqueCamion).includes(marqueValue as MarqueCamion)
+    const marque = Object.values(MarqueCamion).includes(
+      marqueValue as MarqueCamion
+    )
       ? (marqueValue as MarqueCamion)
       : null;
 
@@ -287,142 +297,149 @@ export default async function AcheterCamionPage() {
                     </p>
                   </div>
                 ) : (
-                  <>
-                    <form action={ajouterCamion} style={formCardStyle}>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                          gap: "16px",
-                        }}
-                      >
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Marque</label>
-                          <select name="marque" defaultValue="" style={inputStyle} required>
-                            <option value="" disabled>
-                              Choisir une marque
-                            </option>
-                            {MARQUES.map((item) => (
-                              <option key={item.value} value={item.value}>
+                  <form action={ajouterCamion} style={formCardStyle}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                        gap: "16px",
+                      }}
+                    >
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Marque</label>
+                        <select
+                          name="marque"
+                          defaultValue=""
+                          style={whiteSelectStyle}
+                          required
+                        >
+                          <option value="" disabled style={whiteOptionStyle}>
+                            Choisir une marque
+                          </option>
+
+                          <optgroup label="ETS2">
+                            {MARQUES_ETS2.map((item) => (
+                              <option
+                                key={item.value}
+                                value={item.value}
+                                style={whiteOptionStyle}
+                              >
                                 {item.label}
                               </option>
                             ))}
-                          </select>
-                        </div>
+                          </optgroup>
 
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Modèle</label>
-                          <input
-                            name="modele"
-                            type="text"
-                            placeholder="Exemple : S 770"
-                            required
-                            style={inputStyle}
-                          />
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Cabine</label>
-                          <input
-                            name="cabine"
-                            type="text"
-                            placeholder="Exemple : Topline"
-                            style={inputStyle}
-                          />
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Châssis</label>
-                          <input
-                            name="chassis"
-                            type="text"
-                            placeholder="Exemple : 6x4"
-                            style={inputStyle}
-                          />
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Moteur</label>
-                          <input
-                            name="moteur"
-                            type="text"
-                            placeholder="Exemple : 770 ch"
-                            style={inputStyle}
-                          />
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Transmission</label>
-                          <input
-                            name="transmission"
-                            type="text"
-                            placeholder="Exemple : Automatique"
-                            style={inputStyle}
-                          />
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Peinture</label>
-                          <input
-                            name="peinture"
-                            type="text"
-                            placeholder="Exemple : Blanc nacré"
-                            style={inputStyle}
-                          />
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Prix du camion (€)</label>
-                          <input
-                            name="prixAchat"
-                            type="number"
-                            min="1"
-                            placeholder="Exemple : 185000"
-                            required
-                            style={inputStyle}
-                          />
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Photo du camion (URL)</label>
-                          <input
-                            name="image"
-                            type="text"
-                            placeholder="https://..."
-                            style={inputStyle}
-                          />
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Preuve d’achat (URL image)</label>
-                          <input
-                            name="preuveAchat"
-                            type="text"
-                            placeholder="https://..."
-                            style={inputStyle}
-                          />
-                        </div>
+                          <optgroup label="ATS">
+                            {MARQUES_ATS.map((item) => (
+                              <option
+                                key={item.value}
+                                value={item.value}
+                                style={whiteOptionStyle}
+                              >
+                                {item.label}
+                              </option>
+                            ))}
+                          </optgroup>
+                        </select>
                       </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "12px",
-                          marginTop: "22px",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <button type="submit" style={mainButtonStyle}>
-                          Enregistrer le camion
-                        </button>
-
-                        <Link href="/camions" style={secondaryButtonStyle}>
-                          Annuler
-                        </Link>
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Modèle</label>
+                        <input
+                          name="modele"
+                          type="text"
+                          placeholder="Exemple : S 770"
+                          required
+                          style={inputStyle}
+                        />
                       </div>
-                    </form>
 
-                    <div style={{ ...formCardStyle, marginTop: "18px" }}>
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Cabine</label>
+                        <input
+                          name="cabine"
+                          type="text"
+                          placeholder="Exemple : Topline"
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Châssis</label>
+                        <input
+                          name="chassis"
+                          type="text"
+                          placeholder="Exemple : 6x4"
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Moteur</label>
+                        <input
+                          name="moteur"
+                          type="text"
+                          placeholder="Exemple : 770 ch"
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Transmission</label>
+                        <input
+                          name="transmission"
+                          type="text"
+                          placeholder="Exemple : Automatique"
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Peinture</label>
+                        <input
+                          name="peinture"
+                          type="text"
+                          placeholder="Exemple : Blanc nacré"
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Prix du camion (€)</label>
+                        <input
+                          name="prixAchat"
+                          type="number"
+                          min="1"
+                          placeholder="Exemple : 185000"
+                          required
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Photo du camion (URL)</label>
+                        <input
+                          name="image"
+                          type="text"
+                          placeholder="https://..."
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>
+                          Preuve d’achat (URL image)
+                        </label>
+                        <input
+                          name="preuveAchat"
+                          type="text"
+                          placeholder="https://..."
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ ...boxStyle, marginTop: "20px" }}>
                       <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
                         Accessoires
                       </h2>
@@ -435,33 +452,46 @@ export default async function AcheterCamionPage() {
                         }}
                       >
                         <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Accessoires extérieurs</label>
+                          <label style={labelInputStyle}>
+                            Accessoires extérieurs
+                          </label>
                           <textarea
                             name="accessoiresExterieur"
-                            form=""
                             placeholder="Exemple : gyrophares, pare-buffle, jantes, trompes..."
                             style={textareaStyle}
-                            disabled
                           />
                         </div>
 
                         <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>Accessoires intérieurs</label>
+                          <label style={labelInputStyle}>
+                            Accessoires intérieurs
+                          </label>
                           <textarea
                             name="accessoiresInterieur"
-                            form=""
                             placeholder="Exemple : GPS, rideaux, tablette, volant personnalisé..."
                             style={textareaStyle}
-                            disabled
                           />
                         </div>
                       </div>
-
-                      <p style={{ ...smallTextStyle, marginTop: "14px" }}>
-                        Bloc prêt visuellement. Juste après, je te le branche pour qu’il enregistre vraiment.
-                      </p>
                     </div>
-                  </>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "12px",
+                        marginTop: "22px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <button type="submit" style={mainButtonStyle}>
+                        Enregistrer le camion
+                      </button>
+
+                      <Link href="/camions" style={secondaryButtonStyle}>
+                        Annuler
+                      </Link>
+                    </div>
+                  </form>
                 )}
               </section>
 
@@ -511,7 +541,8 @@ export default async function AcheterCamionPage() {
                   </div>
 
                   <p style={{ ...smallTextStyle, marginTop: "12px" }}>
-                    Quand le camion est enregistré, le prix est retiré directement de la société.
+                    Quand le camion est enregistré, le prix est retiré directement
+                    de la société.
                   </p>
                 </div>
 
@@ -521,7 +552,8 @@ export default async function AcheterCamionPage() {
                   </h2>
 
                   <p style={smallTextStyle}>
-                    Ici le directeur remplit tout à la main : marque, modèle, technique, prix, photo et preuve d’achat.
+                    Ici le directeur remplit tout à la main : marque, modèle,
+                    technique, prix, photo, preuve d’achat et accessoires.
                   </p>
                 </div>
               </aside>
@@ -586,6 +618,23 @@ const textareaStyle = {
   color: "white",
   outline: "none",
   resize: "vertical" as const,
+};
+
+const whiteSelectStyle = {
+  width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box" as const,
+  padding: "12px 14px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "#ffffff",
+  color: "#111111",
+  outline: "none",
+};
+
+const whiteOptionStyle = {
+  background: "#ffffff",
+  color: "#111111",
 };
 
 const infoRowStyle = {

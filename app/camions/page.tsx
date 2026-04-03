@@ -31,6 +31,7 @@ function getStatutConfig(statut: string) {
         glow: "0 0 10px rgba(156,163,175,0.85)",
       };
     }
+  }
 }
 
 function getBarColor(value: number) {
@@ -59,6 +60,14 @@ function formatMarque(marque: string) {
       return "Kenworth";
     case "PETERBILT":
       return "Peterbilt";
+    case "FREIGHTLINER":
+      return "Freightliner";
+    case "INTERNATIONAL":
+      return "International";
+    case "MACK":
+      return "Mack";
+    case "WESTERN_STAR":
+      return "Western Star";
     default:
       return marque;
   }
@@ -162,6 +171,7 @@ export default async function CamionsPage() {
           style={{
             flex: 1,
             padding: "24px",
+            minWidth: 0,
           }}
         >
           <section
@@ -208,12 +218,12 @@ export default async function CamionsPage() {
               style={{
                 padding: "24px",
                 display: "grid",
-                gridTemplateColumns: "1fr 300px",
+                gridTemplateColumns: "minmax(0, 1fr) 300px",
                 gap: "20px",
                 alignItems: "start",
               }}
             >
-              <section>
+              <section style={{ minWidth: 0 }}>
                 {camions.length === 0 ? (
                   <div style={boxStyle}>
                     <h2 style={{ marginTop: 0 }}>Aucun camion</h2>
@@ -226,7 +236,7 @@ export default async function CamionsPage() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
                       gap: "18px",
                     }}
                   >
@@ -403,12 +413,19 @@ export default async function CamionsPage() {
                           >
                             <Link
                               href={`/camions/${camion.id}`}
-                              style={mainButtonLinkStyle}
+                              style={smallMainButtonLinkStyle}
                             >
                               Voir
                             </Link>
 
-                            <button style={secondaryActionButtonStyle}>
+                            <Link
+                              href={`/camions/${camion.id}/modifier`}
+                              style={smallSecondaryButtonLinkStyle}
+                            >
+                              Modifier
+                            </Link>
+
+                            <button style={smallSecondaryActionButtonStyle}>
                               Attribuer
                             </button>
                           </div>
@@ -604,8 +621,8 @@ const mainButtonStyle = {
   textDecoration: "none",
 };
 
-const mainButtonLinkStyle = {
-  padding: "12px 18px",
+const smallMainButtonLinkStyle = {
+  padding: "10px 16px",
   borderRadius: "10px",
   border: "none",
   background: "#2563eb",
@@ -616,6 +633,22 @@ const mainButtonLinkStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+  minWidth: "80px",
+};
+
+const smallSecondaryButtonLinkStyle = {
+  padding: "10px 16px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: "90px",
 };
 
 const secondaryButtonStyle = {
@@ -631,14 +664,15 @@ const secondaryButtonStyle = {
   alignItems: "center",
 };
 
-const secondaryActionButtonStyle = {
-  padding: "12px 18px",
+const smallSecondaryActionButtonStyle = {
+  padding: "10px 16px",
   borderRadius: "10px",
   border: "1px solid rgba(255,255,255,0.12)",
   background: "rgba(255,255,255,0.08)",
   color: "white",
   fontWeight: "bold",
   cursor: "pointer",
+  minWidth: "90px",
 };
 
 const legendRowStyle = {

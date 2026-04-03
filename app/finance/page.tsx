@@ -19,14 +19,14 @@ export default async function FinancePage() {
     redirect("/");
   }
 
-  // 🔥 FAKE DATA (on remplacera par la base après)
+  // 🔥 FAKE DATA
   const transactions: Transaction[] = [
     {
       id: 1,
       date: "03/04/2026 18:20",
       chauffeur: "RoutierMax",
       type: "LIVRAISON",
-      description: "Livraison Lyon → Paris",
+      description: "Lyon → Paris",
       montant: 12450,
     },
     {
@@ -41,7 +41,7 @@ export default async function FinancePage() {
       id: 3,
       date: "03/04/2026 18:40",
       chauffeur: "Pierre_ETS2",
-      type: "AMENDE_VITESSE",
+      type: "AMENDE",
       description: "Excès de vitesse",
       montant: -550,
     },
@@ -57,107 +57,154 @@ export default async function FinancePage() {
       id: 5,
       date: "03/04/2026 19:30",
       chauffeur: "Entreprise",
-      type: "ACHAT_CAMION",
+      type: "ACHAT",
       description: "Scania S",
       montant: -132000,
     },
   ];
 
-  // 📊 Calculs
-  const total = transactions.reduce((acc, t) => acc + t.montant, 0);
-  const gains = transactions
-    .filter((t) => t.montant > 0)
-    .reduce((acc, t) => acc + t.montant, 0);
-  const depenses = transactions
-    .filter((t) => t.montant < 0)
-    .reduce((acc, t) => acc + t.montant, 0);
+  const total = transactions.reduce((a, t) => a + t.montant, 0);
+  const gains = transactions.filter(t => t.montant > 0).reduce((a, t) => a + t.montant, 0);
+  const depenses = transactions.filter(t => t.montant < 0).reduce((a, t) => a + t.montant, 0);
 
   return (
     <>
       <Menu />
 
-      <main style={{ padding: "20px", color: "white" }}>
-        <h1 style={{ fontSize: "2rem", marginBottom: "20px" }}>
-          💰 Finance de l’entreprise
+      <main style={{
+        padding: "20px",
+        color: "white"
+      }}>
+        <h1 style={{ marginBottom: "20px" }}>
+          💰 Finance de la société
         </h1>
 
-        {/* 🔥 CARTES */}
-        <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
+        {/* 🔥 TOP CARDS */}
+        <div style={{
+          display: "flex",
+          gap: "20px",
+          marginBottom: "30px"
+        }}>
           <Card title="Solde" value={total} />
           <Card title="Gains" value={gains} />
           <Card title="Dépenses" value={depenses} />
         </div>
 
-        {/* 📋 TABLEAU */}
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#111" }}>
-                <th style={th}>Date</th>
-                <th style={th}>Chauffeur</th>
-                <th style={th}>Type</th>
-                <th style={th}>Description</th>
-                <th style={th}>Montant</th>
-              </tr>
-            </thead>
+        <div style={{
+          display: "flex",
+          gap: "20px"
+        }}>
 
-            <tbody>
-              {transactions.map((t) => (
-                <tr key={t.id} style={{ borderBottom: "1px solid #333" }}>
-                  <td style={td}>{t.date}</td>
-                  <td style={td}>{t.chauffeur}</td>
-                  <td style={td}>{t.type}</td>
-                  <td style={td}>{t.description}</td>
-                  <td
-                    style={{
+          {/* 📋 TABLEAU */}
+          <div style={{
+            flex: 3,
+            background: "rgba(0,0,0,0.45)",
+            backdropFilter: "blur(8px)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "20px",
+            padding: "20px"
+          }}>
+            <h2 style={{ marginBottom: "15px" }}>
+              Historique financier
+            </h2>
+
+            <table style={{ width: "100%" }}>
+              <thead>
+                <tr>
+                  <th style={th}>Date</th>
+                  <th style={th}>Chauffeur</th>
+                  <th style={th}>Type</th>
+                  <th style={th}>Détail</th>
+                  <th style={th}>Montant</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {transactions.map(t => (
+                  <tr key={t.id}>
+                    <td style={td}>{t.date}</td>
+                    <td style={td}>{t.chauffeur}</td>
+                    <td style={td}>{t.type}</td>
+                    <td style={td}>{t.description}</td>
+                    <td style={{
                       ...td,
                       color: t.montant >= 0 ? "#4caf50" : "#f44336",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {t.montant >= 0 ? "+" : ""}
-                    {t.montant} €
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      fontWeight: "bold"
+                    }}>
+                      {t.montant >= 0 ? "+" : ""}{t.montant} €
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 📊 SIDE PANEL */}
+          <div style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: "20px"
+          }}>
+
+            <SideCard title="Amendes" value={-550} />
+            <SideCard title="Péages" value={-24} />
+            <SideCard title="Entretien" value={-1250} />
+            <SideCard title="Camions" value={-132000} />
+
+          </div>
+
         </div>
       </main>
     </>
   );
 }
 
-// 🔹 COMPONENT CARTE
-function Card({ title, value }: { title: string; value: number }) {
+// 🔹 CARD TOP
+function Card({ title, value }: any) {
   return (
-    <div
-      style={{
-        background: "#111",
-        padding: "20px",
-        borderRadius: "10px",
-        minWidth: "150px",
-      }}
-    >
-      <div style={{ fontSize: "0.9rem", color: "#aaa" }}>{title}</div>
-      <div
-        style={{
-          fontSize: "1.5rem",
-          fontWeight: "bold",
-          color: value >= 0 ? "#4caf50" : "#f44336",
-        }}
-      >
-        {value >= 0 ? "+" : ""}
+    <div style={{
+      background: "rgba(0,0,0,0.45)",
+      backdropFilter: "blur(8px)",
+      borderRadius: "15px",
+      padding: "15px",
+      minWidth: "150px"
+    }}>
+      <div style={{ color: "#aaa" }}>{title}</div>
+      <div style={{
+        fontSize: "1.5rem",
+        fontWeight: "bold",
+        color: value >= 0 ? "#4caf50" : "#f44336"
+      }}>
+        {value >= 0 ? "+" : ""}{value} €
+      </div>
+    </div>
+  );
+}
+
+// 🔹 SIDE CARD
+function SideCard({ title, value }: any) {
+  return (
+    <div style={{
+      background: "rgba(0,0,0,0.45)",
+      backdropFilter: "blur(8px)",
+      borderRadius: "15px",
+      padding: "15px"
+    }}>
+      <div>{title}</div>
+      <div style={{
+        fontWeight: "bold",
+        color: "#f44336"
+      }}>
         {value} €
       </div>
     </div>
   );
 }
 
-// 🔹 STYLES
 const th = {
-  padding: "10px",
   textAlign: "left" as const,
+  padding: "10px",
 };
 
 const td = {

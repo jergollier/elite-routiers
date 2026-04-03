@@ -1,15 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-
-type Transaction = {
-  id: number;
-  date: string;
-  chauffeur: string;
-  type: string;
-  description: string;
-  montant: number;
-};
+import { prisma } from "@/lib/prisma";
 
 export default async function FinancePage() {
   const cookieStore = await cookies();
@@ -19,72 +11,55 @@ export default async function FinancePage() {
     redirect("/");
   }
 
-  const transactions: Transaction[] = [
-    {
-      id: 1,
-      date: "03/04/2026 18:20",
-      chauffeur: "RoutierMax",
-      type: "LIVRAISON",
-      description: "Livraison Lyon → Paris",
-      montant: 12450,
+  const user = await prisma.user.findUnique({
+    where: { steamId },
+    select: {
+      id: true,
+      steamId: true,
+      username: true,
     },
-    {
-      id: 2,
-      date: "03/04/2026 18:32",
-      chauffeur: "RoutierMax",
-      type: "PEAGE",
-      description: "Péage autoroute A6",
-      montant: -24,
+  });
+
+  if (!user) {
+    redirect("/");
+  }
+
+  const entreprise = await prisma.entreprise.findFirst({
+    where: {
+      OR: [
+        { ownerSteamId: steamId },
+        {
+          membres: {
+            some: {
+              userId: user.id,
+            },
+          },
+        },
+      ],
     },
-    {
-      id: 3,
-      date: "03/04/2026 18:40",
-      chauffeur: "Pierre_ETS2",
-      type: "AMENDE_VITESSE",
-      description: "Excès de vitesse",
-      montant: -550,
+    include: {
+      finances: {
+        include: {
+          chauffeur: {
+            select: {
+              id: true,
+              username: true,
+              steamId: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
     },
-    {
-      id: 4,
-      date: "03/04/2026 18:51",
-      chauffeur: "Pierre_ETS2",
-      type: "AMENDE_FEU",
-      description: "Feu rouge grillé",
-      montant: -700,
-    },
-    {
-      id: 5,
-      date: "03/04/2026 19:10",
-      chauffeur: "Camion59",
-      type: "ENTRETIEN",
-      description: "Entretien complet camion",
-      montant: -1250,
-    },
-    {
-      id: 6,
-      date: "03/04/2026 19:22",
-      chauffeur: "Camion59",
-      type: "CARBURANT",
-      description: "Plein station-service",
-      montant: -860,
-    },
-    {
-      id: 7,
-      date: "03/04/2026 19:30",
-      chauffeur: "Entreprise",
-      type: "ACHAT_CAMION",
-      description: "Achat Scania S",
-      montant: -132000,
-    },
-    {
-      id: 8,
-      date: "03/04/2026 20:05",
-      chauffeur: "ATS_Driver",
-      type: "LIVRAISON",
-      description: "Livraison Nice → Turin",
-      montant: 9400,
-    },
-  ];
+  });
+
+  if (!entreprise) {
+    redirect("/societe");
+  }
+
+  const transactions = entreprise.finances;
 
   const solde = transactions.reduce((acc, transaction) => acc + transaction.montant, 0);
 
@@ -99,7 +74,9 @@ export default async function FinancePage() {
   const totalAmendes = transactions
     .filter(
       (transaction) =>
-        transaction.type === "AMENDE_VITESSE" || transaction.type === "AMENDE_FEU"
+        transaction.type === "AMENDE_VITESSE" ||
+        transaction.type === "AMENDE_FEU" ||
+        transaction.type === "AUTRE_AMENDE"
     )
     .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
 
@@ -110,7 +87,11 @@ export default async function FinancePage() {
   const totalEntretien = transactions
     .filter(
       (transaction) =>
-        transaction.type === "ENTRETIEN" || transaction.type === "CARBURANT"
+        transaction.type === "ENTRETIEN" ||
+        transaction.type === "CARBURANT" ||
+        transaction.type === "VIDANGE" ||
+        transaction.type === "MAINTENANCE" ||
+        transaction.type === "REPARATION"
     )
     .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
 
@@ -242,7 +223,7 @@ export default async function FinancePage() {
                       opacity: 0.95,
                     }}
                   >
-                    Suivi complet de tous les mouvements d’argent du jeu
+                    {entreprise.nom} • suivi complet de tous les mouvements d’argent
                   </div>
                 </div>
 
@@ -268,7 +249,7 @@ export default async function FinancePage() {
                       boxShadow: "0 0 8px #22c55e",
                     }}
                   />
-                  Système financier actif
+                  {transactions.length} transaction{transactions.length > 1 ? "s" : ""}
                 </div>
               </div>
             </div>
@@ -301,14 +282,14 @@ export default async function FinancePage() {
                         color: solde >= 0 ? "#22c55e" : "#ef4444",
                       }}
                     >
-                      {formatMontant(solde)}
+                      {formatSignedMontant(solde)}
                     </span>
                   </div>
 
                   <div style={infoLineStyle}>
                     <span style={labelStyle}>Total gagné</span>
                     <span style={{ ...valueStyle, color: "#22c55e" }}>
-                      {formatMontant(totalGains)}
+                      +{formatMontant(totalGains)}
                     </span>
                   </div>
 
@@ -360,9 +341,8 @@ export default async function FinancePage() {
                   </h2>
 
                   <p style={smallTextStyle}>
-                    Livraisons, amendes, péages, carburant, entretien,
-                    maintenance, achat camion et toutes les futures dépenses du
-                    jeu.
+                    Livraisons, amendes, péages, carburant, entretien, vidange,
+                    maintenance, réparation, achat camion.
                   </p>
                 </div>
               </aside>
@@ -380,14 +360,10 @@ export default async function FinancePage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  Toutes les actions financières réalisées en jeu apparaîtront ici.
+                  Toutes les actions financières réalisées en jeu apparaissent ici.
                 </p>
 
-                <div
-                  style={{
-                    overflowX: "auto",
-                  }}
-                >
+                <div style={{ overflowX: "auto" }}>
                   <table
                     style={{
                       width: "100%",
@@ -406,34 +382,52 @@ export default async function FinancePage() {
                     </thead>
 
                     <tbody>
-                      {transactions.map((transaction) => (
-                        <tr
-                          key={transaction.id}
-                          style={{
-                            borderBottom: "1px solid rgba(255,255,255,0.08)",
-                          }}
-                        >
-                          <td style={tdStyle}>{transaction.date}</td>
-                          <td style={tdStyle}>{transaction.chauffeur}</td>
-                          <td style={tdStyle}>
-                            <span style={badgeStyle(transaction.type)}>
-                              {formatType(transaction.type)}
-                            </span>
-                          </td>
-                          <td style={tdStyle}>{transaction.description}</td>
+                      {transactions.length === 0 ? (
+                        <tr>
                           <td
+                            colSpan={5}
                             style={{
-                              ...tdStyle,
-                              fontWeight: "bold",
-                              color:
-                                transaction.montant >= 0 ? "#22c55e" : "#ef4444",
+                              padding: "24px 12px",
+                              textAlign: "center",
+                              opacity: 0.8,
                             }}
                           >
-                            {transaction.montant >= 0 ? "+" : ""}
-                            {formatMontant(transaction.montant)}
+                            Aucune transaction pour le moment.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        transactions.map((transaction) => (
+                          <tr
+                            key={transaction.id}
+                            style={{
+                              borderBottom: "1px solid rgba(255,255,255,0.08)",
+                            }}
+                          >
+                            <td style={tdStyle}>
+                              {new Date(transaction.createdAt).toLocaleString("fr-FR")}
+                            </td>
+                            <td style={tdStyle}>
+                              {transaction.chauffeur?.username || "Entreprise"}
+                            </td>
+                            <td style={tdStyle}>
+                              <span style={badgeStyle(transaction.type)}>
+                                {formatType(transaction.type)}
+                              </span>
+                            </td>
+                            <td style={tdStyle}>{transaction.description}</td>
+                            <td
+                              style={{
+                                ...tdStyle,
+                                fontWeight: "bold",
+                                color:
+                                  transaction.montant >= 0 ? "#22c55e" : "#ef4444",
+                              }}
+                            >
+                              {formatSignedMontant(transaction.montant)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -447,23 +441,45 @@ export default async function FinancePage() {
 }
 
 function formatMontant(montant: number) {
-  return `${montant.toLocaleString("fr-FR")} €`;
+  return Math.abs(montant).toLocaleString("fr-FR") + " €";
+}
+
+function formatSignedMontant(montant: number) {
+  if (montant > 0) {
+    return "+" + montant.toLocaleString("fr-FR") + " €";
+  }
+
+  if (montant < 0) {
+    return montant.toLocaleString("fr-FR") + " €";
+  }
+
+  return "0 €";
 }
 
 function formatType(type: string) {
   switch (type) {
     case "LIVRAISON":
       return "Livraison";
+    case "PRIME":
+      return "Prime";
     case "PEAGE":
       return "Péage";
     case "AMENDE_VITESSE":
       return "Amende vitesse";
     case "AMENDE_FEU":
       return "Amende feu rouge";
+    case "AUTRE_AMENDE":
+      return "Autre amende";
     case "ENTRETIEN":
       return "Entretien";
     case "CARBURANT":
       return "Carburant";
+    case "VIDANGE":
+      return "Vidange";
+    case "MAINTENANCE":
+      return "Maintenance";
+    case "REPARATION":
+      return "Réparation";
     case "ACHAT_CAMION":
       return "Achat camion";
     default:
@@ -481,7 +497,7 @@ function badgeStyle(type: string) {
     border: "1px solid rgba(255,255,255,0.12)",
   };
 
-  if (type === "LIVRAISON") {
+  if (type === "LIVRAISON" || type === "PRIME") {
     return {
       ...baseStyle,
       background: "rgba(34,197,94,0.18)",

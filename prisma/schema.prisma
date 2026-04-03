@@ -20,64 +20,84 @@ enum StatutCandidature {
   REFUSEE
 }
 
+enum StatutCamion {
+  DISPONIBLE
+  EN_MISSION
+  EN_MAINTENANCE
+}
+
+enum MarqueCamion {
+  RENAULT
+  SCANIA
+  VOLVO
+  MAN
+  DAF
+  MERCEDES
+  IVECO
+  KENWORTH
+  PETERBILT
+}
+
 model User {
-  id                   String                  @id @default(cuid())
-  steamId              String                  @unique
+  id                   String   @id @default(cuid())
+  steamId              String   @unique
   username             String?
   avatar               String?
   age                  Int?
   region               String?
-  email                String?                 @unique
+  email                String?  @unique
   password             String?
   jeuPrincipal         String?
   typeTransportPrefere String?
   descriptionChauffeur String?
   styleConduite        String?
-  micro                Boolean                 @default(false)
-  createdAt            DateTime                @default(now())
+  micro                Boolean  @default(false)
+  createdAt            DateTime @default(now())
 
-  entreprisesCreees    Entreprise[]            @relation("EntrepriseOwner")
-  memberships          EntrepriseMembre[]
-  candidatures         EntrepriseCandidature[]
-  dlcs                 UserDlc[]
-  finances Finance[]
+  entreprisesCreees Entreprise[]            @relation("EntrepriseOwner")
+  memberships       EntrepriseMembre[]
+  candidatures      EntrepriseCandidature[]
+  dlcs              UserDlc[]
+  finances          Finance[]
+  camionsAttribues  Camion[]
 }
 
 model Entreprise {
-  id            Int                     @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   nom           String
-  abreviation   String                  @db.VarChar(3)
+  abreviation   String   @db.VarChar(3)
   villeETS2     String?
   villeATS      String?
   jeu           String
   typeTransport String
   description   String
-  recrutement   Boolean                 @default(true)
+  recrutement   Boolean  @default(true)
   banniere      String?
   ownerSteamId  String
-  createdAt     DateTime                @default(now())
+  createdAt     DateTime @default(now())
 
-  argent        Int                     @default(125000)
-  cuveActuelle  Int                     @default(6200)
-  cuveMax       Int                     @default(10000)
+  argent       Int @default(125000)
+  cuveActuelle Int @default(6200)
+  cuveMax      Int @default(10000)
 
-  owner         User                    @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
-  membres       EntrepriseMembre[]
-  candidatures  EntrepriseCandidature[]
-  finances Finance[]
+  owner        User                    @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
+  membres      EntrepriseMembre[]
+  candidatures EntrepriseCandidature[]
+  finances     Finance[]
+  camions      Camion[]
 
   @@index([ownerSteamId])
 }
 
 model EntrepriseMembre {
-  id           Int             @id @default(autoincrement())
+  id           Int            @id @default(autoincrement())
   userId       String
   entrepriseId Int
-  role         RoleEntreprise  @default(CHAUFFEUR)
-  createdAt    DateTime        @default(now())
+  role         RoleEntreprise @default(CHAUFFEUR)
+  createdAt    DateTime       @default(now())
 
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entreprise   Entreprise      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, entrepriseId])
   @@index([entrepriseId])
@@ -85,22 +105,22 @@ model EntrepriseMembre {
 }
 
 model EntrepriseCandidature {
-  id             Int                @id @default(autoincrement())
+  id             Int               @id @default(autoincrement())
   userId         String
   entrepriseId   Int
   age            Int?
   region         String?
   jeuPrincipal   String
   experience     String
-  micro          Boolean            @default(false)
+  micro          Boolean           @default(false)
   disponibilites String?
   motivation     String
   message        String?
-  statut         StatutCandidature  @default(EN_ATTENTE)
-  createdAt      DateTime           @default(now())
+  statut         StatutCandidature @default(EN_ATTENTE)
+  createdAt      DateTime          @default(now())
 
-  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entreprise     Entreprise         @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, entrepriseId])
   @@index([entrepriseId])
@@ -115,7 +135,7 @@ model UserDlc {
   nomDlc    String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, jeu, nomDlc])
   @@index([userId])
@@ -123,18 +143,43 @@ model UserDlc {
 }
 
 model Finance {
-  id           Int        @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   entrepriseId Int
   chauffeurId  String?
   type         String
   description  String
   montant      Int
-  createdAt    DateTime   @default(now())
+  createdAt    DateTime @default(now())
 
-  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  chauffeur    User?      @relation(fields: [chauffeurId], references: [id], onDelete: SetNull)
+  entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  chauffeur  User?      @relation(fields: [chauffeurId], references: [id], onDelete: SetNull)
 
   @@index([entrepriseId])
   @@index([chauffeurId])
   @@index([createdAt])
+}
+
+model Camion {
+  id               Int          @id @default(autoincrement())
+  entrepriseId     Int
+  chauffeurId      String?
+  marque           MarqueCamion
+  modele           String
+  image            String?
+  kilometrage      Int          @default(0)
+  etat             Int          @default(100)
+  carburant        Int          @default(100)
+  positionActuelle String?
+  statut           StatutCamion @default(DISPONIBLE)
+  vidangeRestante  Int          @default(60000)
+  revisionRestante Int          @default(120000)
+  actif            Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+
+  entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  chauffeur  User?      @relation(fields: [chauffeurId], references: [id], onDelete: SetNull)
+
+  @@index([entrepriseId])
+  @@index([chauffeurId])
+  @@index([statut])
 }

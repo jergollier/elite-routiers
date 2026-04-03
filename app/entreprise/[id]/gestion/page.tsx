@@ -310,9 +310,22 @@ export default async function GestionEntreprisePage({ params }: Props) {
                           <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
                             {membre.user?.username || "Utilisateur Steam"}
                           </div>
-                          <div style={{ fontSize: "12px", opacity: 0.75 }}>
-                            {membre.role.replaceAll("_", " ")}
-                          </div>
+                          <div
+  style={{
+    fontSize: "12px",
+    fontWeight: "bold",
+    color:
+      membre.role === "DIRECTEUR"
+        ? "#facc15"
+        : membre.role === "SOUS_DIRECTEUR"
+        ? "#60a5fa"
+        : membre.role === "CHEF_EQUIPE"
+        ? "#22c55e"
+        : "#c084fc",
+  }}
+>
+  {membre.role.replaceAll("_", " ")}
+</div>
                         </div>
                       </div>
 
@@ -328,7 +341,7 @@ export default async function GestionEntreprisePage({ params }: Props) {
                         </button>
 
                         <button type="button" style={btnPrimary}>
-                          🎖️ Grade
+                          🎖️ Rôle
                         </button>
 
                         <button type="button" style={btnDanger}>

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
-import { MarqueCamion, RoleEntreprise } from "@prisma/client";
+import { MarqueCamion, RoleEntreprise, StatutCamion } from "@prisma/client";
 
 const MARQUES = [
   { value: MarqueCamion.RENAULT, label: "Renault" },
@@ -165,23 +165,21 @@ export default async function AcheterCamionPage() {
         entrepriseId: membership.entrepriseId,
         marque,
         modele,
+        cabine: cabine || null,
+        chassis: chassis || null,
+        moteur: moteur || null,
+        transmission: transmission || null,
+        peinture: peinture || null,
         image: image || "/truck.jpg",
-        actif: true,
-
+        preuveAchat: preuveAchat || null,
         kilometrage: 0,
         etat: 100,
         carburant: 100,
         positionActuelle: null,
-        statut: "DISPONIBLE",
+        statut: StatutCamion.DISPONIBLE,
         vidangeRestante: 60000,
         revisionRestante: 120000,
-
-        cabine,
-        chassis,
-        moteur,
-        transmission,
-        peinture,
-        preuveAchat,
+        actif: true,
       },
     });
 
@@ -284,24 +282,28 @@ export default async function AcheterCamionPage() {
                   </div>
                 ) : (
                   <form action={ajouterCamion} style={formCardStyle}>
-                    <div style={fieldGroupStyle}>
-                      <label style={labelInputStyle}>Marque</label>
-                      <div style={choiceGridStyle}>
-                        {MARQUES.map((item) => (
-                          <label key={item.value} style={choiceCardStyle}>
-                            <input
-                              type="radio"
-                              name="marque"
-                              value={item.value}
-                              defaultChecked={item.value === MarqueCamion.SCANIA}
-                            />
-                            <span>{item.label}</span>
-                          </label>
-                        ))}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                        gap: "16px",
+                      }}
+                    >
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Marque</label>
+                        <select
+                          name="marque"
+                          defaultValue={MarqueCamion.SCANIA}
+                          style={inputStyle}
+                        >
+                          {MARQUES.map((item) => (
+                            <option key={item.value} value={item.value}>
+                              {item.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    </div>
 
-                    <div style={twoColumnsStyle}>
                       <div style={fieldGroupStyle}>
                         <label style={labelInputStyle}>Modèle</label>
                         <input
@@ -314,96 +316,80 @@ export default async function AcheterCamionPage() {
                       </div>
 
                       <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Peinture</label>
-                        <div style={choiceGridStyle}>
-                          {PEINTURES.map((item) => (
-                            <label key={item} style={choiceCardStyle}>
-                              <input
-                                type="radio"
-                                name="peinture"
-                                value={item}
-                                defaultChecked={item === "Blanc"}
-                              />
-                              <span>{item}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={twoColumnsStyle}>
-                      <div style={fieldGroupStyle}>
                         <label style={labelInputStyle}>Cabine</label>
-                        <div style={choiceGridStyle}>
+                        <select
+                          name="cabine"
+                          defaultValue="Cabine haute"
+                          style={inputStyle}
+                        >
                           {CABINES.map((item) => (
-                            <label key={item} style={choiceCardStyle}>
-                              <input
-                                type="radio"
-                                name="cabine"
-                                value={item}
-                                defaultChecked={item === "Cabine haute"}
-                              />
-                              <span>{item}</span>
-                            </label>
+                            <option key={item} value={item}>
+                              {item}
+                            </option>
                           ))}
-                        </div>
+                        </select>
                       </div>
 
                       <div style={fieldGroupStyle}>
                         <label style={labelInputStyle}>Châssis</label>
-                        <div style={choiceGridStyle}>
+                        <select
+                          name="chassis"
+                          defaultValue="4x2"
+                          style={inputStyle}
+                        >
                           {CHASSIS.map((item) => (
-                            <label key={item} style={choiceCardStyle}>
-                              <input
-                                type="radio"
-                                name="chassis"
-                                value={item}
-                                defaultChecked={item === "4x2"}
-                              />
-                              <span>{item}</span>
-                            </label>
+                            <option key={item} value={item}>
+                              {item}
+                            </option>
                           ))}
-                        </div>
+                        </select>
                       </div>
-                    </div>
 
-                    <div style={twoColumnsStyle}>
                       <div style={fieldGroupStyle}>
                         <label style={labelInputStyle}>Moteur</label>
-                        <div style={choiceGridStyle}>
+                        <select
+                          name="moteur"
+                          defaultValue="500 ch"
+                          style={inputStyle}
+                        >
                           {MOTEURS.map((item) => (
-                            <label key={item} style={choiceCardStyle}>
-                              <input
-                                type="radio"
-                                name="moteur"
-                                value={item}
-                                defaultChecked={item === "500 ch"}
-                              />
-                              <span>{item}</span>
-                            </label>
+                            <option key={item} value={item}>
+                              {item}
+                            </option>
                           ))}
-                        </div>
+                        </select>
                       </div>
 
                       <div style={fieldGroupStyle}>
                         <label style={labelInputStyle}>Transmission</label>
-                        <div style={choiceGridStyle}>
+                        <select
+                          name="transmission"
+                          defaultValue="Automatique"
+                          style={inputStyle}
+                        >
                           {TRANSMISSIONS.map((item) => (
-                            <label key={item} style={choiceCardStyle}>
-                              <input
-                                type="radio"
-                                name="transmission"
-                                value={item}
-                                defaultChecked={item === "Automatique"}
-                              />
-                              <span>{item}</span>
-                            </label>
+                            <option key={item} value={item}>
+                              {item}
+                            </option>
                           ))}
-                        </div>
+                        </select>
                       </div>
-                    </div>
 
-                    <div style={twoColumnsStyle}>
+                      <div style={fieldGroupStyle}>
+                        <label style={labelInputStyle}>Peinture</label>
+                        <select
+                          name="peinture"
+                          defaultValue="Blanc"
+                          style={inputStyle}
+                        >
+                          {PEINTURES.map((item) => (
+                            <option key={item} value={item}>
+                              {item}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
                       <div style={fieldGroupStyle}>
                         <label style={labelInputStyle}>Photo du camion (URL)</label>
                         <input
@@ -429,7 +415,7 @@ export default async function AcheterCamionPage() {
                       style={{
                         display: "flex",
                         gap: "12px",
-                        marginTop: "24px",
+                        marginTop: "22px",
                         flexWrap: "wrap",
                       }}
                     >
@@ -440,10 +426,6 @@ export default async function AcheterCamionPage() {
                       <Link href="/camions" style={secondaryButtonStyle}>
                         Annuler
                       </Link>
-
-                      <button type="button" style={disabledButtonStyle}>
-                        Accessoires ext / int bientôt
-                      </button>
                     </div>
                   </form>
                 )}
@@ -488,8 +470,8 @@ export default async function AcheterCamionPage() {
                   </h2>
 
                   <p style={smallTextStyle}>
-                    Ici on enregistre l’achat du camion avec les vraies infos visibles
-                    directement à l’écran.
+                    Le directeur ou le sous-directeur remplit ici les informations
+                    principales du camion et la preuve d’achat.
                   </p>
                 </div>
 
@@ -499,8 +481,8 @@ export default async function AcheterCamionPage() {
                   </h2>
 
                   <p style={smallTextStyle}>
-                    Après, on fera une partie spéciale pour les accessoires
-                    extérieurs et intérieurs du camion.
+                    Après on fera une page à part pour ajouter les accessoires
+                    intérieurs et extérieurs.
                   </p>
                 </div>
               </aside>
@@ -526,28 +508,18 @@ const formCardStyle = {
   border: "1px solid rgba(255,255,255,0.08)",
   backdropFilter: "blur(4px)",
   boxShadow: "0 0 18px rgba(0,0,0,0.28)",
-  display: "flex",
-  flexDirection: "column" as const,
-  gap: "22px",
-};
-
-const twoColumnsStyle = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "18px",
-  alignItems: "start",
 };
 
 const fieldGroupStyle = {
   display: "flex",
   flexDirection: "column" as const,
-  gap: "10px",
+  gap: "8px",
 };
 
 const labelInputStyle = {
-  fontSize: "16px",
+  fontSize: "14px",
   fontWeight: "bold",
-  opacity: 0.95,
+  opacity: 0.92,
 };
 
 const inputStyle = {
@@ -558,24 +530,6 @@ const inputStyle = {
   background: "rgba(255,255,255,0.08)",
   color: "white",
   outline: "none",
-};
-
-const choiceGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "10px",
-};
-
-const choiceCardStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  padding: "12px 12px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.08)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  cursor: "pointer",
-  minHeight: "48px",
 };
 
 const infoRowStyle = {
@@ -599,8 +553,8 @@ const valueStyle = {
 
 const smallTextStyle = {
   margin: 0,
-  lineHeight: 1.7,
-  opacity: 0.92,
+  lineHeight: 1.6,
+  opacity: 0.9,
 };
 
 const mainButtonStyle = {
@@ -626,14 +580,4 @@ const secondaryButtonStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-};
-
-const disabledButtonStyle = {
-  padding: "12px 18px",
-  borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "rgba(255,255,255,0.05)",
-  color: "rgba(255,255,255,0.65)",
-  fontWeight: "bold",
-  cursor: "not-allowed",
 };

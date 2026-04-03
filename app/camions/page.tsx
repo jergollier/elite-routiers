@@ -30,7 +30,7 @@ function getStatutConfig(statut: string) {
         color: "#9ca3af",
         glow: "0 0 10px rgba(156,163,175,0.85)",
       };
-  }
+    }
 }
 
 function getBarColor(value: number) {
@@ -218,7 +218,7 @@ export default async function CamionsPage() {
                   <div style={boxStyle}>
                     <h2 style={{ marginTop: 0 }}>Aucun camion</h2>
                     <p style={smallTextStyle}>
-                      Ton entreprise n’a encore aucun camion. Tu pourras en ajouter
+                      Ton entreprise n’a encore aucun camion. Tu peux en ajouter
                       avec le bouton à droite.
                     </p>
                   </div>
@@ -435,15 +435,19 @@ export default async function CamionsPage() {
                     Ajoute un nouveau camion à ton entreprise pour agrandir ton parc.
                   </p>
 
-                  <button
+                  <Link
+                    href="/camions/acheter"
                     style={{
                       ...mainButtonStyle,
                       width: "100%",
                       marginTop: "12px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
                     + Acheter un camion
-                  </button>
+                  </Link>
                 </div>
 
                 <div style={boxStyle}>

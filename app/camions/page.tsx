@@ -30,8 +30,9 @@ function getStatutConfig(statut: string) {
         color: "#9ca3af",
         glow: "0 0 10px rgba(156,163,175,0.85)",
       };
+    }
   }
-}
+
 
 function getBarColor(value: number) {
   if (value > 60) return "#22c55e";
@@ -424,9 +425,12 @@ export default async function CamionsPage() {
                               Modifier
                             </Link>
 
-                            <button style={smallSecondaryActionButtonStyle}>
-                              Attribuer
-                            </button>
+                            <Link
+  href={`/camions/${camion.id}/attribuer`}
+  style={smallSecondaryButtonLinkStyle}
+>
+  Attribuer
+</Link>
                           </div>
                         </article>
                       );

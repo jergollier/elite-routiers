@@ -10,6 +10,32 @@ type Props = {
   }>;
 };
 
+const JEUX = [
+  { value: "ETS2", label: "ETS2" },
+  { value: "ATS", label: "ATS" },
+  { value: "LES_DEUX", label: "Les deux" },
+];
+
+const TYPES_TRANSPORT = [
+  { value: "GENERAL", label: "Général" },
+  { value: "CITERNE", label: "Citerne" },
+  { value: "CONVOI_EXCEPTIONNEL", label: "Convoi exceptionnel" },
+  { value: "FRIGO", label: "Frigo" },
+  { value: "BENNE", label: "Benne" },
+  { value: "PLATEAU", label: "Plateau" },
+  { value: "LIVESTOCK", label: "Bétail" },
+];
+
+function formatJeu(jeu: string) {
+  if (jeu === "LES_DEUX") return "Les deux";
+  return jeu;
+}
+
+function formatTypeTransport(type: string) {
+  const found = TYPES_TRANSPORT.find((t) => t.value === type);
+  return found ? found.label : type;
+}
+
 export default async function GestionEntreprisePage({ params }: Props) {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
@@ -124,7 +150,11 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
     const abreviation = abreviationBrute.toUpperCase().slice(0, 3);
 
-    if (!["ETS2", "ATS"].includes(jeu)) {
+    if (!JEUX.some((j) => j.value === jeu)) {
+      return;
+    }
+
+    if (!TYPES_TRANSPORT.some((t) => t.value === typeTransport)) {
       return;
     }
 
@@ -304,27 +334,42 @@ export default async function GestionEntreprisePage({ params }: Props) {
                     />
                   </div>
 
-                  <div>
+                  <div style={fullWidthStyle}>
                     <label style={labelStyle}>Jeu</label>
-                    <select
-                      name="jeu"
-                      defaultValue={entreprise.jeu}
-                      style={inputStyle}
-                      disabled={!peutModifierInfos}
-                    >
-                      <option value="ETS2">ETS2</option>
-                      <option value="ATS">ATS</option>
-                    </select>
+
+                    <div style={choiceGridStyle}>
+                      {JEUX.map((jeu) => (
+                        <label key={jeu.value} style={choiceCardStyle}>
+                          <input
+                            type="radio"
+                            name="jeu"
+                            value={jeu.value}
+                            defaultChecked={entreprise.jeu === jeu.value}
+                            disabled={!peutModifierInfos}
+                          />
+                          <span>{jeu.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
 
-                  <div>
+                  <div style={fullWidthStyle}>
                     <label style={labelStyle}>Type de transport</label>
-                    <input
-                      name="typeTransport"
-                      defaultValue={entreprise.typeTransport}
-                      style={inputStyle}
-                      disabled={!peutModifierInfos}
-                    />
+
+                    <div style={choiceGridStyle}>
+                      {TYPES_TRANSPORT.map((type) => (
+                        <label key={type.value} style={choiceCardStyle}>
+                          <input
+                            type="radio"
+                            name="typeTransport"
+                            value={type.value}
+                            defaultChecked={entreprise.typeTransport === type.value}
+                            disabled={!peutModifierInfos}
+                          />
+                          <span>{type.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
 
                   <div style={infoCardStyle}>
@@ -337,6 +382,18 @@ export default async function GestionEntreprisePage({ params }: Props) {
                   <div style={infoCardStyle}>
                     <div style={labelStyle}>Membres</div>
                     <div style={valueStyle}>{entreprise._count.membres}</div>
+                  </div>
+
+                  <div style={infoCardStyle}>
+                    <div style={labelStyle}>Jeu actuel</div>
+                    <div style={valueStyle}>{formatJeu(entreprise.jeu)}</div>
+                  </div>
+
+                  <div style={infoCardStyle}>
+                    <div style={labelStyle}>Transport actuel</div>
+                    <div style={valueStyle}>
+                      {formatTypeTransport(entreprise.typeTransport)}
+                    </div>
                   </div>
                 </div>
 
@@ -641,6 +698,10 @@ const gridTwoStyle = {
   gap: "14px",
 };
 
+const fullWidthStyle = {
+  gridColumn: "1 / -1",
+};
+
 const infoCardStyle = {
   background: "rgba(255,255,255,0.08)",
   borderRadius: "12px",
@@ -669,6 +730,24 @@ const inputStyle = {
   color: "white",
   outline: "none",
   boxSizing: "border-box" as const,
+};
+
+const choiceGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  gap: "10px",
+};
+
+const choiceCardStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  borderRadius: "10px",
+  padding: "12px",
+  cursor: "pointer",
+  fontWeight: "bold",
 };
 
 const emptyCardStyle = {

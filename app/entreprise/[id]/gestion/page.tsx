@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
@@ -65,6 +66,82 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
   if (!rolesAutorises.includes(membreActuel.role)) {
     redirect("/mon-entreprise");
+  }
+
+  const peutModifierInfos =
+    membreActuel.role === "DIRECTEUR" ||
+    membreActuel.role === "SOUS_DIRECTEUR";
+
+  async function updateEntreprise(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) {
+      return;
+    }
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) {
+      return;
+    }
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) {
+      return;
+    }
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR"].includes(membreActuel.role)
+    ) {
+      return;
+    }
+
+    const nom = (formData.get("nom") as string)?.trim();
+    const abreviationBrute = (formData.get("abreviation") as string)?.trim();
+    const jeu = (formData.get("jeu") as string)?.trim();
+    const typeTransport = (formData.get("typeTransport") as string)?.trim();
+
+    if (!nom || !abreviationBrute || !jeu || !typeTransport) {
+      return;
+    }
+
+    const abreviation = abreviationBrute.toUpperCase().slice(0, 3);
+
+    if (!["ETS2", "ATS"].includes(jeu)) {
+      return;
+    }
+
+    await prisma.entreprise.update({
+      where: { id: entrepriseIdFromForm },
+      data: {
+        nom,
+        abreviation,
+        jeu,
+        typeTransport,
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath("/mon-entreprise");
+    revalidatePath("/societe");
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
   }
 
   const argentSociete = 125000;
@@ -195,39 +272,85 @@ export default async function GestionEntreprisePage({ params }: Props) {
                 Informations entreprise
               </h2>
 
-              <div style={gridTwoStyle}>
-                <div style={infoCardStyle}>
-                  <div style={labelStyle}>Nom</div>
-                  <div style={valueStyle}>{entreprise.nom}</div>
-                </div>
+              <form
+                action={updateEntreprise}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
+                <input type="hidden" name="entrepriseId" value={entreprise.id} />
 
-                <div style={infoCardStyle}>
-                  <div style={labelStyle}>Abréviation</div>
-                  <div style={valueStyle}>[{entreprise.abreviation}]</div>
-                </div>
+                <div style={gridTwoStyle}>
+                  <div>
+                    <label style={labelStyle}>Nom</label>
+                    <input
+                      name="nom"
+                      defaultValue={entreprise.nom}
+                      style={inputStyle}
+                      disabled={!peutModifierInfos}
+                    />
+                  </div>
 
-                <div style={infoCardStyle}>
-                  <div style={labelStyle}>Jeu</div>
-                  <div style={valueStyle}>{entreprise.jeu}</div>
-                </div>
+                  <div>
+                    <label style={labelStyle}>Abréviation</label>
+                    <input
+                      name="abreviation"
+                      defaultValue={entreprise.abreviation}
+                      maxLength={3}
+                      style={inputStyle}
+                      disabled={!peutModifierInfos}
+                    />
+                  </div>
 
-                <div style={infoCardStyle}>
-                  <div style={labelStyle}>Type de transport</div>
-                  <div style={valueStyle}>{entreprise.typeTransport}</div>
-                </div>
+                  <div>
+                    <label style={labelStyle}>Jeu</label>
+                    <select
+                      name="jeu"
+                      defaultValue={entreprise.jeu}
+                      style={inputStyle}
+                      disabled={!peutModifierInfos}
+                    >
+                      <option value="ETS2">ETS2</option>
+                      <option value="ATS">ATS</option>
+                    </select>
+                  </div>
 
-                <div style={infoCardStyle}>
-                  <div style={labelStyle}>Directeur</div>
-                  <div style={valueStyle}>
-                    {entreprise.owner?.username || "Utilisateur Steam"}
+                  <div>
+                    <label style={labelStyle}>Type de transport</label>
+                    <input
+                      name="typeTransport"
+                      defaultValue={entreprise.typeTransport}
+                      style={inputStyle}
+                      disabled={!peutModifierInfos}
+                    />
+                  </div>
+
+                  <div style={infoCardStyle}>
+                    <div style={labelStyle}>Directeur</div>
+                    <div style={valueStyle}>
+                      {entreprise.owner?.username || "Utilisateur Steam"}
+                    </div>
+                  </div>
+
+                  <div style={infoCardStyle}>
+                    <div style={labelStyle}>Membres</div>
+                    <div style={valueStyle}>{entreprise._count.membres}</div>
                   </div>
                 </div>
 
-                <div style={infoCardStyle}>
-                  <div style={labelStyle}>Membres</div>
-                  <div style={valueStyle}>{entreprise._count.membres}</div>
-                </div>
-              </div>
+                {peutModifierInfos ? (
+                  <button type="submit" style={btnPrimaryLarge}>
+                    💾 Enregistrer les modifications
+                  </button>
+                ) : (
+                  <div style={emptyCardStyle}>
+                    Seuls le directeur et le sous-directeur peuvent modifier ces
+                    informations.
+                  </div>
+                )}
+              </form>
 
               {membreActuel.role === "DIRECTEUR" && (
                 <button type="button" style={btnDeleteEntreprise}>
@@ -526,6 +649,7 @@ const infoCardStyle = {
 };
 
 const labelStyle = {
+  display: "block",
   fontSize: "13px",
   opacity: 0.8,
   marginBottom: "6px",
@@ -534,6 +658,17 @@ const labelStyle = {
 const valueStyle = {
   fontWeight: "bold",
   fontSize: "16px",
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  outline: "none",
+  boxSizing: "border-box" as const,
 };
 
 const emptyCardStyle = {

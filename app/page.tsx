@@ -12,6 +12,8 @@ export default async function Home() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        flexDirection: "column", // 👈 important pour empiler les boutons
+        gap: "20px",
         backgroundImage: "url('/truck.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -20,34 +22,30 @@ export default async function Home() {
       {!steamId ? (
         <a
           href="/api/steam"
-          style={{
-            padding: "20px 30px",
-            background: "#171a21",
-            borderRadius: "10px",
-            color: "white",
-            fontWeight: "bold",
-            textDecoration: "none",
-            fontSize: "20px",
-          }}
+          style={buttonStyle}
         >
           Se connecter avec Steam
         </a>
       ) : (
-        <Link
-          href="/societe"
-          style={{
-            padding: "20px 30px",
-            background: "#171a21",
-            borderRadius: "10px",
-            color: "white",
-            fontWeight: "bold",
-            textDecoration: "none",
-            fontSize: "20px",
-          }}
-        >
+        <Link href="/societe" style={buttonStyle}>
           Accéder au site
         </Link>
       )}
+
+      {/* 🔥 NOUVEAU BOUTON CLASSEMENT GLOBAL */}
+      <Link href="/societe/classement" style={buttonStyle}>
+        Voir le classement
+      </Link>
     </main>
   );
 }
+
+const buttonStyle = {
+  padding: "20px 30px",
+  background: "#171a21",
+  borderRadius: "10px",
+  color: "white",
+  fontWeight: "bold",
+  textDecoration: "none",
+  fontSize: "20px",
+};

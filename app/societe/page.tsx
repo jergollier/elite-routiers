@@ -148,19 +148,41 @@ export default async function SocietePage() {
             >
               <h2 style={{ margin: 0, fontSize: "32px" }}>Entreprises</h2>
 
-              <Link
-                href="/societe/create"
+              <div
                 style={{
-                  padding: "10px 16px",
-                  background: "#171a21",
-                  borderRadius: "10px",
-                  color: "white",
-                  textDecoration: "none",
-                  fontWeight: "bold",
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
                 }}
               >
-                + Créer une entreprise
-              </Link>
+                <Link
+                  href="/societe/classement"
+                  style={{
+                    padding: "10px 16px",
+                    background: "#2563eb",
+                    borderRadius: "10px",
+                    color: "white",
+                    textDecoration: "none",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Classement
+                </Link>
+
+                <Link
+                  href="/societe/create"
+                  style={{
+                    padding: "10px 16px",
+                    background: "#171a21",
+                    borderRadius: "10px",
+                    color: "white",
+                    textDecoration: "none",
+                    fontWeight: "bold",
+                  }}
+                >
+                  + Créer une entreprise
+                </Link>
+              </div>
             </div>
 
             <div

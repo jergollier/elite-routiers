@@ -50,8 +50,13 @@ export default function Menu() {
           Paramètres
         </button>
 
-        <a href="/api/logout" style={logoutStyle}>
-          Déconnexion
+        <a
+          href="https://discord.gg/cy4geUcdqe"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={menuLinkStyle}
+        >
+          Documentation
         </a>
       </nav>
     </aside>

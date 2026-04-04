@@ -515,6 +515,56 @@ export default async function MonEntreprisePage() {
                   border: "1px solid rgba(255,255,255,0.08)",
                 }}
               >
+                <h2 style={{ marginTop: 0, marginBottom: "10px" }}>
+                  Classement interne
+                </h2>
+
+                <p
+                  style={{
+                    margin: 0,
+                    lineHeight: 1.6,
+                    opacity: 0.9,
+                  }}
+                >
+                  Consulte le classement des chauffeurs de ta société :
+                  argent, kilomètres, infractions, accidents et classement
+                  général.
+                </p>
+
+                <Link
+                  href="/mon-entreprise/classement"
+                  style={{
+                    width: "100%",
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
+                    marginTop: "16px",
+                    padding: "12px 16px",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: "#2563eb",
+                    color: "white",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    textDecoration: "none",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  Voir le classement
+                </Link>
+              </div>
+
+              <div
+                style={{
+                  background: "rgba(0, 0, 0, 0.45)",
+                  borderRadius: "16px",
+                  padding: "20px",
+                  backdropFilter: "blur(6px)",
+                  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
                 <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
                   Cuve de la société
                 </h2>

@@ -42,9 +42,9 @@ export default function Menu() {
           Camion
         </Link>
 
-        <button style={menuButtonStyle} type="button">
+        <Link href="/mon-entreprise/classement" style={menuLinkStyle}>
           Classement
-        </button>
+        </Link>
 
         <button style={menuButtonStyle} type="button">
           Paramètres

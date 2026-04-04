@@ -64,6 +64,7 @@ model User {
   dlcs              UserDlc[]
   finances          Finance[]
   camionsAttribues  Camion[]
+  chauffeurStats    ChauffeurStat[]
 }
 
 model Entreprise {
@@ -84,11 +85,12 @@ model Entreprise {
   cuveActuelle Int @default(6200)
   cuveMax      Int @default(10000)
 
-  owner        User                    @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
-  membres      EntrepriseMembre[]
-  candidatures EntrepriseCandidature[]
-  finances     Finance[]
-  camions      Camion[]
+  owner          User                    @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
+  membres        EntrepriseMembre[]
+  candidatures   EntrepriseCandidature[]
+  finances       Finance[]
+  camions        Camion[]
+  chauffeurStats ChauffeurStat[]
 
   @@index([ownerSteamId])
 }
@@ -176,7 +178,7 @@ model Camion {
   peinture             String?
   image                String?
   preuveAchat          String?
-  prixAchat            Int?         
+  prixAchat            Int?
   accessoiresExterieur String?
   accessoiresInterieur String?
   kilometrage          Int          @default(0)
@@ -195,4 +197,26 @@ model Camion {
   @@index([entrepriseId])
   @@index([chauffeurId])
   @@index([statut])
+}
+
+model ChauffeurStat {
+  id           Int    @id @default(autoincrement())
+  userId       String
+  entrepriseId Int
+
+  argentGagne Int @default(0)
+  kilometres  Int @default(0)
+  infractions Int @default(0)
+  accidents   Int @default(0)
+  livraisons  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entrepriseId])
+  @@index([entrepriseId])
+  @@index([userId])
 }

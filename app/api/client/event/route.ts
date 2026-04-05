@@ -21,6 +21,7 @@ export async function POST(request: Request) {
           jobId: data.jobId,
         },
         update: {
+          steamId: data.steamId ?? null,
           truck: data.truck ?? "",
           sourceCity: data.sourceCity ?? "",
           destinationCity: data.destinationCity ?? "",
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
         },
         create: {
           jobId: data.jobId,
+          steamId: data.steamId ?? null,
           truck: data.truck ?? "",
           sourceCity: data.sourceCity ?? "",
           destinationCity: data.destinationCity ?? "",
@@ -47,6 +49,7 @@ export async function POST(request: Request) {
           status: "EN_COURS",
         },
         data: {
+          steamId: data.steamId ?? null,
           finishedAt: new Date(),
           status: "TERMINEE",
           truck: data.truck ?? "",

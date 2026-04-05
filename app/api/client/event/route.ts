@@ -166,12 +166,51 @@ export async function POST(request: Request) {
         });
       }
 
-      console.log("💰 Répartition livraison :", {
+      console.log("💰 Répartition livraison terminée :", {
         total: income,
         entreprise: gainEntreprise,
         chauffeur: gainChauffeur,
         charges,
       });
+    }
+
+    if (type === "job_cancelled" && data.jobId) {
+      let entrepriseId: number | null = null;
+
+      if (data.steamId) {
+        const membership = await prisma.entrepriseMembre.findFirst({
+          where: {
+            user: {
+              steamId: data.steamId,
+            },
+          },
+          select: {
+            entrepriseId: true,
+          },
+        });
+
+        entrepriseId = membership?.entrepriseId ?? null;
+      }
+
+      await prisma.livraison.updateMany({
+        where: {
+          jobId: data.jobId,
+          status: "EN_COURS",
+        },
+        data: {
+          steamId: data.steamId ?? null,
+          entrepriseId,
+          finishedAt: new Date(),
+          status: "ANNULEE",
+          truck: data.truck ?? "",
+          sourceCity: data.sourceCity ?? "",
+          destinationCity: data.destinationCity ?? "",
+          cargo: data.cargo ?? "",
+          income: Math.max(0, Math.round(data.income ?? 0)),
+        },
+      });
+
+      console.log("❌ Livraison annulée :", data.jobId);
     }
 
     console.log("🚀 EVENT CLIENT :", body);

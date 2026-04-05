@@ -65,6 +65,7 @@ model User {
   finances          Finance[]
   camionsAttribues  Camion[]
   chauffeurStats    ChauffeurStat[]
+  argent Int     @default(0)
 }
 
 model Entreprise {
@@ -79,6 +80,7 @@ model Entreprise {
   recrutement   Boolean  @default(true)
   banniere      String?
   ownerSteamId  String
+  entrepriseId  String?
   createdAt     DateTime @default(now())
 
   argent       Int @default(125000)
@@ -91,6 +93,7 @@ model Entreprise {
   finances       Finance[]
   camions        Camion[]
   chauffeurStats ChauffeurStat[]
+  
 
   @@index([ownerSteamId])
 }
@@ -230,6 +233,7 @@ model Livraison {
   id              String   @id @default(cuid())
   jobId           String   @unique
   steamId         String?
+  entrepriseId    String?
   truck           String
   sourceCity      String
   destinationCity String

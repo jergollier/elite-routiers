@@ -220,3 +220,23 @@ model ChauffeurStat {
   @@index([entrepriseId])
   @@index([userId])
 }
+model ClientEvent {
+  id        String   @id @default(cuid())
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+}
+model Livraison {
+  id              String   @id @default(cuid())
+  jobId           String   @unique
+  truck           String
+  sourceCity      String
+  destinationCity String
+  cargo           String
+  income          Int
+  startedAt       DateTime @default(now())
+  finishedAt      DateTime?
+  status          String   @default("EN_COURS")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

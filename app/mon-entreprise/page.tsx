@@ -58,36 +58,45 @@ export default async function MonEntreprisePage() {
     Math.min(100, (cuveActuelle / cuveMax) * 100)
   );
 
-  const livraisons = [
-    {
-      id: 1,
-      chauffeur: "RoutierMax",
-      trajet: "Lyon → Marseille",
-      gain: "12 500 €",
-      statut: "Terminée",
-    },
-    {
-      id: 2,
-      chauffeur: "Pierre_ETS2",
-      trajet: "Paris → Lille",
-      gain: "8 200 €",
-      statut: "En cours",
-    },
-    {
-      id: 3,
-      chauffeur: "Camion59",
-      trajet: "Bordeaux → Toulouse",
-      gain: "6 900 €",
-      statut: "Terminée",
-    },
-    {
-      id: 4,
-      chauffeur: "ATS_Driver",
-      trajet: "Nice → Turin",
-      gain: "9 400 €",
-      statut: "En attente",
-    },
-  ];
+  const steamIdsSociete = entreprise.membres
+    .map((membre) => membre.user?.steamId)
+    .filter((value): value is string => Boolean(value));
+
+  const livraisonsDb =
+    steamIdsSociete.length > 0
+      ? await prisma.livraison.findMany({
+          where: {
+            steamId: {
+              in: steamIdsSociete,
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 20,
+        })
+      : [];
+
+  const chauffeursParSteamId = new Map(
+    entreprise.membres
+      .filter((membre) => membre.user?.steamId)
+      .map((membre) => [
+        membre.user!.steamId,
+        membre.user?.username || "Utilisateur Steam",
+      ])
+  );
+
+  const livraisons = livraisonsDb.map((livraison) => ({
+    id: livraison.id,
+    chauffeur: livraison.steamId
+      ? chauffeursParSteamId.get(livraison.steamId) || "Chauffeur inconnu"
+      : "Chauffeur inconnu",
+    trajet: `${livraison.sourceCity} → ${livraison.destinationCity}`,
+    gain: `${livraison.income.toLocaleString("fr-FR")} €`,
+    statut: livraison.status === "TERMINEE" ? "Terminée" : "En cours",
+    cargo: livraison.cargo,
+    truck: livraison.truck,
+  }));
 
   return (
     <main
@@ -339,57 +348,79 @@ export default async function MonEntreprisePage() {
                     paddingRight: "6px",
                   }}
                 >
-                  {livraisons.map((livraison) => (
+                  {livraisons.length > 0 ? (
+                    livraisons.map((livraison) => (
+                      <div
+                        key={livraison.id}
+                        style={{
+                          background: "rgba(255,255,255,0.08)",
+                          borderRadius: "12px",
+                          padding: "14px",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          display: "grid",
+                          gridTemplateColumns: "1.1fr 1.3fr 0.8fr 0.8fr",
+                          gap: "12px",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: "13px", opacity: 0.8 }}>
+                            Chauffeur
+                          </div>
+                          <div style={{ fontWeight: "bold" }}>
+                            {livraison.chauffeur}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: "13px", opacity: 0.8 }}>
+                            Trajet
+                          </div>
+                          <div style={{ fontWeight: "bold" }}>
+                            {livraison.trajet}
+                          </div>
+                          <div
+                            style={{
+                              marginTop: "4px",
+                              fontSize: "12px",
+                              opacity: 0.75,
+                            }}
+                          >
+                            {livraison.cargo} • {livraison.truck}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: "13px", opacity: 0.8 }}>
+                            Gain
+                          </div>
+                          <div style={{ fontWeight: "bold" }}>
+                            {livraison.gain}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: "13px", opacity: 0.8 }}>
+                            Statut
+                          </div>
+                          <div style={{ fontWeight: "bold" }}>
+                            {livraison.statut}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
                     <div
-                      key={livraison.id}
                       style={{
                         background: "rgba(255,255,255,0.08)",
                         borderRadius: "12px",
                         padding: "14px",
                         border: "1px solid rgba(255,255,255,0.08)",
-                        display: "grid",
-                        gridTemplateColumns: "1.1fr 1.3fr 0.8fr 0.8fr",
-                        gap: "12px",
-                        alignItems: "center",
                       }}
                     >
-                      <div>
-                        <div style={{ fontSize: "13px", opacity: 0.8 }}>
-                          Chauffeur
-                        </div>
-                        <div style={{ fontWeight: "bold" }}>
-                          {livraison.chauffeur}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div style={{ fontSize: "13px", opacity: 0.8 }}>
-                          Trajet
-                        </div>
-                        <div style={{ fontWeight: "bold" }}>
-                          {livraison.trajet}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div style={{ fontSize: "13px", opacity: 0.8 }}>
-                          Gain
-                        </div>
-                        <div style={{ fontWeight: "bold" }}>
-                          {livraison.gain}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div style={{ fontSize: "13px", opacity: 0.8 }}>
-                          Statut
-                        </div>
-                        <div style={{ fontWeight: "bold" }}>
-                          {livraison.statut}
-                        </div>
-                      </div>
+                      Aucune vraie livraison enregistrée pour le moment.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </section>

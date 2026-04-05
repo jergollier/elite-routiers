@@ -65,6 +65,7 @@ export async function POST(request: Request) {
       const income = Math.max(0, Math.round(data.income ?? 0));
       const gainEntreprise = Math.round(income * 0.15);
       const gainChauffeur = Math.round(income * 0.2);
+      const charges = income - gainEntreprise - gainChauffeur;
 
       let entrepriseId: number | null = null;
       let userId: string | null = null;
@@ -137,13 +138,39 @@ export async function POST(request: Request) {
             },
           },
         });
+
+        await prisma.finance.createMany({
+          data: [
+            {
+              entrepriseId,
+              chauffeurId: userId,
+              type: "LIVRAISON_ENTREPRISE",
+              description: `Part société livraison ${data.sourceCity ?? ""} → ${data.destinationCity ?? ""} (${data.cargo ?? ""})`,
+              montant: gainEntreprise,
+            },
+            {
+              entrepriseId,
+              chauffeurId: userId,
+              type: "SALAIRE_CHAUFFEUR",
+              description: `Part chauffeur livraison ${data.sourceCity ?? ""} → ${data.destinationCity ?? ""} (${data.cargo ?? ""})`,
+              montant: gainChauffeur,
+            },
+            {
+              entrepriseId,
+              chauffeurId: userId,
+              type: "CHARGES_LIVRAISON",
+              description: `Charges livraison ${data.sourceCity ?? ""} → ${data.destinationCity ?? ""} (${data.cargo ?? ""})`,
+              montant: -charges,
+            },
+          ],
+        });
       }
 
       console.log("💰 Répartition livraison :", {
         total: income,
         entreprise: gainEntreprise,
         chauffeur: gainChauffeur,
-        charges: income - gainEntreprise - gainChauffeur,
+        charges,
       });
     }
 

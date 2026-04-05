@@ -30,7 +30,10 @@ export async function POST(request: Request) {
           },
         });
 
-        entrepriseId = membership?.entrepriseId ?? null;
+        entrepriseId =
+          membership?.entrepriseId != null
+            ? String(membership.entrepriseId)
+            : null;
       }
 
       await prisma.livraison.upsert({
@@ -64,7 +67,7 @@ export async function POST(request: Request) {
     if (type === "job_finished" && data.jobId) {
       const income = Math.max(0, Math.round(data.income ?? 0));
       const gainEntreprise = Math.round(income * 0.15);
-      const gainChauffeur = Math.round(income * 0.20);
+      const gainChauffeur = Math.round(income * 0.2);
 
       let entrepriseId: string | null = null;
       let userId: string | null = null;
@@ -92,7 +95,10 @@ export async function POST(request: Request) {
           },
         });
 
-        entrepriseId = membership?.entrepriseId ?? null;
+        entrepriseId =
+          membership?.entrepriseId != null
+            ? String(membership.entrepriseId)
+            : null;
       }
 
       await prisma.livraison.updateMany({

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Menu from "@/app/components/Menu";
+import DeleteLivraisonButton from "@/app/components/DeleteLivraisonButton";
 
 export default async function MonEntreprisePage() {
   const cookieStore = await cookies();
@@ -73,7 +74,7 @@ export default async function MonEntreprisePage() {
           orderBy: {
             createdAt: "desc",
           },
-          take: 20,
+          take: 50,
         })
       : [];
 
@@ -337,9 +338,12 @@ export default async function MonEntreprisePage() {
                   backdropFilter: "blur(6px)",
                   boxShadow: "0 0 20px rgba(0,0,0,0.4)",
                   border: "1px solid rgba(255,255,255,0.08)",
+                  minHeight: "620px",
+                  display: "flex",
+                  flexDirection: "column",
                 }}
               >
-                <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
+                <h2 style={{ marginTop: 0, marginBottom: "18px", flexShrink: 0 }}>
                   Livraisons des chauffeurs
                 </h2>
 
@@ -348,9 +352,10 @@ export default async function MonEntreprisePage() {
                     display: "flex",
                     flexDirection: "column",
                     gap: "12px",
-                    maxHeight: "540px",
+                    height: "540px",
                     overflowY: "auto",
-                    paddingRight: "6px",
+                    paddingRight: "8px",
+                    scrollbarWidth: "thin",
                   }}
                 >
                   {livraisons.length > 0 ? (
@@ -380,9 +385,12 @@ export default async function MonEntreprisePage() {
                             padding: "14px",
                             border: "1px solid rgba(255,255,255,0.08)",
                             display: "grid",
-                            gridTemplateColumns: "1.1fr 1.3fr 0.8fr 0.8fr",
+                            gridTemplateColumns: peutAccederBureau
+                              ? "1.1fr 1.3fr 0.8fr 0.8fr 0.9fr"
+                              : "1.1fr 1.3fr 0.8fr 0.8fr",
                             gap: "12px",
                             alignItems: "center",
+                            flexShrink: 0,
                           }}
                         >
                           <div>
@@ -434,6 +442,15 @@ export default async function MonEntreprisePage() {
                               {livraison.statut}
                             </div>
                           </div>
+
+                          {peutAccederBureau && (
+                            <div>
+                              <div style={{ fontSize: "13px", opacity: 0.8 }}>
+                                Action
+                              </div>
+                              <DeleteLivraisonButton livraisonId={livraison.id} />
+                            </div>
+                          )}
                         </div>
                       );
                     })

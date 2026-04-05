@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     });
 
     if (type === "job_started" && data.jobId) {
-      let entrepriseId: string | null = null;
+      let entrepriseId: number | null = null;
 
       if (data.steamId) {
         const membership = await prisma.entrepriseMembre.findFirst({
@@ -30,10 +30,7 @@ export async function POST(request: Request) {
           },
         });
 
-        entrepriseId =
-          membership?.entrepriseId != null
-            ? String(membership.entrepriseId)
-            : null;
+        entrepriseId = membership?.entrepriseId ?? null;
       }
 
       await prisma.livraison.upsert({
@@ -69,7 +66,7 @@ export async function POST(request: Request) {
       const gainEntreprise = Math.round(income * 0.15);
       const gainChauffeur = Math.round(income * 0.2);
 
-      let entrepriseId: string | null = null;
+      let entrepriseId: number | null = null;
       let userId: string | null = null;
 
       if (data.steamId) {
@@ -95,10 +92,7 @@ export async function POST(request: Request) {
           },
         });
 
-        entrepriseId =
-          membership?.entrepriseId != null
-            ? String(membership.entrepriseId)
-            : null;
+        entrepriseId = membership?.entrepriseId ?? null;
       }
 
       await prisma.livraison.updateMany({

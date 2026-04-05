@@ -58,14 +58,16 @@ model User {
   micro                Boolean  @default(false)
   createdAt            DateTime @default(now())
 
-  entreprisesCreees Entreprise[]            @relation("EntrepriseOwner")
+  argent      Int @default(0)
+  argentPerso Int @default(0)
+
+  entreprisesCreees Entreprise[] @relation("EntrepriseOwner")
   memberships       EntrepriseMembre[]
   candidatures      EntrepriseCandidature[]
   dlcs              UserDlc[]
   finances          Finance[]
   camionsAttribues  Camion[]
   chauffeurStats    ChauffeurStat[]
-  argent Int     @default(0)
 }
 
 model Entreprise {
@@ -87,13 +89,12 @@ model Entreprise {
   cuveActuelle Int @default(6200)
   cuveMax      Int @default(10000)
 
-  owner          User                    @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
+  owner User @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
   membres        EntrepriseMembre[]
   candidatures   EntrepriseCandidature[]
   finances       Finance[]
   camions        Camion[]
   chauffeurStats ChauffeurStat[]
-  
 
   @@index([ownerSteamId])
 }
@@ -203,7 +204,7 @@ model Camion {
 }
 
 model ChauffeurStat {
-  id           Int    @id @default(autoincrement())
+  id           Int @id @default(autoincrement())
   userId       String
   entrepriseId Int
 
@@ -223,17 +224,19 @@ model ChauffeurStat {
   @@index([entrepriseId])
   @@index([userId])
 }
+
 model ClientEvent {
   id        String   @id @default(cuid())
   type      String
   payload   Json
   createdAt DateTime @default(now())
 }
+
 model Livraison {
   id              String   @id @default(cuid())
   jobId           String   @unique
   steamId         String?
-  entrepriseId    String?
+  entrepriseId    Int?
   truck           String
   sourceCity      String
   destinationCity String
@@ -244,4 +247,7 @@ model Livraison {
   status          String   @default("EN_COURS")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([steamId])
+  @@index([entrepriseId])
 }

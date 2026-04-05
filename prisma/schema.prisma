@@ -229,6 +229,7 @@ model ClientEvent {
 model Livraison {
   id              String   @id @default(cuid())
   jobId           String   @unique
+  steamId         String?
   truck           String
   sourceCity      String
   destinationCity String

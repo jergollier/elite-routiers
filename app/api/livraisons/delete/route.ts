@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       "DIRECTEUR",
       "SOUS_DIRECTEUR",
       "CHEF_EQUIPE",
+      "CHEF_ATELIER",
     ];
 
     if (!rolesAutorises.includes(membership.role)) {

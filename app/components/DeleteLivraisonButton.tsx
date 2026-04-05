@@ -1,75 +1,66 @@
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+"use client";
 
-export async function POST(request: Request) {
-  try {
-    const cookieStore = await cookies();
-    const steamId = cookieStore.get("steamId")?.value;
+import { useState } from "react";
 
-    if (!steamId) {
-      return NextResponse.json(
-        { ok: false, message: "Non authentifié" },
-        { status: 401 }
-      );
-    }
+type Props = {
+  livraisonId: string;
+};
 
-    const body = await request.json();
-    const livraisonId = body?.livraisonId;
+export default function DeleteLivraisonButton({ livraisonId }: Props) {
+  const [loading, setLoading] = useState(false);
 
-    if (!livraisonId) {
-      return NextResponse.json(
-        { ok: false, message: "Livraison introuvable" },
-        { status: 400 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { steamId },
-      include: {
-        memberships: true,
-      },
-    });
-
-    if (!user || user.memberships.length === 0) {
-      return NextResponse.json(
-        { ok: false, message: "Aucune entreprise trouvée" },
-        { status: 403 }
-      );
-    }
-
-    const membership = user.memberships[0];
-
-    const rolesAutorises = [
-      "DIRECTEUR",
-      "SOUS_DIRECTEUR",
-      "CHEF_EQUIPE",
-      "CHEF_ATELIER",
-    ];
-
-    if (!rolesAutorises.includes(membership.role)) {
-      return NextResponse.json(
-        { ok: false, message: "Permission refusée" },
-        { status: 403 }
-      );
-    }
-
-    await prisma.livraison.delete({
-      where: {
-        id: livraisonId,
-      },
-    });
-
-    return NextResponse.json({
-      ok: true,
-      message: "Livraison supprimée",
-    });
-  } catch (error) {
-    console.error("Erreur suppression livraison :", error);
-
-    return NextResponse.json(
-      { ok: false, message: "Erreur suppression livraison" },
-      { status: 500 }
+  async function handleDelete() {
+    const confirmed = window.confirm(
+      "Tu veux vraiment supprimer cette livraison ?"
     );
+
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/livraisons/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          livraisonId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        alert(data.message || "Erreur suppression");
+        return;
+      }
+
+      window.location.reload();
+    } catch (error) {
+      alert("Erreur suppression livraison");
+    } finally {
+      setLoading(false);
+    }
   }
+
+  return (
+    <button
+      onClick={handleDelete}
+      disabled={loading}
+      style={{
+        marginTop: "8px",
+        padding: "8px 12px",
+        borderRadius: "8px",
+        border: "1px solid rgba(255,255,255,0.12)",
+        background: loading ? "#6b7280" : "#dc2626",
+        color: "white",
+        fontWeight: "bold",
+        cursor: loading ? "not-allowed" : "pointer",
+        width: "100%",
+      }}
+    >
+      {loading ? "Suppression..." : "Supprimer"}
+    </button>
+  );
 }

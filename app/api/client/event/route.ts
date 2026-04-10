@@ -70,7 +70,11 @@ function getJobId(data: Record<string, unknown>): string | null {
     toStringValue(data.jobID) ||
     toStringValue(data.deliveryId);
 
-  return jobId || null;
+  if (!jobId || jobId === "TRAILER_CONNECTED") {
+    return null;
+  }
+
+  return jobId;
 }
 function getOptionalString(data: Record<string, unknown>, key: string): string | null {
   const value = toStringValue(data[key]);

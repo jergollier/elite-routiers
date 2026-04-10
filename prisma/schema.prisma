@@ -233,21 +233,33 @@ model ClientEvent {
 }
 
 model Livraison {
-  id              String   @id @default(cuid())
-  jobId           String   @unique
-  steamId         String?
-  entrepriseId    Int?
-  truck           String
-  sourceCity      String
-  destinationCity String
-  cargo           String
-  income          Int
-  startedAt       DateTime @default(now())
-  finishedAt      DateTime?
-  status          String   @default("EN_COURS")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(cuid())
+  jobId            String?  @unique
+  steamId          String
+  entrepriseId     Int?
+  truck            String
+
+  status           String   @default("EN_COURS")
+
+  startedAt        DateTime @default(now())
+  finishedAt       DateTime?
+
+  startOdometerKm  Float    @default(0)
+  endOdometerKm    Float?
+  distanceReelleKm Float    @default(0)
+
+  income           Int      @default(0)
+  argentAjoute     Boolean  @default(false)
+
+  // Phase 2 plus tard
+  sourceCity       String?
+  destinationCity  String?
+  kmPrevu          Int?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([steamId])
   @@index([entrepriseId])
+  @@index([status])
 }

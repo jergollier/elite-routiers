@@ -78,30 +78,14 @@ export default async function MonEntreprisePage() {
         })
       : [];
 
-  const chauffeursParSteamId = new Map(
-    entreprise.membres
-      .filter((membre) => membre.user?.steamId)
-      .map((membre) => [
-        membre.user!.steamId,
-        membre.user?.username || "Utilisateur Steam",
-      ])
-  );
-
   const livraisons = livraisonsDb.map((livraison) => ({
     id: livraison.id,
-    chauffeur: livraison.steamId
-      ? chauffeursParSteamId.get(livraison.steamId) || "Chauffeur inconnu"
-      : "Chauffeur inconnu",
-    trajet: `${livraison.sourceCity} → ${livraison.destinationCity}`,
+    chauffeur: "Chauffeur inconnu",
+    trajet: "Non disponible",
     gain: `${livraison.income.toLocaleString("fr-FR")} €`,
-    statut:
-      livraison.status === "TERMINEE"
-        ? "Terminée"
-        : livraison.status === "ANNULEE"
-          ? "Annulée"
-          : "En cours",
-    cargo: livraison.cargo,
-    truck: livraison.truck,
+    statut: livraison.status === "TERMINEE" ? "Terminée" : "En cours",
+    cargo: "Non disponible",
+    truck: livraison.truck || "Camion inconnu",
   }));
 
   return (
@@ -366,15 +350,10 @@ export default async function MonEntreprisePage() {
                               color: "#22c55e",
                               textShadow: "0 0 8px rgba(34,197,94,0.45)",
                             }
-                          : livraison.statut === "Annulée"
-                            ? {
-                                color: "#ef4444",
-                                textShadow: "0 0 8px rgba(239,68,68,0.45)",
-                              }
-                            : {
-                                color: "#f59e0b",
-                                textShadow: "0 0 8px rgba(245,158,11,0.45)",
-                              };
+                          : {
+                              color: "#f59e0b",
+                              textShadow: "0 0 8px rgba(245,158,11,0.45)",
+                            };
 
                       return (
                         <div

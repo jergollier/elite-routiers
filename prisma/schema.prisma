@@ -238,6 +238,7 @@ model Livraison {
   steamId          String
   entrepriseId     Int?
   truck            String
+  cargo            String?
 
   status           String   @default("EN_COURS")
 

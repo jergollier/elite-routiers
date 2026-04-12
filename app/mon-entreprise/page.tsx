@@ -101,12 +101,19 @@ export default async function MonEntreprisePage() {
         .trim() ||
       "Camion inconnu";
 
+    const statutLabel =
+      livraison.status === "TERMINEE"
+        ? "Terminée"
+        : livraison.status === "ANNULEE"
+        ? "Annulée"
+        : "En cours";
+
     return {
       id: livraison.id,
       chauffeur: chauffeurNom,
       trajet,
       gain: `${(livraison.income ?? 0).toLocaleString("fr-FR")} €`,
-      statut: livraison.status === "TERMINEE" ? "Terminée" : "En cours",
+      statut: statutLabel,
       cargo: livraison.cargo?.trim() || "Cargo inconnu",
       truck: truckLabel,
     };
@@ -373,6 +380,11 @@ export default async function MonEntreprisePage() {
                           ? {
                               color: "#22c55e",
                               textShadow: "0 0 8px rgba(34,197,94,0.45)",
+                            }
+                          : livraison.statut === "Annulée"
+                          ? {
+                              color: "#ef4444",
+                              textShadow: "0 0 8px rgba(239,68,68,0.45)",
                             }
                           : {
                               color: "#f59e0b",

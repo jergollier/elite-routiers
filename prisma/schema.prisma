@@ -61,13 +61,16 @@ model User {
   argent      Int @default(0)
   argentPerso Int @default(0)
 
-  entreprisesCreees Entreprise[] @relation("EntrepriseOwner")
+  entreprisesCreees Entreprise[]            @relation("EntrepriseOwner")
   memberships       EntrepriseMembre[]
   candidatures      EntrepriseCandidature[]
   dlcs              UserDlc[]
   finances          Finance[]
   camionsAttribues  Camion[]
   chauffeurStats    ChauffeurStat[]
+  livraisons        Livraison[]
+  pleinsCarburant   PleinCarburant[]
+  mouvementsCuve    MouvementCuve[]
 }
 
 model Entreprise {
@@ -90,11 +93,15 @@ model Entreprise {
   cuveMax      Int @default(10000)
 
   owner User @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
-  membres        EntrepriseMembre[]
-  candidatures   EntrepriseCandidature[]
-  finances       Finance[]
-  camions        Camion[]
-  chauffeurStats ChauffeurStat[]
+
+  membres         EntrepriseMembre[]
+  candidatures    EntrepriseCandidature[]
+  finances        Finance[]
+  camions         Camion[]
+  chauffeurStats  ChauffeurStat[]
+  livraisons      Livraison[]
+  pleinsCarburant PleinCarburant[]
+  mouvementsCuve  MouvementCuve[]
 
   @@index([ownerSteamId])
 }
@@ -195,8 +202,10 @@ model Camion {
   actif                Boolean      @default(true)
   createdAt            DateTime     @default(now())
 
-  entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  chauffeur  User?      @relation(fields: [chauffeurId], references: [id], onDelete: SetNull)
+  entreprise Entreprise       @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  chauffeur  User?            @relation(fields: [chauffeurId], references: [id], onDelete: SetNull)
+  livraisons Livraison[]
+  pleins     PleinCarburant[]
 
   @@index([entrepriseId])
   @@index([chauffeurId])
@@ -204,7 +213,7 @@ model Camion {
 }
 
 model ChauffeurStat {
-  id           Int @id @default(autoincrement())
+  id           Int    @id @default(autoincrement())
   userId       String
   entrepriseId Int
 
@@ -228,39 +237,124 @@ model ChauffeurStat {
 model ClientEvent {
   id        String   @id @default(cuid())
   type      String
+  steamId   String?
+  deviceId  String?
+  sessionId String?
+  game      String?
   payload   Json
   createdAt DateTime @default(now())
+
+  @@index([steamId])
+  @@index([deviceId])
+  @@index([sessionId])
+  @@index([type])
+  @@index([createdAt])
 }
 
 model Livraison {
-  id               String   @id @default(cuid())
-  jobId            String?  @unique
-  steamId          String
-  entrepriseId     Int?
-  truck            String
-  cargo            String?
+  id           String  @id @default(cuid())
+  jobId        String? @unique
+  steamId      String
+  entrepriseId Int?
+  camionId     Int?
 
-  status           String   @default("EN_COURS")
+  game      String?
+  sessionId String?
+  deviceId  String?
 
-  startedAt        DateTime @default(now())
-  finishedAt       DateTime?
+  truck      String
+  truckBrand String?
+  truckModel String?
+  cargo      String?
 
-  startOdometerKm  Float    @default(0)
+  status            String  @default("EN_COURS")
+  validatedByServer Boolean @default(false)
+  cancelReason      String?
+
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  startOdometerKm  Float  @default(0)
   endOdometerKm    Float?
-  distanceReelleKm Float    @default(0)
+  distanceReelleKm Float  @default(0)
 
-  income           Int      @default(0)
-  argentAjoute     Boolean  @default(false)
+  income       Int     @default(0)
+  argentAjoute Boolean @default(false)
 
-  // Phase 2 plus tard
-  sourceCity       String?
-  destinationCity  String?
-  kmPrevu          Int?
+  sourceCity      String?
+  destinationCity String?
+  kmPrevu         Int?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User             @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
+  entreprise Entreprise?      @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+  camion     Camion?          @relation(fields: [camionId], references: [id], onDelete: SetNull)
+  pleins     PleinCarburant[]
 
   @@index([steamId])
   @@index([entrepriseId])
+  @@index([camionId])
   @@index([status])
+  @@index([startedAt])
+  @@index([finishedAt])
+}
+
+model PleinCarburant {
+  id           String  @id @default(cuid())
+  steamId      String
+  entrepriseId Int?
+  camionId     Int?
+  livraisonId  String?
+
+  game      String?
+  sessionId String?
+  deviceId  String?
+
+  truck         String?
+  fuelBefore    Float
+  fuelAfter     Float
+  litresAjoutes Float
+
+  cuveAvant Int?
+  cuveApres Int?
+
+  detectedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user       User            @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
+  entreprise Entreprise?     @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+  camion     Camion?         @relation(fields: [camionId], references: [id], onDelete: SetNull)
+  livraison  Livraison?      @relation(fields: [livraisonId], references: [id], onDelete: SetNull)
+  mouvements MouvementCuve[]
+
+  @@index([steamId])
+  @@index([entrepriseId])
+  @@index([camionId])
+  @@index([livraisonId])
+  @@index([detectedAt])
+}
+
+model MouvementCuve {
+  id           String  @id @default(cuid())
+  entrepriseId Int
+  pleinId      String?
+  chauffeurId  String?
+
+  type        String
+  litres      Int
+  cuveAvant   Int
+  cuveApres   Int
+  description String?
+  createdAt   DateTime @default(now())
+
+  entreprise Entreprise      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  plein      PleinCarburant? @relation(fields: [pleinId], references: [id], onDelete: SetNull)
+  chauffeur  User?           @relation(fields: [chauffeurId], references: [id], onDelete: SetNull)
+
+  @@index([entrepriseId])
+  @@index([pleinId])
+  @@index([chauffeurId])
+  @@index([createdAt])
 }

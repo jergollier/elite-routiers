@@ -78,15 +78,39 @@ export default async function MonEntreprisePage() {
         })
       : [];
 
-  const livraisons = livraisonsDb.map((livraison) => ({
-    id: livraison.id,
-    chauffeur: "Chauffeur inconnu",
-    trajet: "Non disponible",
-    gain: `${livraison.income.toLocaleString("fr-FR")} €`,
-    statut: livraison.status === "TERMINEE" ? "Terminée" : "En cours",
-    cargo: "Non disponible",
-    truck: livraison.truck || "Camion inconnu",
-  }));
+  const livraisons = livraisonsDb.map((livraison) => {
+    const chauffeurMembre = entreprise.membres.find(
+      (m) => m.user?.steamId === livraison.steamId
+    );
+
+    const chauffeurNom =
+      chauffeurMembre?.user?.username?.trim() ||
+      livraison.steamId ||
+      "Chauffeur inconnu";
+
+    const trajet =
+      livraison.sourceCity?.trim() && livraison.destinationCity?.trim()
+        ? `${livraison.sourceCity} → ${livraison.destinationCity}`
+        : "Non disponible";
+
+    const truckLabel =
+      livraison.truck?.trim() ||
+      [livraison.truckBrand, livraison.truckModel]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+      "Camion inconnu";
+
+    return {
+      id: livraison.id,
+      chauffeur: chauffeurNom,
+      trajet,
+      gain: `${(livraison.income ?? 0).toLocaleString("fr-FR")} €`,
+      statut: livraison.status === "TERMINEE" ? "Terminée" : "En cours",
+      cargo: livraison.cargo?.trim() || "Cargo inconnu",
+      truck: truckLabel,
+    };
+  });
 
   return (
     <main
@@ -665,7 +689,7 @@ export default async function MonEntreprisePage() {
                   }}
                 >
                   <span>0</span>
-                  <span>10000</span>
+                  <span>{cuveMax.toLocaleString("fr-FR")}</span>
                 </div>
               </div>
             </aside>

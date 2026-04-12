@@ -61,7 +61,7 @@ export default async function FinancePage() {
 
   const transactions = entreprise.finances;
 
-  const solde = transactions.reduce((acc, transaction) => acc + transaction.montant, 0);
+  const solde = entreprise.argent ?? 0;
 
   const totalGains = transactions
     .filter((transaction) => transaction.montant > 0)
@@ -98,6 +98,34 @@ export default async function FinancePage() {
   const totalCamions = transactions
     .filter((transaction) => transaction.type === "ACHAT_CAMION")
     .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
+
+  const livraisonsTerminees = await prisma.livraison.findMany({
+    where: {
+      entrepriseId: entreprise.id,
+      status: "TERMINEE",
+    },
+    select: {
+      income: true,
+    },
+  });
+
+  const totalBrutLivraisons = livraisonsTerminees.reduce(
+    (acc, livraison) => acc + (livraison.income ?? 0),
+    0
+  );
+
+  const totalPartSociete = livraisonsTerminees.reduce(
+    (acc, livraison) => acc + Math.round((livraison.income ?? 0) * 0.15),
+    0
+  );
+
+  const totalPartChauffeurs = livraisonsTerminees.reduce(
+    (acc, livraison) => acc + Math.round((livraison.income ?? 0) * 0.2),
+    0
+  );
+
+  const totalCharges =
+    totalBrutLivraisons - totalPartSociete - totalPartChauffeurs;
 
   return (
     <main
@@ -297,6 +325,40 @@ export default async function FinancePage() {
                     <span style={labelStyle}>Total dépensé</span>
                     <span style={{ ...valueStyle, color: "#ef4444" }}>
                       -{formatMontant(totalDepenses)}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={boxStyle}>
+                  <h2 style={{ marginTop: 0, marginBottom: "14px" }}>
+                    Répartition des livraisons
+                  </h2>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Brut livraisons</span>
+                    <span style={{ ...valueStyle, color: "#22c55e" }}>
+                      {formatMontant(totalBrutLivraisons)}
+                    </span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Part société (15%)</span>
+                    <span style={{ ...valueStyle, color: "#22c55e" }}>
+                      {formatMontant(totalPartSociete)}
+                    </span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Part chauffeurs (20%)</span>
+                    <span style={{ ...valueStyle, color: "#60a5fa" }}>
+                      {formatMontant(totalPartChauffeurs)}
+                    </span>
+                  </div>
+
+                  <div style={infoLineStyle}>
+                    <span style={labelStyle}>Charges sociales</span>
+                    <span style={{ ...valueStyle, color: "#f59e0b" }}>
+                      {formatMontant(totalCharges)}
                     </span>
                   </div>
                 </div>

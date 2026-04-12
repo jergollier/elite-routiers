@@ -7,6 +7,8 @@ type LivraisonEndBody = {
   livraisonId?: string | null;
   endOdometerKm?: number;
   income?: number;
+  endReason?: string | null;
+  status?: string | null;
 };
 
 export async function POST(request: Request) {
@@ -16,6 +18,8 @@ export async function POST(request: Request) {
     const steamId = body.steamId?.trim();
     const jobId = body.jobId?.trim() || null;
     const livraisonId = body.livraisonId?.trim() || null;
+    const endReason = body.endReason?.trim() || "job_finished";
+    const requestedStatus = body.status?.trim() || null;
 
     const endOdometerKm =
       typeof body.endOdometerKm === "number" &&
@@ -23,7 +27,7 @@ export async function POST(request: Request) {
         ? body.endOdometerKm
         : NaN;
 
-    const income =
+    const rawIncome =
       typeof body.income === "number" && Number.isFinite(body.income)
         ? Math.round(body.income)
         : 0;
@@ -42,7 +46,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🔎 On récupère la livraison
     let livraison = null;
 
     if (livraisonId) {
@@ -72,10 +75,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (livraison.status === "TERMINEE") {
+    if (livraison.status === "TERMINEE" || livraison.status === "ANNULEE") {
       return NextResponse.json({
         ok: true,
-        message: "Livraison déjà terminée.",
+        message: "Livraison déjà clôturée.",
+        status: livraison.status,
       });
     }
 
@@ -95,26 +99,33 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      // 🔹 Update livraison
-      const updatedLivraison = await tx.livraison.update({
+    const isCancelled =
+      endReason === "job_cancelled" ||
+      endReason === "job_cleared" ||
+      requestedStatus === "ANNULEE";
+
+    const finalStatus = isCancelled ? "ANNULEE" : "TERMINEE";
+    const finalIncome = isCancelled ? 0 : Math.max(0, rawIncome);
+    const shouldCountAsDelivered = finalStatus === "TERMINEE";
+
+    await prisma.$transaction(async (tx) => {
+      await tx.livraison.update({
         where: { id: livraison.id },
         data: {
-          status: "TERMINEE",
+          status: finalStatus,
           finishedAt: new Date(),
           endOdometerKm,
           distanceReelleKm: distanceReelle,
-          income,
+          income: finalIncome,
         },
       });
 
-      // 🔹 Ajouter argent entreprise
-      if (livraison.entrepriseId && income > 0) {
+      if (shouldCountAsDelivered && livraison.entrepriseId && finalIncome > 0) {
         await tx.entreprise.update({
           where: { id: livraison.entrepriseId },
           data: {
             argent: {
-              increment: income,
+              increment: finalIncome,
             },
           },
         });
@@ -125,34 +136,38 @@ export async function POST(request: Request) {
             chauffeurId: user.id,
             type: "LIVRAISON",
             description: `Livraison ${livraison.truck || ""}`,
-            montant: income,
+            montant: finalIncome,
           },
         });
       }
 
-      // 🔹 Stats chauffeur
-      await tx.chauffeurStat.upsert({
-        where: {
-          userId_entrepriseId: {
-            userId: user.id,
-            entrepriseId: livraison.entrepriseId!,
+      if (livraison.entrepriseId) {
+        await tx.chauffeurStat.upsert({
+          where: {
+            userId_entrepriseId: {
+              userId: user.id,
+              entrepriseId: livraison.entrepriseId,
+            },
           },
-        },
-        update: {
-          argentGagne: { increment: income },
-          kilometres: { increment: distanceReelle },
-          livraisons: { increment: 1 },
-        },
-        create: {
-          userId: user.id,
-          entrepriseId: livraison.entrepriseId!,
-          argentGagne: income,
-          kilometres: distanceReelle,
-          livraisons: 1,
-        },
-      });
+          update: shouldCountAsDelivered
+            ? {
+                argentGagne: { increment: finalIncome },
+                kilometres: { increment: distanceReelle },
+                livraisons: { increment: 1 },
+              }
+            : {
+                kilometres: { increment: distanceReelle },
+              },
+          create: {
+            userId: user.id,
+            entrepriseId: livraison.entrepriseId,
+            argentGagne: shouldCountAsDelivered ? finalIncome : 0,
+            kilometres: distanceReelle,
+            livraisons: shouldCountAsDelivered ? 1 : 0,
+          },
+        });
+      }
 
-      // 🔹 Camion dispo
       if (livraison.camionId) {
         await tx.camion.update({
           where: { id: livraison.camionId },
@@ -161,15 +176,18 @@ export async function POST(request: Request) {
           },
         });
       }
-
-      return updatedLivraison;
     });
 
     return NextResponse.json({
       ok: true,
-      message: "Livraison terminée avec succès.",
+      message:
+        finalStatus === "ANNULEE"
+          ? "Livraison annulée avec succès."
+          : "Livraison terminée avec succès.",
+      status: finalStatus,
+      endReason,
       distanceReelle,
-      income,
+      income: finalIncome,
     });
   } catch (error) {
     console.error("Erreur API livraison end :", error);

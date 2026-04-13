@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Livraison" ADD COLUMN     "charges" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "gainChauffeur" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "gainSociete" INTEGER NOT NULL DEFAULT 0;

@@ -279,6 +279,9 @@ model Livraison {
   distanceReelleKm Float  @default(0)
 
   income       Int     @default(0)
+  gainSociete   Int @default(0)
+  gainChauffeur Int @default(0)
+  charges       Int @default(0)
   argentAjoute Boolean @default(false)
 
   sourceCity      String?

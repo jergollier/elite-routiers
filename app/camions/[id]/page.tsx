@@ -123,8 +123,8 @@ export default async function VoirCamionPage({ params }: Props) {
       actif: true,
     },
     include: {
-      chauffeur: true,
-    },
+  chauffeurAttribue: true,
+},
   });
 
   if (!camion) {
@@ -298,7 +298,7 @@ export default async function VoirCamionPage({ params }: Props) {
                       <div style={infoRowStyle}>
                         <span style={labelStyle}>Chauffeur</span>
                         <span style={valueStyle}>
-                          {camion.chauffeur?.username || "Non attribué"}
+                          {camion.chauffeurAttribue?.username ?? "Non attribué"}
                         </span>
                       </div>
 

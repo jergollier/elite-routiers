@@ -118,7 +118,7 @@ export default async function CamionsPage() {
       actif: true,
     },
     include: {
-      chauffeur: true,
+      chauffeurAttribue: true,
     },
     orderBy: {
       createdAt: "desc",
@@ -336,7 +336,7 @@ export default async function CamionsPage() {
                             <div style={infoRowStyle}>
                               <span style={labelStyle}>Chauffeur</span>
                               <span style={valueStyle}>
-                                {camion.chauffeur?.username || "Non attribué"}
+                                {camion.chauffeurAttribue?.username ?? "Non attribué"}
                               </span>
                             </div>
 

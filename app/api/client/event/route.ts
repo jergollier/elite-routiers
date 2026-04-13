@@ -159,7 +159,7 @@ export async function POST(request: Request) {
       if (user) {
         const camionAttribue = await prisma.camion.findFirst({
           where: {
-            chauffeurId: user.id,
+            chauffeurAttribueId: user.id,
             actif: true,
           },
           orderBy: {
@@ -317,7 +317,7 @@ export async function POST(request: Request) {
 
           const camionAttribue = await tx.camion.findFirst({
             where: {
-              chauffeurId: user.id,
+              chauffeurAttribueId: user.id,
               actif: true,
             },
             orderBy: {

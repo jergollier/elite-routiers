@@ -104,7 +104,7 @@ export default async function AttribuerCamionPage({ params }: Props) {
       actif: true,
     },
     include: {
-      chauffeur: true,
+      chauffeurAttribue: true,
     },
   });
 
@@ -186,7 +186,7 @@ export default async function AttribuerCamionPage({ params }: Props) {
       await prisma.camion.update({
         where: { id: camionId },
         data: {
-          chauffeurId: null,
+          chauffeurAttribueId: null,
           statut: StatutCamion.DISPONIBLE,
         },
       });
@@ -214,7 +214,7 @@ export default async function AttribuerCamionPage({ params }: Props) {
     await prisma.camion.update({
       where: { id: camionId },
       data: {
-        chauffeurId: chauffeurIdValue,
+        chauffeurAttribueId: chauffeurIdValue,
         statut: StatutCamion.DISPONIBLE,
       },
     });
@@ -420,7 +420,7 @@ export default async function AttribuerCamionPage({ params }: Props) {
                         <div style={infoRowStyle}>
                           <span style={labelStyle}>Chauffeur</span>
                           <span style={valueStyle}>
-                            {camion.chauffeur?.username || "Non attribué"}
+                            {camion.chauffeurAttribue?.username || "Non attribué"}
                           </span>
                         </div>
 
@@ -441,7 +441,7 @@ export default async function AttribuerCamionPage({ params }: Props) {
                           <label style={labelInputStyle}>Choisir un chauffeur</label>
                           <select
                             name="chauffeurId"
-                            defaultValue={camion.chauffeurId || ""}
+                            defaultValue={camion.chauffeurAttribueId || ""}
                             style={whiteSelectStyle}
                           >
                             <option value="" style={whiteOptionStyle}>

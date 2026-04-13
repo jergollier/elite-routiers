@@ -182,6 +182,27 @@ export default async function ProfilPage() {
                 >
                   {user.descriptionChauffeur || "Aucune description"}
                 </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                    marginTop: "14px",
+                  }}
+                >
+                  <Link href="/societe" style={btn}>
+                    Retour
+                  </Link>
+
+                  <Link href="/chauffeur" style={btnBlue}>
+                    Espace chauffeur
+                  </Link>
+
+                  <Link href="/profil/modifier" style={btnBlue}>
+                    Modifier
+                  </Link>
+                </div>
               </Card>
 
               <Card title="DLC">
@@ -225,26 +246,6 @@ export default async function ProfilPage() {
               </Card>
             </div>
           </section>
-
-          <div
-  style={{
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-  }}
->
-  <Link href="/societe" style={btn}>
-    Retour
-  </Link>
-
-  <Link href="/chauffeur" style={btnBlue}>
-    Espace chauffeur
-  </Link>
-
-  <Link href="/profil/modifier" style={btnBlue}>
-    Modifier
-  </Link>
-</div>
         </div>
       </div>
     </main>

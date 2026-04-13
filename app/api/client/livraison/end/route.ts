@@ -46,7 +46,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🔎 Trouver la livraison
     let livraison = null;
 
     if (livraisonId) {
@@ -74,7 +73,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🚫 Déjà traitée
     if (livraison.argentAjoute) {
       return NextResponse.json({
         ok: true,
@@ -106,7 +104,6 @@ export async function POST(request: Request) {
 
     const finalStatus = isCancelled ? "ANNULEE" : "TERMINEE";
 
-    // 💰 CALCUL CLEAN
     let gainSociete = 0;
     let gainChauffeur = 0;
     let charges = 0;
@@ -121,7 +118,6 @@ export async function POST(request: Request) {
     }
 
     await prisma.$transaction(async (tx) => {
-      // 📝 Update livraison
       await tx.livraison.update({
         where: { id: livraison.id },
         data: {
@@ -137,7 +133,6 @@ export async function POST(request: Request) {
         },
       });
 
-      // 💰 ARGENT SOCIÉTÉ
       if (!isCancelled && livraison.entrepriseId && gainSociete > 0) {
         await tx.entreprise.update({
           where: { id: livraison.entrepriseId },
@@ -159,7 +154,17 @@ export async function POST(request: Request) {
         });
       }
 
-      // 📊 STATS CHAUFFEUR
+      if (!isCancelled && gainChauffeur > 0) {
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            argentPerso: {
+              increment: gainChauffeur,
+            },
+          },
+        });
+      }
+
       if (livraison.entrepriseId) {
         await tx.chauffeurStat.upsert({
           where: {
@@ -187,7 +192,6 @@ export async function POST(request: Request) {
         });
       }
 
-      // 🚛 CAMION LIBRE
       if (livraison.camionId) {
         await tx.camion.update({
           where: { id: livraison.camionId },

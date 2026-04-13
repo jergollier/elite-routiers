@@ -193,14 +193,18 @@ export default async function ChauffeurPage() {
             </h2>
 
             {user.livraisons.length === 0 ? (
-              <EmptyText>Aucune livraison enregistrée.</EmptyText>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gap: "12px",
-                }}
-              >
+         <EmptyText>Aucune livraison enregistrée.</EmptyText>
+         ) : (
+            <div
+    style={{
+      display: "grid",
+      gap: "12px",
+      maxHeight: "470px",
+      overflowY: "auto",
+      paddingRight: "8px",
+      scrollbarWidth: "thin",
+    }}
+  >
                 {user.livraisons.map((livraison) => {
                   const statutLabel =
                     livraison.status === "TERMINEE"
@@ -303,20 +307,28 @@ export default async function ChauffeurPage() {
           </section>
 
           <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <Link href="/profil" style={btn}>
-              Retour au profil
-            </Link>
+  style={{
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+  }}
+>
+  <Link href="/profil" style={btn}>
+    Retour au profil
+  </Link>
 
-            <Link href="/societe" style={btnBlue}>
-              Retour société
-            </Link>
-          </div>
+  <Link href="/societe" style={btnBlue}>
+    Retour société
+  </Link>
+
+  <Link href="/achat-camion" style={btnBlue}>
+    Achat camion
+  </Link>
+
+  <Link href="/parking" style={btnBlue}>
+    Parking
+  </Link>
+</div>
         </div>
       </div>
     </main>

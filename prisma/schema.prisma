@@ -45,6 +45,7 @@ enum MarqueCamion {
 model User {
   id                   String   @id @default(cuid())
   steamId              String   @unique
+  parkingPlaces        Int      @default(0)
   username             String?
   avatar               String?
   age                  Int?
@@ -66,7 +67,8 @@ model User {
   candidatures      EntrepriseCandidature[]
   dlcs              UserDlc[]
   finances          Finance[]
-  camionsAttribues  Camion[]
+  camionsAttribues  Camion[]                @relation("CamionsAttribues")
+  camionsPerso      Camion[]                @relation("CamionsPerso")
   chauffeurStats    ChauffeurStat[]
   livraisons        Livraison[]
   pleinsCarburant   PleinCarburant[]
@@ -178,8 +180,9 @@ model Finance {
 
 model Camion {
   id                   Int          @id @default(autoincrement())
-  entrepriseId         Int
-  chauffeurId          String?
+  entrepriseId         Int?
+  chauffeurAttribueId  String?
+  proprietaireId       String?
   marque               MarqueCamion
   modele               String
   cabine               String?
@@ -202,13 +205,15 @@ model Camion {
   actif                Boolean      @default(true)
   createdAt            DateTime     @default(now())
 
-  entreprise Entreprise       @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  chauffeur  User?            @relation(fields: [chauffeurId], references: [id], onDelete: SetNull)
-  livraisons Livraison[]
-  pleins     PleinCarburant[]
+  entreprise        Entreprise?      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  chauffeurAttribue User?            @relation("CamionsAttribues", fields: [chauffeurAttribueId], references: [id], onDelete: SetNull)
+  proprietaire      User?            @relation("CamionsPerso", fields: [proprietaireId], references: [id], onDelete: SetNull)
+  livraisons        Livraison[]
+  pleins            PleinCarburant[]
 
   @@index([entrepriseId])
-  @@index([chauffeurId])
+  @@index([chauffeurAttribueId])
+  @@index([proprietaireId])
   @@index([statut])
 }
 
@@ -278,11 +283,11 @@ model Livraison {
   endOdometerKm    Float?
   distanceReelleKm Float  @default(0)
 
-  income       Int     @default(0)
-  gainSociete   Int @default(0)
-  gainChauffeur Int @default(0)
-  charges       Int @default(0)
-  argentAjoute Boolean @default(false)
+  income        Int     @default(0)
+  gainSociete   Int     @default(0)
+  gainChauffeur Int     @default(0)
+  charges       Int     @default(0)
+  argentAjoute  Boolean @default(false)
 
   sourceCity      String?
   destinationCity String?

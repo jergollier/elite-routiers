@@ -143,7 +143,7 @@ export default async function ParkingPage() {
 
       <div style={{ marginTop: "30px" }}>
         <Link
-          href="/camion/acheter"
+          href="/camions/acheter"
           style={{
             display: "inline-block",
             padding: "12px 18px",

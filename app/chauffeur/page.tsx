@@ -249,7 +249,7 @@ export default async function ChauffeurPage() {
                           </div>
                           <div style={{ opacity: 0.8, fontSize: "14px" }}>
                             {livraison.cargo || "Cargo inconnu"} •{" "}
-                            {livraison.truck || "Camion inconnu"}
+                            {livraison.truck || "Camions inconnu"}
                           </div>
                         </div>
 
@@ -321,11 +321,11 @@ export default async function ChauffeurPage() {
     Retour société
   </Link>
 
-  <Link href="/achat-camion" style={btnBlue}>
+  <Link href="/camions/acheter" style={btnBlue}>
     Achat camion
   </Link>
 
-  <Link href="/parking" style={btnBlue}>
+  <Link href="/camions/parking" style={btnBlue}>
     Parking
   </Link>
 </div>

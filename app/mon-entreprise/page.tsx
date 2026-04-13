@@ -108,6 +108,12 @@ export default async function MonEntreprisePage() {
         ? "Annulée"
         : "En cours";
 
+        const income = livraison.income ?? 0;
+
+        const gainSociete = Math.round(income * 0.15);
+        const gainChauffeur = Math.round(income * 0.2);
+        const charges = income - gainSociete - gainChauffeur;
+
     return {
       id: livraison.id,
       chauffeur: chauffeurNom,
@@ -116,6 +122,10 @@ export default async function MonEntreprisePage() {
       statut: statutLabel,
       cargo: livraison.cargo?.trim() || "Cargo inconnu",
       truck: truckLabel,
+
+      gainSociete,
+      gainChauffeur,
+      charges,
     };
   });
 
@@ -432,6 +442,16 @@ export default async function MonEntreprisePage() {
                               }}
                             >
                               {livraison.cargo} • {livraison.truck}
+
+                              <div style={{ marginTop: "6px", fontSize: "12px", opacity: 0.85 }}>
+                                💰 {livraison.gain}
+                              </div>
+
+                              <div style={{ fontSize: "11px", opacity: 0.75 }}>
+                                🏢 {livraison.gainSociete.toLocaleString("fr-FR")} € •
+                                👤 {livraison.gainChauffeur.toLocaleString("fr-FR")} € •
+                                🏛️ {livraison.charges.toLocaleString("fr-FR")} €
+                              </div>
                             </div>
                           </div>
 

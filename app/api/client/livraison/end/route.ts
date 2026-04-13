@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // 🔎 Trouver la livraison
     let livraison = null;
 
     if (livraisonId) {
@@ -62,9 +63,7 @@ export async function POST(request: Request) {
           steamId,
           status: "EN_COURS",
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
       });
     }
 
@@ -75,10 +74,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (livraison.status === "TERMINEE" || livraison.status === "ANNULEE") {
+    // 🚫 Déjà traitée
+    if (livraison.argentAjoute) {
       return NextResponse.json({
         ok: true,
-        message: "Livraison déjà clôturée.",
+        message: "Livraison déjà traitée.",
         status: livraison.status,
       });
     }
@@ -105,10 +105,23 @@ export async function POST(request: Request) {
       requestedStatus === "ANNULEE";
 
     const finalStatus = isCancelled ? "ANNULEE" : "TERMINEE";
-    const finalIncome = isCancelled ? 0 : Math.max(0, rawIncome);
-    const shouldCountAsDelivered = finalStatus === "TERMINEE";
+
+    // 💰 CALCUL CLEAN
+    let gainSociete = 0;
+    let gainChauffeur = 0;
+    let charges = 0;
+    let finalIncome = 0;
+
+    if (!isCancelled) {
+      finalIncome = Math.max(0, rawIncome);
+
+      gainSociete = Math.round(finalIncome * 0.15);
+      gainChauffeur = Math.round(finalIncome * 0.2);
+      charges = finalIncome - gainSociete - gainChauffeur;
+    }
 
     await prisma.$transaction(async (tx) => {
+      // 📝 Update livraison
       await tx.livraison.update({
         where: { id: livraison.id },
         data: {
@@ -117,15 +130,20 @@ export async function POST(request: Request) {
           endOdometerKm,
           distanceReelleKm: distanceReelle,
           income: finalIncome,
+          gainSociete,
+          gainChauffeur,
+          charges,
+          argentAjoute: true,
         },
       });
 
-      if (shouldCountAsDelivered && livraison.entrepriseId && finalIncome > 0) {
+      // 💰 ARGENT SOCIÉTÉ
+      if (!isCancelled && livraison.entrepriseId && gainSociete > 0) {
         await tx.entreprise.update({
           where: { id: livraison.entrepriseId },
           data: {
             argent: {
-              increment: finalIncome,
+              increment: gainSociete,
             },
           },
         });
@@ -136,11 +154,12 @@ export async function POST(request: Request) {
             chauffeurId: user.id,
             type: "LIVRAISON",
             description: `Livraison ${livraison.truck || ""}`,
-            montant: finalIncome,
+            montant: gainSociete,
           },
         });
       }
 
+      // 📊 STATS CHAUFFEUR
       if (livraison.entrepriseId) {
         await tx.chauffeurStat.upsert({
           where: {
@@ -149,9 +168,9 @@ export async function POST(request: Request) {
               entrepriseId: livraison.entrepriseId,
             },
           },
-          update: shouldCountAsDelivered
+          update: !isCancelled
             ? {
-                argentGagne: { increment: finalIncome },
+                argentGagne: { increment: gainChauffeur },
                 kilometres: { increment: distanceReelle },
                 livraisons: { increment: 1 },
               }
@@ -161,13 +180,14 @@ export async function POST(request: Request) {
           create: {
             userId: user.id,
             entrepriseId: livraison.entrepriseId,
-            argentGagne: shouldCountAsDelivered ? finalIncome : 0,
+            argentGagne: !isCancelled ? gainChauffeur : 0,
             kilometres: distanceReelle,
-            livraisons: shouldCountAsDelivered ? 1 : 0,
+            livraisons: !isCancelled ? 1 : 0,
           },
         });
       }
 
+      // 🚛 CAMION LIBRE
       if (livraison.camionId) {
         await tx.camion.update({
           where: { id: livraison.camionId },
@@ -188,6 +208,9 @@ export async function POST(request: Request) {
       endReason,
       distanceReelle,
       income: finalIncome,
+      gainSociete,
+      gainChauffeur,
+      charges,
     });
   } catch (error) {
     console.error("Erreur API livraison end :", error);

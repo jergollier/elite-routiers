@@ -227,20 +227,24 @@ export default async function ProfilPage() {
           </section>
 
           <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <Link href="/societe" style={btn}>
-              Retour
-            </Link>
+  style={{
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+  }}
+>
+  <Link href="/societe" style={btn}>
+    Retour
+  </Link>
 
-            <Link href="/profil/modifier" style={btnBlue}>
-              Modifier
-            </Link>
-          </div>
+  <Link href="/chauffeur" style={btnBlue}>
+    Espace chauffeur
+  </Link>
+
+  <Link href="/profil/modifier" style={btnBlue}>
+    Modifier
+  </Link>
+</div>
         </div>
       </div>
     </main>

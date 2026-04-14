@@ -56,6 +56,7 @@ model User {
   typeTransportPrefere String?
   descriptionChauffeur String?
   styleConduite        String?
+  tackySessions        TackySession[]
   micro                Boolean  @default(false)
   createdAt            DateTime @default(now())
 
@@ -365,4 +366,16 @@ model MouvementCuve {
   @@index([pleinId])
   @@index([chauffeurId])
   @@index([createdAt])
+}
+
+model TackySession {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  deviceName   String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  lastSeenAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }

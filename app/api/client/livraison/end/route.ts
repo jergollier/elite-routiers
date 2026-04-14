@@ -110,12 +110,18 @@ export async function POST(request: Request) {
     let finalIncome = 0;
 
     if (!isCancelled) {
-      finalIncome = Math.max(0, rawIncome);
+  const prixParKm = 5; // tu peux ajuster
 
-      gainSociete = Math.round(finalIncome * 0.15);
-      gainChauffeur = Math.round(finalIncome * 0.2);
-      charges = finalIncome - gainSociete - gainChauffeur;
-    }
+  if (rawIncome > 0) {
+    finalIncome = rawIncome;
+  } else {
+    finalIncome = distanceReelle * prixParKm;
+  }
+
+  gainSociete = Math.round(finalIncome * 0.15);
+  gainChauffeur = Math.round(finalIncome * 0.2);
+  charges = finalIncome - gainSociete - gainChauffeur;
+}
 
     await prisma.$transaction(async (tx) => {
       await tx.livraison.update({

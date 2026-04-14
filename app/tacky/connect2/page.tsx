@@ -1,31 +1,42 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 export default function TackyConnectPage() {
-  const [token, setToken] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const params = useSearchParams();
+  const requestId = params.get("requestId");
+  const code = params.get("code");
+
+  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleConnect() {
     try {
       setLoading(true);
-      setError(null);
+      setMessage(null);
 
-      const res = await fetch("/api/tacky/create", {
+      const res = await fetch("/api/tacky/complete", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requestId,
+          code,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Erreur de connexion");
+        setMessage(data.error ?? "Erreur");
         return;
       }
 
-      setToken(data.token);
+      setMessage("Tacky lié avec succès. Vous pouvez retourner sur le client.");
     } catch {
-      setError("Erreur serveur");
+      setMessage("Erreur serveur");
     } finally {
       setLoading(false);
     }
@@ -35,9 +46,11 @@ export default function TackyConnectPage() {
     <div style={{ padding: 40, color: "white", background: "#111", minHeight: "100vh" }}>
       <h1>Connexion Tacky Elite Routiers</h1>
       <p>Reliez votre tacky à votre compte du site.</p>
+      <p>Code appareil : <strong>{code ?? "inconnu"}</strong></p>
 
       <button
         onClick={handleConnect}
+        disabled={!requestId || !code || loading}
         style={{
           padding: "10px 16px",
           background: "#cc8700",
@@ -46,29 +59,11 @@ export default function TackyConnectPage() {
           cursor: "pointer",
           fontWeight: "bold",
         }}
-        disabled={loading}
       >
         {loading ? "Connexion..." : "Lier mon tacky"}
       </button>
 
-      {error && <p style={{ color: "#ff6b6b", marginTop: 20 }}>{error}</p>}
-
-      {token && (
-        <div style={{ marginTop: 20 }}>
-          <p>Token de liaison :</p>
-          <code
-            style={{
-              display: "inline-block",
-              padding: 10,
-              background: "#222",
-              borderRadius: 8,
-              color: "#ffd27a",
-            }}
-          >
-            {token}
-          </code>
-        </div>
-      )}
+      {message && <p style={{ marginTop: 20 }}>{message}</p>}
     </div>
   );
 }

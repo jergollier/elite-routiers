@@ -370,12 +370,15 @@ model MouvementCuve {
 
 model TackySession {
   id           String   @id @default(cuid())
-  userId       String
-  token        String   @unique
+  userId       String?
+  token        String?  @unique
+  requestId    String   @unique
+  deviceCode   String
   deviceName   String?
   isActive     Boolean  @default(true)
+  isLinked     Boolean  @default(false)
   createdAt    DateTime @default(now())
   lastSeenAt   DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 }

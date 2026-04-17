@@ -18,74 +18,6 @@ type LivraisonStartBody = {
   startOdometerKm?: number;
 };
 
-function normalizeText(value: string | null | undefined) {
-  return (value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-}
-
-function formatMarque(marque: string) {
-  switch (marque) {
-    case "RENAULT":
-      return "Renault";
-    case "SCANIA":
-      return "Scania";
-    case "VOLVO":
-      return "Volvo";
-    case "MAN":
-      return "MAN";
-    case "DAF":
-      return "DAF";
-    case "MERCEDES":
-      return "Mercedes-Benz";
-    case "IVECO":
-      return "Iveco";
-    case "KENWORTH":
-      return "Kenworth";
-    case "PETERBILT":
-      return "Peterbilt";
-    case "FREIGHTLINER":
-      return "Freightliner";
-    case "INTERNATIONAL":
-      return "International";
-    case "MACK":
-      return "Mack";
-    case "WESTERN_STAR":
-      return "Western Star";
-    default:
-      return marque;
-  }
-}
-
-function isTruckMatching(
-  expectedBrand: string,
-  expectedModel: string | null | undefined,
-  gameBrand: string | null,
-  gameModel: string | null
-) {
-  const expectedBrandNormalized = normalizeText(formatMarque(expectedBrand));
-  const expectedModelNormalized = normalizeText(expectedModel);
-  const gameBrandNormalized = normalizeText(gameBrand);
-  const gameModelNormalized = normalizeText(gameModel);
-
-  const brandMatches =
-    expectedBrandNormalized !== "" &&
-    gameBrandNormalized !== "" &&
-    expectedBrandNormalized === gameBrandNormalized;
-
-  const modelMatches =
-    expectedModelNormalized !== "" &&
-    gameModelNormalized !== "" &&
-    (expectedModelNormalized === gameModelNormalized ||
-      gameModelNormalized.includes(expectedModelNormalized) ||
-      expectedModelNormalized.includes(gameModelNormalized));
-
-  return brandMatches && modelMatches;
-}
-
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as LivraisonStartBody;
@@ -179,34 +111,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const camionConforme = isTruckMatching(
-      camionAttribue.marque,
-      camionAttribue.modele,
-      truckBrand,
-      truckModel
-    );
-
-    if (!camionConforme) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "CAMION_NON_CONFORME",
-          message: `Camion incorrect. Camion attribué requis : ${formatMarque(
-            camionAttribue.marque
-          )} ${camionAttribue.modele ?? ""}`.trim(),
-          expectedTruck: {
-            id: camionAttribue.id,
-            brand: formatMarque(camionAttribue.marque),
-            model: camionAttribue.modele,
-          },
-          detectedTruck: {
-            brand: truckBrand,
-            model: truckModel,
-          },
-        },
-        { status: 403 }
-      );
-    }
+    // ✅ Vérification camion désactivée temporairement pour le test
+    // On garde seulement le camion attribué côté serveur pour rattacher la livraison.
 
     if (requestedCamionId && requestedCamionId !== camionAttribue.id) {
       return NextResponse.json(

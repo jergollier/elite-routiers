@@ -60,7 +60,6 @@ export default async function FinancePage() {
   }
 
   const transactions = entreprise.finances;
-
   const solde = entreprise.argent ?? 0;
 
   const totalGains = transactions
@@ -97,6 +96,10 @@ export default async function FinancePage() {
 
   const totalCamions = transactions
     .filter((transaction) => transaction.type === "ACHAT_CAMION")
+    .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
+
+  const totalChargesLivraison = transactions
+    .filter((transaction) => transaction.type === "CHARGES_LIVRAISON")
     .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
 
   const livraisonsTerminees = await prisma.livraison.findMany({
@@ -390,6 +393,13 @@ export default async function FinancePage() {
                   </div>
 
                   <div style={infoLineStyle}>
+                    <span style={labelStyle}>Charges livraison</span>
+                    <span style={{ ...valueStyle, color: "#ef4444" }}>
+                      -{formatMontant(totalChargesLivraison)}
+                    </span>
+                  </div>
+
+                  <div style={infoLineStyle}>
                     <span style={labelStyle}>Achat camions</span>
                     <span style={{ ...valueStyle, color: "#ef4444" }}>
                       -{formatMontant(totalCamions)}
@@ -403,8 +413,8 @@ export default async function FinancePage() {
                   </h2>
 
                   <p style={smallTextStyle}>
-                    Livraisons, amendes, péages, carburant, entretien, vidange,
-                    maintenance, réparation, achat camion.
+                    Livraisons, charges livraison, amendes, péages, carburant,
+                    entretien, vidange, maintenance, réparation, achat camion.
                   </p>
                 </div>
               </aside>
@@ -466,7 +476,7 @@ export default async function FinancePage() {
                             }}
                           >
                             <td style={tdStyle}>
-                              {new Date(transaction.createdAt).toLocaleString("fr-FR")}
+                              {formatDate(transaction.createdAt)}
                             </td>
                             <td style={tdStyle}>
                               {transaction.chauffeur?.username || "Entreprise"}
@@ -502,6 +512,18 @@ export default async function FinancePage() {
   );
 }
 
+function formatDate(date: Date | string) {
+  return new Date(date).toLocaleString("fr-FR", {
+    timeZone: "Europe/Paris",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 function formatMontant(montant: number) {
   return Math.abs(montant).toLocaleString("fr-FR") + " €";
 }
@@ -522,6 +544,8 @@ function formatType(type: string) {
   switch (type) {
     case "LIVRAISON":
       return "Livraison";
+    case "CHARGES_LIVRAISON":
+      return "Charges livraison";
     case "PRIME":
       return "Prime";
     case "PEAGE":
@@ -564,6 +588,14 @@ function badgeStyle(type: string) {
       ...baseStyle,
       background: "rgba(34,197,94,0.18)",
       color: "#86efac",
+    };
+  }
+
+  if (type === "CHARGES_LIVRAISON") {
+    return {
+      ...baseStyle,
+      background: "rgba(245,158,11,0.18)",
+      color: "#fcd34d",
     };
   }
 

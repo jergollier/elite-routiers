@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     const rawIncome =
       typeof body.income === "number" && Number.isFinite(body.income)
-        ? Math.round(body.income)
+        ? Math.max(0, Math.round(body.income))
         : 0;
 
     if (!steamId) {
@@ -62,7 +62,9 @@ export async function POST(request: Request) {
           steamId,
           status: "EN_COURS",
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: {
+          createdAt: "desc",
+        },
       });
     }
 
@@ -73,7 +75,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (livraison.argentAjoute) {
+    if (
+      livraison.argentAjoute ||
+      livraison.status === "TERMINEE" ||
+      livraison.status === "ANNULEE"
+    ) {
       return NextResponse.json({
         ok: true,
         message: "Livraison déjà traitée.",
@@ -104,28 +110,35 @@ export async function POST(request: Request) {
 
     const finalStatus = isCancelled ? "ANNULEE" : "TERMINEE";
 
-    let gainSociete = 0;
-    let gainChauffeur = 0;
-    let charges = 0;
-    let finalIncome = 0;
+    const finalIncome = !isCancelled ? rawIncome : 0;
+    const gainSociete = !isCancelled ? Math.round(finalIncome * 0.15) : 0;
+    const gainChauffeur = !isCancelled ? Math.round(finalIncome * 0.2) : 0;
+    const charges = !isCancelled
+      ? finalIncome - gainSociete - gainChauffeur
+      : 0;
 
-    if (!isCancelled) {
-  const prixParKm = 5; // tu peux ajuster
+    const transactionResult = await prisma.$transaction(async (tx) => {
+      const freshLivraison = await tx.livraison.findUnique({
+        where: { id: livraison!.id },
+      });
 
-  if (rawIncome > 0) {
-    finalIncome = rawIncome;
-  } else {
-    finalIncome = distanceReelle * prixParKm;
-  }
+      if (!freshLivraison) {
+        throw new Error("Livraison introuvable dans la transaction.");
+      }
 
-  gainSociete = Math.round(finalIncome * 0.15);
-  gainChauffeur = Math.round(finalIncome * 0.2);
-  charges = finalIncome - gainSociete - gainChauffeur;
-}
+      if (
+        freshLivraison.argentAjoute ||
+        freshLivraison.status === "TERMINEE" ||
+        freshLivraison.status === "ANNULEE"
+      ) {
+        return {
+          alreadyProcessed: true,
+          status: freshLivraison.status,
+        };
+      }
 
-    await prisma.$transaction(async (tx) => {
       await tx.livraison.update({
-        where: { id: livraison.id },
+        where: { id: freshLivraison.id },
         data: {
           status: finalStatus,
           finishedAt: new Date(),
@@ -139,9 +152,9 @@ export async function POST(request: Request) {
         },
       });
 
-      if (!isCancelled && livraison.entrepriseId && gainSociete > 0) {
+      if (!isCancelled && freshLivraison.entrepriseId && gainSociete > 0) {
         await tx.entreprise.update({
-          where: { id: livraison.entrepriseId },
+          where: { id: freshLivraison.entrepriseId },
           data: {
             argent: {
               increment: gainSociete,
@@ -151,11 +164,23 @@ export async function POST(request: Request) {
 
         await tx.finance.create({
           data: {
-            entrepriseId: livraison.entrepriseId,
+            entrepriseId: freshLivraison.entrepriseId,
             chauffeurId: user.id,
             type: "LIVRAISON",
-            description: `Livraison ${livraison.truck || ""}`,
+            description: `Part société livraison ${freshLivraison.truck || ""}`,
             montant: gainSociete,
+          },
+        });
+      }
+
+      if (!isCancelled && freshLivraison.entrepriseId && charges > 0) {
+        await tx.finance.create({
+          data: {
+            entrepriseId: freshLivraison.entrepriseId,
+            chauffeurId: user.id,
+            type: "CHARGES_LIVRAISON",
+            description: `Charges livraison ${freshLivraison.truck || ""}`,
+            montant: -charges,
           },
         });
       }
@@ -171,12 +196,12 @@ export async function POST(request: Request) {
         });
       }
 
-      if (livraison.entrepriseId) {
+      if (freshLivraison.entrepriseId) {
         await tx.chauffeurStat.upsert({
           where: {
             userId_entrepriseId: {
               userId: user.id,
-              entrepriseId: livraison.entrepriseId,
+              entrepriseId: freshLivraison.entrepriseId,
             },
           },
           update: !isCancelled
@@ -190,7 +215,7 @@ export async function POST(request: Request) {
               },
           create: {
             userId: user.id,
-            entrepriseId: livraison.entrepriseId,
+            entrepriseId: freshLivraison.entrepriseId,
             argentGagne: !isCancelled ? gainChauffeur : 0,
             kilometres: distanceReelle,
             livraisons: !isCancelled ? 1 : 0,
@@ -198,15 +223,28 @@ export async function POST(request: Request) {
         });
       }
 
-      if (livraison.camionId) {
+      if (freshLivraison.camionId) {
         await tx.camion.update({
-          where: { id: livraison.camionId },
+          where: { id: freshLivraison.camionId },
           data: {
             statut: "DISPONIBLE",
           },
         });
       }
+
+      return {
+        alreadyProcessed: false,
+        status: finalStatus,
+      };
     });
+
+    if (transactionResult.alreadyProcessed) {
+      return NextResponse.json({
+        ok: true,
+        message: "Livraison déjà traitée.",
+        status: transactionResult.status,
+      });
+    }
 
     return NextResponse.json({
       ok: true,

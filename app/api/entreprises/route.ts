@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { RoleEntreprise } from "@prisma/client";
 
 export async function POST(request: Request) {
   try {
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await prisma.entreprise.create({
+    const entreprise = await prisma.entreprise.create({
       data: {
         nom,
         abreviation,
@@ -87,7 +88,15 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/societe", request.url));
+    await prisma.entrepriseMembre.create({
+      data: {
+        entrepriseId: entreprise.id,
+        userId: user.id,
+        role: RoleEntreprise.DIRECTEUR,
+      },
+    });
+
+    return NextResponse.redirect(new URL("/mon-entreprise", request.url));
   } catch (error) {
     console.error("POST /api/entreprises error:", error);
 

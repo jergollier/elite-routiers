@@ -11,6 +11,69 @@ type LivraisonEndBody = {
   status?: string | null;
 };
 
+async function envoyerWebhookLivraison(params: {
+  webhookUrl?: string | null;
+  entrepriseNom: string;
+  chauffeur: string;
+  sourceCity?: string | null;
+  destinationCity?: string | null;
+  cargo?: string | null;
+  gainSociete?: number | null;
+  gainChauffeur?: number | null;
+  distanceReelleKm?: number | null;
+  truck?: string | null;
+}) {
+  const {
+    webhookUrl,
+    entrepriseNom,
+    chauffeur,
+    sourceCity,
+    destinationCity,
+    cargo,
+    gainSociete,
+    gainChauffeur,
+    distanceReelleKm,
+    truck,
+  } = params;
+
+  if (!webhookUrl) return;
+
+  try {
+    const trajet =
+      sourceCity && destinationCity
+        ? `${sourceCity} → ${destinationCity}`
+        : "Trajet inconnu";
+
+    const message = [
+      "📦 **Livraison terminée**",
+      `🏢 Société : **${entrepriseNom}**`,
+      `👤 Chauffeur : **${chauffeur}**`,
+      `🚛 Camion : **${truck || "Inconnu"}**`,
+      `🗺️ Trajet : **${trajet}**`,
+      `📦 Marchandise : **${cargo || "Inconnue"}**`,
+      `📏 Distance réelle : **${Math.round(distanceReelleKm || 0)} km**`,
+      `💰 Gain société : **${Number(gainSociete || 0).toLocaleString("fr-FR")} €**`,
+      `💵 Gain chauffeur : **${Number(gainChauffeur || 0).toLocaleString("fr-FR")} €**`,
+    ].join("\n");
+
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        content: message,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Webhook livraison refusé par Discord :", response.status);
+    }
+  } catch (error) {
+    console.error("Erreur webhook livraison :", error);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as LivraisonEndBody;
@@ -134,10 +197,11 @@ export async function POST(request: Request) {
         return {
           alreadyProcessed: true,
           status: freshLivraison.status,
+          livraison: freshLivraison,
         };
       }
 
-      await tx.livraison.update({
+      const livraisonUpdated = await tx.livraison.update({
         where: { id: freshLivraison.id },
         data: {
           status: finalStatus,
@@ -235,6 +299,7 @@ export async function POST(request: Request) {
       return {
         alreadyProcessed: false,
         status: finalStatus,
+        livraison: livraisonUpdated,
       };
     });
 
@@ -244,6 +309,33 @@ export async function POST(request: Request) {
         message: "Livraison déjà traitée.",
         status: transactionResult.status,
       });
+    }
+
+    if (!isCancelled && livraison.entrepriseId) {
+      try {
+        const entreprise = await prisma.entreprise.findUnique({
+          where: { id: livraison.entrepriseId },
+          select: {
+            nom: true,
+            discordWebhookLivraison: true,
+          },
+        });
+
+        await envoyerWebhookLivraison({
+          webhookUrl: entreprise?.discordWebhookLivraison,
+          entrepriseNom: entreprise?.nom || "Entreprise inconnue",
+          chauffeur: user.username || `Steam ${steamId}`,
+          sourceCity: livraison.sourceCity,
+          destinationCity: livraison.destinationCity,
+          cargo: livraison.cargo,
+          gainSociete,
+          gainChauffeur,
+          distanceReelleKm: distanceReelle,
+          truck: livraison.truck,
+        });
+      } catch (error) {
+        console.error("Erreur post-transaction webhook livraison :", error);
+      }
     }
 
     return NextResponse.json({

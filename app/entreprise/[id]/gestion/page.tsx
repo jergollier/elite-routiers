@@ -755,21 +755,28 @@ export default async function GestionEntreprisePage({ params }: Props) {
                     border: "1px solid rgba(255,255,255,0.10)",
                   }}
                 >
-                  <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
-                    Bannière de la société
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Taille recommandée : <strong>1400 x 260 px</strong>
                   </div>
 
                   <div style={{ fontSize: "14px", opacity: 0.92 }}>
-                    Taille conseillée : <strong>1500 x 500 px</strong>
+                    Format : <strong>image horizontale (bannière)</strong>
                   </div>
+
                   <div style={{ fontSize: "14px", opacity: 0.92 }}>
-                    Ratio conseillé : <strong>3:1</strong>
+                    Important : <strong>centrer le logo et le texte</strong>
                   </div>
+
                   <div style={{ fontSize: "14px", opacity: 0.92 }}>
-                    Formats acceptés : <strong>JPG, PNG, WEBP</strong>
+                    Évite : <strong>les images carrées ou verticales</strong>
                   </div>
+
                   <div style={{ fontSize: "14px", opacity: 0.92 }}>
-                    Poids maximum : <strong>4 Mo</strong>
+                     Formats acceptés : <strong>JPG, PNG, WEBP</strong>
+                  </div>
+
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                     Poids maximum : <strong>4 Mo</strong>
                   </div>
 
                   <input

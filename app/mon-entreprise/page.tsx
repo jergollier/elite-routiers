@@ -4,7 +4,26 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Menu from "@/app/components/Menu";
 import DeleteLivraisonButton from "@/app/components/DeleteLivraisonButton";
-import DemissionButton from "@/app/components/DemissionButton";
+
+function formatJeu(jeu: string) {
+  if (jeu === "LES_DEUX") return "Les deux";
+  return jeu;
+}
+
+function formatRole(role: string) {
+  switch (role) {
+    case "DIRECTEUR":
+      return "Directeur";
+    case "SOUS_DIRECTEUR":
+      return "Sous-directeur";
+    case "CHEF_EQUIPE":
+      return "Chef d’équipe";
+    case "CHEF_ATELIER":
+      return "Chef d’atelier";
+    default:
+      return "Chauffeur";
+  }
+}
 
 export default async function MonEntreprisePage() {
   const cookieStore = await cookies();
@@ -119,7 +138,7 @@ export default async function MonEntreprisePage() {
       id: livraison.id,
       chauffeur: chauffeurNom,
       trajet,
-      gain: `${(livraison.income ?? 0).toLocaleString("fr-FR")} €`,
+      gain: `${income.toLocaleString("fr-FR")} €`,
       statut: statutLabel,
       cargo: livraison.cargo?.trim() || "Cargo inconnu",
       truck: truckLabel,
@@ -145,7 +164,7 @@ export default async function MonEntreprisePage() {
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.55)",
+          background: "rgba(0, 0, 0, 0.58)",
         }}
       />
 
@@ -160,7 +179,7 @@ export default async function MonEntreprisePage() {
       >
         <header
           style={{
-            height: "80px",
+            minHeight: "80px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -187,7 +206,7 @@ export default async function MonEntreprisePage() {
             }}
           >
             <span>Entreprise : {entreprise.nom}</span>
-            <span>Rôle : {membership.role.replaceAll("_", " ")}</span>
+            <span>Rôle : {formatRole(membership.role)}</span>
 
             <div
               style={{
@@ -227,7 +246,7 @@ export default async function MonEntreprisePage() {
           <section
             style={{
               background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "16px",
+              borderRadius: "18px",
               overflow: "hidden",
               backdropFilter: "blur(6px)",
               boxShadow: "0 0 20px rgba(0,0,0,0.4)",
@@ -236,11 +255,12 @@ export default async function MonEntreprisePage() {
           >
             <div
               style={{
-                height: "220px",
+                position: "relative",
+                minHeight: "250px",
                 backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                position: "relative",
+                backgroundRepeat: "no-repeat",
               }}
             >
               <div
@@ -248,36 +268,60 @@ export default async function MonEntreprisePage() {
                   position: "absolute",
                   inset: 0,
                   background:
-                    "linear-gradient(to top, rgba(0,0,0,0.88), rgba(0,0,0,0.18))",
+                    "linear-gradient(90deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.38) 45%, rgba(0,0,0,0.62) 100%)",
                 }}
               />
 
               <div
                 style={{
                   position: "absolute",
-                  left: "24px",
-                  bottom: "24px",
-                  right: "24px",
+                  inset: 0,
+                  background:
+                    "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.18) 55%, rgba(0,0,0,0.08) 100%)",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "relative",
+                  zIndex: 2,
+                  minHeight: "250px",
                   display: "flex",
-                  justifyContent: "space-between",
                   alignItems: "flex-end",
+                  justifyContent: "space-between",
                   gap: "20px",
                   flexWrap: "wrap",
+                  padding: "24px",
+                  boxSizing: "border-box",
                 }}
               >
-                <div>
-                  <h1 style={{ margin: 0, fontSize: "36px" }}>
+                <div
+                  style={{
+                    maxWidth: "700px",
+                  }}
+                >
+                  <h1
+                    style={{
+                      margin: 0,
+                      fontSize: "44px",
+                      lineHeight: 1,
+                      fontWeight: "bold",
+                      textShadow: "0 4px 18px rgba(0,0,0,0.55)",
+                    }}
+                  >
                     {entreprise.nom}
                   </h1>
 
                   <div
                     style={{
-                      marginTop: "8px",
+                      marginTop: "10px",
                       fontWeight: "bold",
-                      opacity: 0.95,
+                      fontSize: "20px",
+                      opacity: 0.96,
+                      textShadow: "0 3px 12px rgba(0,0,0,0.45)",
                     }}
                   >
-                    [{entreprise.abreviation}] • {entreprise.jeu}
+                    [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
                   </div>
                 </div>
 
@@ -287,15 +331,18 @@ export default async function MonEntreprisePage() {
                     gap: "12px",
                     flexWrap: "wrap",
                     justifyContent: "flex-end",
+                    alignItems: "stretch",
                   }}
                 >
                   <div
                     style={{
-                      background: "rgba(0,0,0,0.45)",
+                      background: "rgba(0,0,0,0.42)",
                       padding: "14px 18px",
-                      borderRadius: "12px",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      minWidth: "220px",
+                      borderRadius: "14px",
+                      border: "1px solid rgba(255,255,255,0.14)",
+                      backdropFilter: "blur(8px)",
+                      minWidth: "230px",
+                      boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
                     }}
                   >
                     <div
@@ -307,7 +354,13 @@ export default async function MonEntreprisePage() {
                     >
                       Argent de la société
                     </div>
-                    <div style={{ fontSize: "28px", fontWeight: "bold" }}>
+                    <div
+                      style={{
+                        fontSize: "30px",
+                        fontWeight: "bold",
+                        lineHeight: 1.1,
+                      }}
+                    >
                       {argentSociete.toLocaleString("fr-FR")} €
                     </div>
                   </div>
@@ -319,15 +372,16 @@ export default async function MonEntreprisePage() {
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        minWidth: "160px",
-                        padding: "14px 18px",
-                        borderRadius: "12px",
-                        background: "#171a21",
+                        minWidth: "170px",
+                        padding: "14px 20px",
+                        borderRadius: "14px",
+                        background: "rgba(20, 26, 39, 0.92)",
                         color: "white",
                         textDecoration: "none",
                         fontWeight: "bold",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        boxShadow: "0 0 20px rgba(0,0,0,0.25)",
+                        border: "1px solid rgba(255,255,255,0.14)",
+                        backdropFilter: "blur(8px)",
+                        boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
                       }}
                     >
                       Bureau
@@ -341,15 +395,16 @@ export default async function MonEntreprisePage() {
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        minWidth: "160px",
-                        padding: "14px 18px",
-                        borderRadius: "12px",
-                        background: "#991b1b",
+                        minWidth: "170px",
+                        padding: "14px 20px",
+                        borderRadius: "14px",
+                        background: "rgba(153, 27, 27, 0.95)",
                         color: "white",
                         textDecoration: "none",
                         fontWeight: "bold",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        boxShadow: "0 0 20px rgba(0,0,0,0.25)",
+                        border: "1px solid rgba(255,255,255,0.14)",
+                        backdropFilter: "blur(8px)",
+                        boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
                         cursor: "pointer",
                       }}
                     >
@@ -627,7 +682,7 @@ export default async function MonEntreprisePage() {
                             {membre.user?.username || "Utilisateur Steam"}
                           </div>
                           <div style={{ opacity: 0.85 }}>
-                            {membre.role.replaceAll("_", " ")}
+                            {formatRole(membre.role)}
                           </div>
                         </div>
                       </div>

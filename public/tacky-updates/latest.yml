@@ -1,8 +1,8 @@
-version: 1.0.0
+version: 1.0.1
 files:
-  - url: https://evsucubtev4fgabq.public.blob.vercel-storage.com/Elite%20Routier%20Tacky%20Setup%201.0.0.exe
-    sha512: R2UoJacjMubUvjPHhQH7PMFcBN6VfUa2xhnSUOyLtPlUAX2Ho6GJGd13Pu41wOmX34BOfCXtVCCj2ndvhAC7VA==
-    size: 103016000
-path: https://evsucubtev4fgabq.public.blob.vercel-storage.com/Elite%20Routier%20Tacky%20Setup%201.0.0.exe
-sha512: R2UoJacjMubUvjPHhQH7PMFcBN6VfUa2xhnSUOyLtPlUAX2Ho6GJGd13Pu41wOmX34BOfCXtVCCj2ndvhAC7VA==
-releaseDate: '2026-04-19T18:36:00.000Z'
+  - url: https://evsucubtev4fgabq.public.blob.vercel-storage.com/Elite%20Routier%20Tacky%20Setup%201.0.1.exe
+    sha512: roYaH0fkTKfilWbFdN/3aRPN2dWdC/EWYx3hF8V9pYxVP8A8ZwieAdEcfMcLwkwnKiCSB/87Nu43k/4YgjhT+w==
+    size: 105504419
+path: https://evsucubtev4fgabq.public.blob.vercel-storage.com/Elite%20Routier%20Tacky%20Setup%201.0.1.exe
+sha512: roYaH0fkTKfilWbFdN/3aRPN2dWdC/EWYx3hF8V9pYxVP8A8ZwieAdEcfMcLwkwnKiCSB/87Nu43k/4YgjhT+w==
+releaseDate: '2026-04-19T19:13:08.965Z'

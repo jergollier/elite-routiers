@@ -57,7 +57,7 @@ export default function ParametresForm({ entreprise }: Props) {
       setMessage(null);
       setMessageType(null);
 
-      const response = await fetch("/api/entreprise/parametres", {
+      const response = await fetch("/api/entreprises/parametres", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -78,7 +78,7 @@ export default function ParametresForm({ entreprise }: Props) {
           data?.details
             ? `${data.error || "Erreur"} - ${data.details}`
             : data?.error ||
-                `Erreur HTTP ${response.status} sur /api/entreprise/parametres`
+                `Erreur HTTP ${response.status} sur /api/entreprises/parametres`
         );
         setMessageType("error");
         return;
@@ -113,7 +113,7 @@ export default function ParametresForm({ entreprise }: Props) {
         [webhookType]: "",
       }));
 
-      const response = await fetch("/api/entreprise/webhook/test", {
+      const response = await fetch("/api/entreprises/webhook/test", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -137,7 +137,7 @@ export default function ParametresForm({ entreprise }: Props) {
           ...prev,
           [webhookType]:
             data?.error ||
-            `❌ Erreur HTTP ${response.status} sur /api/entreprise/webhook/test`,
+            `❌ Erreur HTTP ${response.status} sur /api/entreprises/webhook/test`,
         }));
         return;
       }

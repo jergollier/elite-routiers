@@ -71,10 +71,14 @@ export default function ParametresForm({ entreprise }: Props) {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        setMessage(data.error || "Erreur lors de l'enregistrement.");
-        setMessageType("error");
-        return;
-      }
+  setMessage(
+    data.details
+      ? `${data.error || "Erreur"} (${data.details})`
+      : data.error || "Erreur lors de l'enregistrement."
+  );
+  setMessageType("error");
+  return;
+}
 
       setMessage(data.message || "Paramètres enregistrés.");
       setMessageType("success");

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { RoleEntreprise } from "@prisma/client";
 
-const ROLES_AUTORISES = ["DIRECTEUR", "SOUS_DIRECTEUR"];
+const ROLES_AUTORISES: RoleEntreprise[] = [
+  RoleEntreprise.DIRECTEUR,
+  RoleEntreprise.SOUS_DIRECTEUR,
+];
 
 function cleanValue(value: unknown) {
   const text = String(value ?? "").trim();
@@ -11,6 +15,7 @@ function cleanValue(value: unknown) {
 
 function isValidDiscordWebhook(url: string | null) {
   if (!url) return true;
+
   return (
     url.startsWith("https://discord.com/api/webhooks/") ||
     url.startsWith("https://canary.discord.com/api/webhooks/") ||
@@ -40,7 +45,7 @@ export async function POST(request: Request) {
     const discordWebhookDepart = cleanValue(body.discordWebhookDepart);
     const discordWebhookMaintenance = cleanValue(body.discordWebhookMaintenance);
 
-    const webhookFields = [
+    const webhooks = [
       discordWebhookLivraison,
       discordWebhookAchatCamion,
       discordWebhookVenteCamion,
@@ -49,40 +54,32 @@ export async function POST(request: Request) {
       discordWebhookMaintenance,
     ];
 
-    for (const webhook of webhookFields) {
+    for (const webhook of webhooks) {
       if (!isValidDiscordWebhook(webhook)) {
         return NextResponse.json(
-          {
-            success: false,
-            error: "Un des liens webhook Discord est invalide.",
-          },
+          { success: false, error: "Un lien webhook Discord est invalide." },
           { status: 400 }
         );
       }
     }
 
-    const user = await prisma.user.findUnique({
-      where: { steamId },
-      include: {
-        memberships: {
-          include: {
-            entreprise: true,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
+    const membership = await prisma.entrepriseMembre.findFirst({
+      where: {
+        user: {
+          steamId,
         },
+      },
+      include: {
+        entreprise: true,
       },
     });
 
-    if (!user || user.memberships.length === 0) {
+    if (!membership || !membership.entreprise) {
       return NextResponse.json(
         { success: false, error: "Aucune entreprise trouvée." },
         { status: 404 }
       );
     }
-
-    const membership = user.memberships[0];
 
     if (!ROLES_AUTORISES.includes(membership.role)) {
       return NextResponse.json(
@@ -91,10 +88,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const entrepriseId = membership.entrepriseId;
-
     await prisma.entreprise.update({
-      where: { id: entrepriseId },
+      where: {
+        id: membership.entreprise.id,
+      },
       data: {
         discordUrl,
         discordWebhookLivraison,
@@ -111,10 +108,14 @@ export async function POST(request: Request) {
       message: "Paramètres enregistrés avec succès.",
     });
   } catch (error) {
-    console.error("Erreur paramètres entreprise :", error);
+    console.error("Erreur route /api/entreprise/parametres :", error);
 
     return NextResponse.json(
-      { success: false, error: "Erreur serveur." },
+      {
+        success: false,
+        error: "Erreur serveur.",
+        details: error instanceof Error ? error.message : "Erreur inconnue",
+      },
       { status: 500 }
     );
   }

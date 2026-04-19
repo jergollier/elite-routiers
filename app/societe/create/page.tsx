@@ -282,7 +282,7 @@ export default async function CreerEntreprisePage() {
                   <option value="ATS" style={optionStyle}>
                     ATS
                   </option>
-                  <option value="Les deux" style={optionStyle}>
+                  <option value="LES_DEUX" style={optionStyle}>
                     Les deux
                   </option>
                 </select>
@@ -299,23 +299,26 @@ export default async function CreerEntreprisePage() {
                   <option value="" style={optionStyle}>
                     Choisir un type
                   </option>
-                  <option value="General" style={optionStyle}>
+                  <option value="GENERAL" style={optionStyle}>
                     Général
                   </option>
-                  <option value="Convoi exceptionnel" style={optionStyle}>
-                    Convoi exceptionnel
-                  </option>
-                  <option value="Citerne" style={optionStyle}>
+                  <option value="CITERNE" style={optionStyle}>
                     Citerne
                   </option>
-                  <option value="Frigorifique" style={optionStyle}>
-                    Frigorifique
+                  <option value="CONVOI_EXCEPTIONNEL" style={optionStyle}>
+                    Convoi exceptionnel
                   </option>
-                  <option value="Bois" style={optionStyle}>
-                    Bois
+                  <option value="FRIGO" style={optionStyle}>
+                    Frigo
                   </option>
-                  <option value="Materiaux" style={optionStyle}>
-                    Matériaux
+                  <option value="BENNE" style={optionStyle}>
+                    Benne
+                  </option>
+                  <option value="PLATEAU" style={optionStyle}>
+                    Plateau
+                  </option>
+                  <option value="LIVESTOCK" style={optionStyle}>
+                    Bétail
                   </option>
                 </select>
               </div>
@@ -353,7 +356,7 @@ export default async function CreerEntreprisePage() {
                     Formats acceptés : <strong>JPG, PNG, WEBP</strong>
                   </div>
                   <div style={{ fontSize: "14px", opacity: 0.92 }}>
-                    Poids maximum : <strong>5 Mo</strong>
+                    Poids maximum : <strong>4 Mo</strong>
                   </div>
                   <div style={{ fontSize: "14px", opacity: 0.82 }}>
                     Utilise une image large horizontale pour un rendu propre sur

@@ -30,13 +30,29 @@ const TYPES_TRANSPORT = [
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+function normalizeJeu(value: string) {
+  if (value === "Les deux") return "LES_DEUX";
+  return value;
+}
+
+function normalizeTypeTransport(value: string) {
+  if (value === "General") return "GENERAL";
+  if (value === "Convoi exceptionnel") return "CONVOI_EXCEPTIONNEL";
+  if (value === "Frigorifique") return "FRIGO";
+  if (value === "Bois") return "PLATEAU";
+  if (value === "Materiaux") return "BENNE";
+  return value;
+}
+
 function formatJeu(jeu: string) {
-  if (jeu === "LES_DEUX") return "Les deux";
-  return jeu;
+  const normalized = normalizeJeu(jeu);
+  if (normalized === "LES_DEUX") return "Les deux";
+  return normalized;
 }
 
 function formatTypeTransport(type: string) {
-  const found = TYPES_TRANSPORT.find((t) => t.value === type);
+  const normalized = normalizeTypeTransport(type);
+  const found = TYPES_TRANSPORT.find((t) => t.value === normalized);
   return found ? found.label : type;
 }
 
@@ -175,20 +191,28 @@ export default async function GestionEntreprisePage({ params }: Props) {
       return;
     }
 
-    const nom = (formData.get("nom") as string)?.trim();
-    const abreviationBrute = (formData.get("abreviation") as string)?.trim();
-    const jeu = (formData.get("jeu") as string)?.trim();
-    const typeTransport = (formData.get("typeTransport") as string)?.trim();
+    const nom = String(formData.get("nom") || "").trim();
+    const abreviationBrute = String(formData.get("abreviation") || "").trim();
+    const jeu = normalizeJeu(String(formData.get("jeu") || "").trim());
+    const typeTransport = normalizeTypeTransport(
+      String(formData.get("typeTransport") || "").trim()
+    );
 
-    if (!nom || !abreviationBrute || !jeu || !typeTransport) return;
+    if (!nom || !abreviationBrute || !jeu || !typeTransport) {
+      return;
+    }
 
     const abreviation = abreviationBrute.toUpperCase().slice(0, 3);
 
-    if (!JEUX.some((j) => j.value === jeu)) return;
-    if (!TYPES_TRANSPORT.some((t) => t.value === typeTransport)) return;
+    if (!JEUX.some((j) => j.value === jeu)) {
+      return;
+    }
+
+    if (!TYPES_TRANSPORT.some((t) => t.value === typeTransport)) {
+      return;
+    }
 
     let banniereUrl = entreprise.banniere ?? null;
-
     const banniereFile = formData.get("banniereFile");
 
     if (banniereFile instanceof File && banniereFile.size > 0) {
@@ -232,6 +256,8 @@ export default async function GestionEntreprisePage({ params }: Props) {
     revalidatePath("/mon-entreprise");
     revalidatePath("/societe");
     revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
   }
 
   async function updateRecrutement(formData: FormData) {
@@ -284,6 +310,8 @@ export default async function GestionEntreprisePage({ params }: Props) {
     revalidatePath("/mon-entreprise");
     revalidatePath("/societe");
     revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
   }
 
   async function remplirCuve(formData: FormData) {
@@ -349,6 +377,8 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
     revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
     revalidatePath("/mon-entreprise");
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
   }
 
   async function acheterExtensionCuve(formData: FormData) {
@@ -404,6 +434,8 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
     revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
     revalidatePath("/mon-entreprise");
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
   }
 
   async function accepterCandidature(formData: FormData) {
@@ -481,6 +513,8 @@ export default async function GestionEntreprisePage({ params }: Props) {
     revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
     revalidatePath("/mon-entreprise");
     revalidatePath("/societe");
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
   }
 
   async function refuserCandidature(formData: FormData) {
@@ -540,6 +574,8 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
     revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
     revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
   }
 
   const argentSociete = entreprise.argent;
@@ -553,6 +589,9 @@ export default async function GestionEntreprisePage({ params }: Props) {
   const prochaineExtension = cuveMax < 50000 ? cuveMax + 5000 : cuveMax;
   const extensionDisponible = cuveMax < 50000;
   const peutAcheterExtension = extensionDisponible && argentSociete >= 20000;
+
+  const jeuActuel = normalizeJeu(entreprise.jeu);
+  const typeTransportActuel = normalizeTypeTransport(entreprise.typeTransport);
 
   return (
     <main
@@ -673,6 +712,7 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
               <form
                 action={updateEntreprise}
+                encType="multipart/form-data"
                 style={{
                   display: "flex",
                   flexDirection: "column",
@@ -789,7 +829,7 @@ export default async function GestionEntreprisePage({ params }: Props) {
                             type="radio"
                             name="jeu"
                             value={jeu.value}
-                            defaultChecked={entreprise.jeu === jeu.value}
+                            defaultChecked={jeuActuel === jeu.value}
                             disabled={!peutModifierInfos}
                           />
                           <span>{jeu.label}</span>
@@ -808,9 +848,7 @@ export default async function GestionEntreprisePage({ params }: Props) {
                             type="radio"
                             name="typeTransport"
                             value={type.value}
-                            defaultChecked={
-                              entreprise.typeTransport === type.value
-                            }
+                            defaultChecked={typeTransportActuel === type.value}
                             disabled={!peutModifierInfos}
                           />
                           <span>{type.label}</span>
@@ -1001,7 +1039,9 @@ export default async function GestionEntreprisePage({ params }: Props) {
             }}
           >
             <div style={boxStyle}>
-              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>Candidatures</h2>
+              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
+                Candidatures
+              </h2>
 
               {entreprise.candidatures.length > 0 ? (
                 <div
@@ -1308,7 +1348,9 @@ export default async function GestionEntreprisePage({ params }: Props) {
             </div>
 
             <div style={boxStyle}>
-              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>Recrutement</h2>
+              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
+                Recrutement
+              </h2>
 
               <form
                 action={updateRecrutement}

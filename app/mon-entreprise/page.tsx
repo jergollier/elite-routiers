@@ -245,173 +245,179 @@ export default async function MonEntreprisePage() {
         >
           <section
             style={{
-              background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "18px",
+              borderRadius: "20px",
               overflow: "hidden",
-              backdropFilter: "blur(6px)",
+              position: "relative",
+              minHeight: "260px",
               boxShadow: "0 0 20px rgba(0,0,0,0.4)",
               border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(0, 0, 0, 0.35)",
             }}
           >
+            <img
+              src={entreprise.banniere || "/truck.jpg"}
+              alt="Bannière entreprise"
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(90deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.46) 42%, rgba(0,0,0,0.82) 100%)",
+              }}
+            />
+
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(to top, rgba(0,0,0,0.84) 0%, rgba(0,0,0,0.18) 55%, rgba(0,0,0,0.08) 100%)",
+              }}
+            />
+
             <div
               style={{
                 position: "relative",
-                minHeight: "250px",
-                backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
+                zIndex: 2,
+                minHeight: "260px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-end",
+                gap: "18px",
+                padding: "28px",
+                boxSizing: "border-box",
+                flexWrap: "wrap",
               }}
             >
               <div
                 style={{
-                  position: "absolute",
-                  inset: 0,
-                  background:
-                    "linear-gradient(90deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.38) 45%, rgba(0,0,0,0.62) 100%)",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background:
-                    "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.18) 55%, rgba(0,0,0,0.08) 100%)",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "relative",
-                  zIndex: 2,
-                  minHeight: "250px",
+                  maxWidth: "560px",
                   display: "flex",
-                  alignItems: "flex-end",
-                  justifyContent: "space-between",
-                  gap: "20px",
-                  flexWrap: "wrap",
-                  padding: "24px",
-                  boxSizing: "border-box",
+                  flexDirection: "column",
+                  gap: "10px",
                 }}
               >
                 <div
                   style={{
-                    maxWidth: "700px",
+                    fontSize: "48px",
+                    fontWeight: "bold",
+                    lineHeight: 0.95,
+                    textShadow: "0 4px 20px rgba(0,0,0,0.8)",
+                    wordBreak: "break-word",
                   }}
                 >
-                  <h1
-                    style={{
-                      margin: 0,
-                      fontSize: "44px",
-                      lineHeight: 1,
-                      fontWeight: "bold",
-                      textShadow: "0 4px 18px rgba(0,0,0,0.55)",
-                    }}
-                  >
-                    {entreprise.nom}
-                  </h1>
-
-                  <div
-                    style={{
-                      marginTop: "10px",
-                      fontWeight: "bold",
-                      fontSize: "20px",
-                      opacity: 0.96,
-                      textShadow: "0 3px 12px rgba(0,0,0,0.45)",
-                    }}
-                  >
-                    [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
-                  </div>
+                  {entreprise.nom}
                 </div>
 
                 <div
                   style={{
-                    display: "flex",
-                    gap: "12px",
-                    flexWrap: "wrap",
-                    justifyContent: "flex-end",
-                    alignItems: "stretch",
+                    fontSize: "20px",
+                    fontWeight: "bold",
+                    opacity: 0.96,
+                    textShadow: "0 3px 12px rgba(0,0,0,0.7)",
+                  }}
+                >
+                  [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                  justifyContent: "flex-end",
+                  alignItems: "stretch",
+                }}
+              >
+                <div
+                  style={{
+                    minWidth: "240px",
+                    padding: "16px 20px",
+                    borderRadius: "16px",
+                    background: "rgba(0,0,0,0.45)",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    backdropFilter: "blur(10px)",
+                    boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
                   }}
                 >
                   <div
                     style={{
-                      background: "rgba(0,0,0,0.42)",
-                      padding: "14px 18px",
-                      borderRadius: "14px",
-                      border: "1px solid rgba(255,255,255,0.14)",
-                      backdropFilter: "blur(8px)",
-                      minWidth: "230px",
-                      boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
+                      fontSize: "13px",
+                      opacity: 0.82,
+                      marginBottom: "6px",
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        opacity: 0.85,
-                        marginBottom: "6px",
-                      }}
-                    >
-                      Argent de la société
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "30px",
-                        fontWeight: "bold",
-                        lineHeight: 1.1,
-                      }}
-                    >
-                      {argentSociete.toLocaleString("fr-FR")} €
-                    </div>
+                    Argent de la société
                   </div>
 
-                  {peutAccederBureau && (
-                    <Link
-                      href={`/entreprise/${entreprise.id}/gestion`}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        minWidth: "170px",
-                        padding: "14px 20px",
-                        borderRadius: "14px",
-                        background: "rgba(20, 26, 39, 0.92)",
-                        color: "white",
-                        textDecoration: "none",
-                        fontWeight: "bold",
-                        border: "1px solid rgba(255,255,255,0.14)",
-                        backdropFilter: "blur(8px)",
-                        boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
-                      }}
-                    >
-                      Bureau
-                    </Link>
-                  )}
-
-                  <form action="/api/entreprise/demission" method="POST">
-                    <button
-                      type="submit"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        minWidth: "170px",
-                        padding: "14px 20px",
-                        borderRadius: "14px",
-                        background: "rgba(153, 27, 27, 0.95)",
-                        color: "white",
-                        textDecoration: "none",
-                        fontWeight: "bold",
-                        border: "1px solid rgba(255,255,255,0.14)",
-                        backdropFilter: "blur(8px)",
-                        boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Démissionner
-                    </button>
-                  </form>
+                  <div
+                    style={{
+                      fontSize: "32px",
+                      fontWeight: "bold",
+                      lineHeight: 1.05,
+                      textShadow: "0 3px 12px rgba(0,0,0,0.45)",
+                    }}
+                  >
+                    {argentSociete.toLocaleString("fr-FR")} €
+                  </div>
                 </div>
+
+                {peutAccederBureau && (
+                  <Link
+                    href={`/entreprise/${entreprise.id}/gestion`}
+                    style={{
+                      minWidth: "170px",
+                      padding: "16px 22px",
+                      borderRadius: "16px",
+                      background: "rgba(20, 26, 39, 0.92)",
+                      color: "white",
+                      textDecoration: "none",
+                      fontWeight: "bold",
+                      border: "1px solid rgba(255,255,255,0.14)",
+                      backdropFilter: "blur(10px)",
+                      boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    Bureau
+                  </Link>
+                )}
+
+                <form action="/api/entreprise/demission" method="POST">
+                  <button
+                    type="submit"
+                    style={{
+                      minWidth: "170px",
+                      padding: "16px 22px",
+                      borderRadius: "16px",
+                      background: "rgba(153, 27, 27, 0.96)",
+                      color: "white",
+                      fontWeight: "bold",
+                      border: "1px solid rgba(255,255,255,0.14)",
+                      backdropFilter: "blur(10px)",
+                      boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Démissionner
+                  </button>
+                </form>
               </div>
             </div>
           </section>

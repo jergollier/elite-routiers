@@ -31,7 +31,6 @@ export default async function SocietePage() {
       },
       select: {
         id: true,
-        steamId: true,
         username: true,
         avatar: true,
       },
@@ -393,7 +392,7 @@ export default async function SocietePage() {
             >
               {chauffeurs.map((chauffeur) => {
                 const nomAffiche =
-                  chauffeur.username?.trim() || chauffeur.steamId;
+                  chauffeur.username?.trim() || "Chauffeur sans pseudo";
 
                 return (
                   <div
@@ -438,18 +437,6 @@ export default async function SocietePage() {
                         }}
                       >
                         {nomAffiche}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          opacity: 0.75,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        Steam ID : {chauffeur.steamId}
                       </div>
                     </div>
                   </div>

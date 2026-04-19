@@ -43,12 +43,16 @@ export default async function CreerEntreprisePage() {
 
   if (estDejaProprietaire) {
     blocageTitre = "Création impossible";
-    blocageMessage = `Tu possèdes déjà la société ${societePossedee?.nom ?? ""}. Un chauffeur ne peut créer qu’une seule société.`;
+    blocageMessage = `Tu possèdes déjà la société ${
+      societePossedee?.nom ?? ""
+    }. Un chauffeur ne peut créer qu’une seule société.`;
     blocageLien = "/monentreprise";
     blocageTexteLien = "Retour à mon entreprise";
   } else if (estDejaDansUneSociete) {
     blocageTitre = "Création impossible";
-    blocageMessage = `Tu fais déjà partie de la société ${societeActuelle?.nom ?? ""}. Quitte d’abord ta société actuelle avant d’en créer une nouvelle.`;
+    blocageMessage = `Tu fais déjà partie de la société ${
+      societeActuelle?.nom ?? ""
+    }. Quitte d’abord ta société actuelle avant d’en créer une nouvelle.`;
     blocageLien = "/monentreprise";
     blocageTexteLien = "Retour à mon entreprise";
   }
@@ -182,6 +186,7 @@ export default async function CreerEntreprisePage() {
             <form
               action="/api/entreprises"
               method="POST"
+              encType="multipart/form-data"
               style={{
                 width: "100%",
                 maxWidth: "900px",
@@ -316,13 +321,90 @@ export default async function CreerEntreprisePage() {
               </div>
 
               <div>
-                <label style={labelStyle}>Bannière (URL image)</label>
+                <label style={labelStyle}>Bannière de la société</label>
+
+                <div
+                  style={{
+                    padding: "16px",
+                    borderRadius: "14px",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    marginBottom: "12px",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      marginBottom: "8px",
+                      fontSize: "15px",
+                    }}
+                  >
+                    Format recommandé
+                  </div>
+
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Taille conseillée : <strong>1500 x 500 px</strong>
+                  </div>
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Ratio conseillé : <strong>3:1</strong>
+                  </div>
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Formats acceptés : <strong>JPG, PNG, WEBP</strong>
+                  </div>
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Poids maximum : <strong>5 Mo</strong>
+                  </div>
+                  <div style={{ fontSize: "14px", opacity: 0.82 }}>
+                    Utilise une image large horizontale pour un rendu propre sur
+                    le site.
+                  </div>
+                </div>
+
                 <input
-                  name="banniere"
-                  type="text"
-                  style={inputStyle}
-                  placeholder="Ex : /truck.jpg"
+                  name="banniereFile"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                  style={fileInputStyle}
                 />
+
+                <p
+                  style={{
+                    marginTop: "8px",
+                    marginBottom: "14px",
+                    fontSize: "13px",
+                    opacity: 0.82,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Le joueur ajoute directement son image ici. La bannière sera
+                  ensuite enregistrée par le serveur.
+                </p>
+
+                <div
+                  style={{
+                    width: "100%",
+                    minHeight: "180px",
+                    borderRadius: "14px",
+                    overflow: "hidden",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    background:
+                      "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.45)), url('/truck.jpg') center/cover no-repeat",
+                    display: "flex",
+                    alignItems: "flex-end",
+                    padding: "16px",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: "18px", fontWeight: "bold" }}>
+                      Aperçu du style de bannière
+                    </div>
+                    <div style={{ fontSize: "13px", opacity: 0.85 }}>
+                      Format large horizontal recommandé
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -401,6 +483,17 @@ const selectStyle = {
 const optionStyle = {
   backgroundColor: "#ffffff",
   color: "#000000",
+};
+
+const fileInputStyle = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  outline: "none",
+  boxSizing: "border-box" as const,
 };
 
 const buttonStyle = {

@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { put } from "@vercel/blob";
 
 type Props = {
   params: Promise<{
@@ -26,6 +27,9 @@ const TYPES_TRANSPORT = [
   { value: "LIVESTOCK", label: "Bétail" },
 ];
 
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
 function formatJeu(jeu: string) {
   if (jeu === "LES_DEUX") return "Les deux";
   return jeu;
@@ -41,6 +45,16 @@ function formatExperience(experience: string) {
   if (experience === "INTERMEDIAIRE") return "Intermédiaire";
   if (experience === "EXPERIMENTE") return "Expérimenté";
   return experience;
+}
+
+function slugify(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 }
 
 export default async function GestionEntreprisePage({ params }: Props) {
@@ -173,6 +187,36 @@ export default async function GestionEntreprisePage({ params }: Props) {
     if (!JEUX.some((j) => j.value === jeu)) return;
     if (!TYPES_TRANSPORT.some((t) => t.value === typeTransport)) return;
 
+    let banniereUrl = entreprise.banniere ?? null;
+
+    const banniereFile = formData.get("banniereFile");
+
+    if (banniereFile instanceof File && banniereFile.size > 0) {
+      if (!ALLOWED_TYPES.includes(banniereFile.type)) {
+        return;
+      }
+
+      if (banniereFile.size > MAX_FILE_SIZE) {
+        return;
+      }
+
+      const extension =
+        banniereFile.type === "image/png"
+          ? "png"
+          : banniereFile.type === "image/webp"
+          ? "webp"
+          : "jpg";
+
+      const safeNom = slugify(nom) || "societe";
+      const fileName = `entreprises/${safeNom}-${entrepriseIdFromForm}-${Date.now()}.${extension}`;
+
+      const blob = await put(fileName, banniereFile, {
+        access: "public",
+      });
+
+      banniereUrl = blob.url;
+    }
+
     await prisma.entreprise.update({
       where: { id: entrepriseIdFromForm },
       data: {
@@ -180,6 +224,7 @@ export default async function GestionEntreprisePage({ params }: Props) {
         abreviation,
         jeu,
         typeTransport,
+        banniere: banniereUrl,
       },
     });
 
@@ -274,7 +319,9 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
     if (
       !membreActuel ||
-      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_ATELIER"].includes(membreActuel.role)
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_ATELIER"].includes(
+        membreActuel.role
+      )
     ) {
       return;
     }
@@ -335,7 +382,9 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
     if (
       !membreActuel ||
-      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_ATELIER"].includes(membreActuel.role)
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_ATELIER"].includes(
+        membreActuel.role
+      )
     ) {
       return;
     }
@@ -390,7 +439,9 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
     if (
       !membreActuel ||
-      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_EQUIPE"].includes(membreActuel.role)
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_EQUIPE"].includes(
+        membreActuel.role
+      )
     ) {
       return;
     }
@@ -465,7 +516,9 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
     if (
       !membreActuel ||
-      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_EQUIPE"].includes(membreActuel.role)
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_EQUIPE"].includes(
+        membreActuel.role
+      )
     ) {
       return;
     }
@@ -628,6 +681,82 @@ export default async function GestionEntreprisePage({ params }: Props) {
               >
                 <input type="hidden" name="entrepriseId" value={entreprise.id} />
 
+                <div
+                  style={{
+                    width: "100%",
+                    minHeight: "210px",
+                    borderRadius: "16px",
+                    overflow: "hidden",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    background: entreprise.banniere
+                      ? `linear-gradient(rgba(0,0,0,0.20), rgba(0,0,0,0.45)), url('${entreprise.banniere}') center/cover no-repeat`
+                      : "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.45)), url('/truck.jpg') center/cover no-repeat",
+                    display: "flex",
+                    alignItems: "flex-end",
+                    padding: "18px",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: "22px", fontWeight: "bold" }}>
+                      {entreprise.nom}
+                    </div>
+                    <div style={{ fontSize: "13px", opacity: 0.9 }}>
+                      [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: "16px",
+                    borderRadius: "14px",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                  }}
+                >
+                  <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                    Bannière de la société
+                  </div>
+
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Taille conseillée : <strong>1500 x 500 px</strong>
+                  </div>
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Ratio conseillé : <strong>3:1</strong>
+                  </div>
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Formats acceptés : <strong>JPG, PNG, WEBP</strong>
+                  </div>
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Poids maximum : <strong>4 Mo</strong>
+                  </div>
+
+                  <input
+                    type="file"
+                    name="banniereFile"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                    style={{
+                      ...inputStyle,
+                      marginTop: "14px",
+                      padding: "10px",
+                    }}
+                    disabled={!peutModifierInfos}
+                  />
+
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      fontSize: "13px",
+                      opacity: 0.8,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Choisis une nouvelle image seulement si tu veux remplacer la
+                    bannière actuelle.
+                  </div>
+                </div>
+
                 <div style={gridTwoStyle}>
                   <div>
                     <label style={labelStyle}>Nom</label>
@@ -679,7 +808,9 @@ export default async function GestionEntreprisePage({ params }: Props) {
                             type="radio"
                             name="typeTransport"
                             value={type.value}
-                            defaultChecked={entreprise.typeTransport === type.value}
+                            defaultChecked={
+                              entreprise.typeTransport === type.value
+                            }
                             disabled={!peutModifierInfos}
                           />
                           <span>{type.label}</span>
@@ -913,7 +1044,8 @@ export default async function GestionEntreprisePage({ params }: Props) {
                         Micro : {candidature.micro ? "Oui" : "Non"}
                       </div>
                       <div style={miniTextStyle}>
-                        Disponibilités : {candidature.disponibilites || "Non renseignées"}
+                        Disponibilités :{" "}
+                        {candidature.disponibilites || "Non renseignées"}
                       </div>
 
                       <div style={{ marginTop: "10px" }}>
@@ -1086,7 +1218,11 @@ export default async function GestionEntreprisePage({ params }: Props) {
                 ) : (
                   <button
                     type="button"
-                    style={{ ...btnPrimaryLarge, opacity: 0.5, cursor: "not-allowed" }}
+                    style={{
+                      ...btnPrimaryLarge,
+                      opacity: 0.5,
+                      cursor: "not-allowed",
+                    }}
                     disabled
                   >
                     Remplir la cuve à fond
@@ -1124,7 +1260,11 @@ export default async function GestionEntreprisePage({ params }: Props) {
                 ) : (
                   <button
                     type="button"
-                    style={{ ...btnPrimaryLarge, opacity: 0.5, cursor: "not-allowed" }}
+                    style={{
+                      ...btnPrimaryLarge,
+                      opacity: 0.5,
+                      cursor: "not-allowed",
+                    }}
                     disabled
                   >
                     Ajouter la quantité
@@ -1144,7 +1284,8 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
                 {peutGererCuve && peutAcheterExtension ? (
                   <button type="submit" style={btnDarkLarge}>
-                    Acheter extension +5000 L ({prochaineExtension.toLocaleString("fr-FR")} L) - 20 000 €
+                    Acheter extension +5000 L (
+                    {prochaineExtension.toLocaleString("fr-FR")} L) - 20 000 €
                   </button>
                 ) : (
                   <button
@@ -1219,12 +1360,14 @@ export default async function GestionEntreprisePage({ params }: Props) {
                       display: "flex",
                       alignItems: "center",
                       gap: "10px",
-                      background: entreprise.recrutement === false
-                        ? "rgba(239,68,68,0.18)"
-                        : "rgba(255,255,255,0.08)",
-                      border: entreprise.recrutement === false
-                        ? "1px solid rgba(239,68,68,0.45)"
-                        : "1px solid rgba(255,255,255,0.10)",
+                      background:
+                        entreprise.recrutement === false
+                          ? "rgba(239,68,68,0.18)"
+                          : "rgba(255,255,255,0.08)",
+                      border:
+                        entreprise.recrutement === false
+                          ? "1px solid rgba(239,68,68,0.45)"
+                          : "1px solid rgba(255,255,255,0.10)",
                       borderRadius: "10px",
                       padding: "12px",
                       cursor: peutModifierInfos ? "pointer" : "default",

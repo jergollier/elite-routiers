@@ -2,6 +2,20 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { RoleEntreprise } from "@prisma/client";
+import { put } from "@vercel/blob";
+
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 Mo max pour rester sous la limite Vercel
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function slugify(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
 
 export async function POST(request: Request) {
   try {
@@ -47,7 +61,6 @@ export async function POST(request: Request) {
     const jeu = String(formData.get("jeu") || "").trim();
     const typeTransport = String(formData.get("typeTransport") || "").trim();
     const description = String(formData.get("description") || "").trim();
-    const banniere = String(formData.get("banniere") || "").trim();
     const recrutementValue = String(
       formData.get("recrutement") || "ouvert"
     ).trim();
@@ -72,6 +85,40 @@ export async function POST(request: Request) {
       );
     }
 
+    let banniereUrl: string | null = null;
+
+    const banniereFile = formData.get("banniereFile");
+
+    if (banniereFile && banniereFile instanceof File && banniereFile.size > 0) {
+      if (!ALLOWED_TYPES.includes(banniereFile.type)) {
+        return NextResponse.redirect(
+          new URL("/entreprise/creer?error=format-banniere", request.url)
+        );
+      }
+
+      if (banniereFile.size > MAX_FILE_SIZE) {
+        return NextResponse.redirect(
+          new URL("/entreprise/creer?error=taille-banniere", request.url)
+        );
+      }
+
+      const extension =
+        banniereFile.type === "image/png"
+          ? "png"
+          : banniereFile.type === "image/webp"
+          ? "webp"
+          : "jpg";
+
+      const safeNom = slugify(nom) || "societe";
+      const fileName = `entreprises/${safeNom}-${Date.now()}.${extension}`;
+
+      const blob = await put(fileName, banniereFile, {
+        access: "public",
+      });
+
+      banniereUrl = blob.url;
+    }
+
     const entreprise = await prisma.entreprise.create({
       data: {
         nom,
@@ -82,7 +129,7 @@ export async function POST(request: Request) {
         typeTransport,
         description,
         recrutement,
-        banniere: banniere || null,
+        banniere: banniereUrl,
         ownerSteamId: steamId,
       },
     });
@@ -95,7 +142,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/mon-entreprise", request.url));
+    return NextResponse.redirect(new URL("/monentreprise", request.url));
   } catch (error) {
     console.error("POST /api/entreprises error:", error);
 

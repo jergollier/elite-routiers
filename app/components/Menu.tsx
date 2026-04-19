@@ -73,11 +73,11 @@ export default async function Menu() {
 
         {/* 🔥 NOUVEAU : Télécharger le Tacky */}
         <a
-  href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/Tacky-Elite-Routiers.zip"
-  style={downloadStyle}
->
-  ⬇ Télécharger le Tacky (sans installation)
-</a>
+          href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/Elite%20Routier%20Tacky%20Setup%201.0.1.exe"
+          style={downloadStyle}
+        >
+          ⬇ Télécharger le Tacky
+        </a>
 
         <a href="/api/logout" style={logoutStyle}>
           Déconnexion

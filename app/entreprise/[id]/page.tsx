@@ -70,6 +70,28 @@ export default async function EntreprisePage({ params }: PageProps) {
     notFound();
   }
 
+  const directeurs = entreprise.membres.filter(
+    (membre) => membre.role === "DIRECTEUR"
+  ).length;
+
+  const sousDirecteurs = entreprise.membres.filter(
+    (membre) => membre.role === "SOUS_DIRECTEUR"
+  ).length;
+
+  const chefsEquipe = entreprise.membres.filter(
+    (membre) => membre.role === "CHEF_EQUIPE"
+  ).length;
+
+  const chefsAtelier = entreprise.membres.filter(
+    (membre) => membre.role === "CHEF_ATELIER"
+  ).length;
+
+  const chauffeurs = entreprise.membres.filter(
+    (membre) => membre.role === "CHAUFFEUR"
+  ).length;
+
+  const argentSociete = (entreprise as { argent?: number | null }).argent ?? 0;
+
   return (
     <main
       style={{
@@ -198,7 +220,7 @@ export default async function EntreprisePage({ params }: PageProps) {
             >
               <div
                 style={{
-                  height: "250px",
+                  height: "260px",
                   backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
@@ -228,18 +250,57 @@ export default async function EntreprisePage({ params }: PageProps) {
                   }}
                 >
                   <div>
-                    <h1 style={{ margin: 0, fontSize: "38px" }}>
+                    <h1 style={{ margin: 0, fontSize: "40px" }}>
                       {entreprise.nom}
                     </h1>
 
                     <div
                       style={{
                         marginTop: "8px",
-                        fontWeight: "bold",
-                        opacity: 0.95,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        flexWrap: "wrap",
                       }}
                     >
-                      [{entreprise.abreviation}] • {entreprise.jeu || "Jeu non renseigné"}
+                      <div
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: "999px",
+                          background: "rgba(255,255,255,0.10)",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          fontWeight: "bold",
+                          fontSize: "13px",
+                        }}
+                      >
+                        [{entreprise.abreviation}]
+                      </div>
+
+                      <div
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: "999px",
+                          background: "rgba(255,255,255,0.10)",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          fontWeight: "bold",
+                          fontSize: "13px",
+                        }}
+                      >
+                        {entreprise.jeu || "Jeu non renseigné"}
+                      </div>
+
+                      <div
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: "999px",
+                          background: "rgba(255,255,255,0.10)",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          fontWeight: "bold",
+                          fontSize: "13px",
+                        }}
+                      >
+                        {entreprise.typeTransport || "Transport non renseigné"}
+                      </div>
                     </div>
                   </div>
 
@@ -285,7 +346,7 @@ export default async function EntreprisePage({ params }: PageProps) {
                 <div style={statBoxStyle}>
                   <div style={statLabelStyle}>Argent société</div>
                   <div style={{ ...statValueStyle, color: "#22c55e" }}>
-                    {formatMoney((entreprise as { argent?: number | null }).argent)}
+                    {formatMoney(argentSociete)}
                   </div>
                 </div>
 
@@ -295,9 +356,9 @@ export default async function EntreprisePage({ params }: PageProps) {
                 </div>
 
                 <div style={statBoxStyle}>
-                  <div style={statLabelStyle}>Jeu</div>
+                  <div style={statLabelStyle}>Directeur</div>
                   <div style={statValueStyle}>
-                    {entreprise.jeu || "Non renseigné"}
+                    {entreprise.owner?.username || "Utilisateur Steam"}
                   </div>
                 </div>
 
@@ -320,8 +381,8 @@ export default async function EntreprisePage({ params }: PageProps) {
                 border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
-              <h2 style={{ marginTop: 0, marginBottom: "14px", fontSize: "28px" }}>
-                Présentation
+              <h2 style={{ marginTop: 0, marginBottom: "16px", fontSize: "28px" }}>
+                Présentation de la société
               </h2>
 
               <p
@@ -336,6 +397,54 @@ export default async function EntreprisePage({ params }: PageProps) {
                   ? entreprise.description
                   : "Cette société n’a pas encore ajouté de présentation."}
               </p>
+            </section>
+
+            <section
+              style={{
+                background: "rgba(0, 0, 0, 0.45)",
+                borderRadius: "18px",
+                padding: "24px",
+                backdropFilter: "blur(6px)",
+                boxShadow: "0 0 20px rgba(0,0,0,0.4)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <h2 style={{ marginTop: 0, marginBottom: "18px", fontSize: "28px" }}>
+                Répartition des rôles
+              </h2>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                  gap: "14px",
+                }}
+              >
+                <div style={roleStatStyle}>
+                  <div style={roleStatNumberStyle}>{directeurs}</div>
+                  <div style={roleStatLabelStyle}>Directeurs</div>
+                </div>
+
+                <div style={roleStatStyle}>
+                  <div style={roleStatNumberStyle}>{sousDirecteurs}</div>
+                  <div style={roleStatLabelStyle}>Sous-directeurs</div>
+                </div>
+
+                <div style={roleStatStyle}>
+                  <div style={roleStatNumberStyle}>{chefsEquipe}</div>
+                  <div style={roleStatLabelStyle}>Chefs d’équipe</div>
+                </div>
+
+                <div style={roleStatStyle}>
+                  <div style={roleStatNumberStyle}>{chefsAtelier}</div>
+                  <div style={roleStatLabelStyle}>Chefs d’atelier</div>
+                </div>
+
+                <div style={roleStatStyle}>
+                  <div style={roleStatNumberStyle}>{chauffeurs}</div>
+                  <div style={roleStatLabelStyle}>Chauffeurs</div>
+                </div>
+              </div>
             </section>
 
             <section
@@ -366,6 +475,7 @@ export default async function EntreprisePage({ params }: PageProps) {
                       style={{
                         display: "flex",
                         alignItems: "center",
+                        justifyContent: "space-between",
                         gap: "12px",
                         padding: "14px",
                         borderRadius: "12px",
@@ -373,41 +483,65 @@ export default async function EntreprisePage({ params }: PageProps) {
                         border: "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
-                      <img
-                        src={membre.user.avatar || "/truck.jpg"}
-                        alt={membre.user.username || "Chauffeur"}
+                      <div
                         style={{
-                          width: "48px",
-                          height: "48px",
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          border: "1px solid rgba(255,255,255,0.15)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          minWidth: 0,
+                          flex: 1,
+                        }}
+                      >
+                        <img
+                          src={membre.user.avatar || "/truck.jpg"}
+                          alt={membre.user.username || "Chauffeur"}
+                          style={{
+                            width: "48px",
+                            height: "48px",
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                            border: "1px solid rgba(255,255,255,0.15)",
+                            flexShrink: 0,
+                          }}
+                        />
+
+                        <div style={{ minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontWeight: "bold",
+                              fontSize: "15px",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {membre.user.username || "Chauffeur sans pseudo"}
+                          </div>
+
+                          <div
+                            style={{
+                              fontSize: "13px",
+                              opacity: 0.75,
+                              marginTop: "4px",
+                            }}
+                          >
+                            {formatRole(membre.role)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: "999px",
+                          background: "rgba(255,255,255,0.08)",
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          fontSize: "12px",
+                          fontWeight: "bold",
                           flexShrink: 0,
                         }}
-                      />
-
-                      <div style={{ minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontWeight: "bold",
-                            fontSize: "15px",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {membre.user.username || "Chauffeur sans pseudo"}
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize: "13px",
-                            opacity: 0.75,
-                            marginTop: "4px",
-                          }}
-                        >
-                          {formatRole(membre.role)}
-                        </div>
+                      >
+                        {formatRole(membre.role)}
                       </div>
                     </div>
                   ))}
@@ -440,6 +574,16 @@ export default async function EntreprisePage({ params }: PageProps) {
               </h2>
 
               <div style={infoLineStyle}>
+                <span style={labelStyle}>Nom</span>
+                <span style={valueStyle}>{entreprise.nom}</span>
+              </div>
+
+              <div style={infoLineStyle}>
+                <span style={labelStyle}>Abréviation</span>
+                <span style={valueStyle}>[{entreprise.abreviation}]</span>
+              </div>
+
+              <div style={infoLineStyle}>
                 <span style={labelStyle}>Directeur</span>
                 <span style={valueStyle}>
                   {entreprise.owner?.username || "Utilisateur Steam"}
@@ -457,6 +601,13 @@ export default async function EntreprisePage({ params }: PageProps) {
                 <span style={labelStyle}>Ville ATS</span>
                 <span style={valueStyle}>
                   {entreprise.villeATS || "Non renseignée"}
+                </span>
+              </div>
+
+              <div style={infoLineStyle}>
+                <span style={labelStyle}>Jeu</span>
+                <span style={valueStyle}>
+                  {entreprise.jeu || "Non renseigné"}
                 </span>
               </div>
 
@@ -479,8 +630,8 @@ export default async function EntreprisePage({ params }: PageProps) {
               </h2>
 
               <p style={smallTextStyle}>
-                Consulte les informations principales de la société avant de
-                postuler : argent, membres, style de transport et recrutement.
+                Regarde rapidement l’argent, les membres, le style de transport
+                et les infos générales avant d’envoyer ta candidature.
               </p>
 
               <div style={{ marginTop: "16px" }}>
@@ -540,6 +691,25 @@ const statValueStyle = {
   marginTop: "8px",
   fontSize: "24px",
   fontWeight: "bold",
+};
+
+const roleStatStyle = {
+  background: "rgba(255,255,255,0.06)",
+  borderRadius: "14px",
+  padding: "18px 14px",
+  border: "1px solid rgba(255,255,255,0.08)",
+  textAlign: "center" as const,
+};
+
+const roleStatNumberStyle = {
+  fontSize: "28px",
+  fontWeight: "bold",
+  marginBottom: "8px",
+};
+
+const roleStatLabelStyle = {
+  fontSize: "13px",
+  opacity: 0.8,
 };
 
 const sideBoxStyle = {

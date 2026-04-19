@@ -56,13 +56,13 @@ model User {
   typeTransportPrefere String?
   descriptionChauffeur String?
   styleConduite        String?
-  tackySessions        TackySession[]
   micro                Boolean  @default(false)
   createdAt            DateTime @default(now())
 
   argent      Int @default(0)
   argentPerso Int @default(0)
 
+  tackySessions     TackySession[]
   entreprisesCreees Entreprise[]            @relation("EntrepriseOwner")
   memberships       EntrepriseMembre[]
   candidatures      EntrepriseCandidature[]
@@ -87,7 +87,7 @@ model Entreprise {
   description   String
   recrutement   Boolean  @default(true)
   banniere      String?
-  ownerSteamId  String
+  ownerSteamId  String   @unique
   entrepriseId  String?
   createdAt     DateTime @default(now())
 
@@ -105,13 +105,11 @@ model Entreprise {
   livraisons      Livraison[]
   pleinsCarburant PleinCarburant[]
   mouvementsCuve  MouvementCuve[]
-
-  @@index([ownerSteamId])
 }
 
 model EntrepriseMembre {
   id           Int            @id @default(autoincrement())
-  userId       String
+  userId       String         @unique
   entrepriseId Int
   role         RoleEntreprise @default(CHAUFFEUR)
   createdAt    DateTime       @default(now())
@@ -119,9 +117,7 @@ model EntrepriseMembre {
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, entrepriseId])
   @@index([entrepriseId])
-  @@index([userId])
 }
 
 model EntrepriseCandidature {
@@ -206,9 +202,9 @@ model Camion {
   actif                Boolean      @default(true)
   createdAt            DateTime     @default(now())
 
-  entreprise        Entreprise?      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  chauffeurAttribue User?            @relation("CamionsAttribues", fields: [chauffeurAttribueId], references: [id], onDelete: SetNull)
-  proprietaire      User?            @relation("CamionsPerso", fields: [proprietaireId], references: [id], onDelete: SetNull)
+  entreprise        Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  chauffeurAttribue User?       @relation("CamionsAttribues", fields: [chauffeurAttribueId], references: [id], onDelete: SetNull)
+  proprietaire      User?       @relation("CamionsPerso", fields: [proprietaireId], references: [id], onDelete: SetNull)
   livraisons        Livraison[]
   pleins            PleinCarburant[]
 
@@ -219,7 +215,7 @@ model Camion {
 }
 
 model ChauffeurStat {
-  id           Int    @id @default(autoincrement())
+  id           Int @id @default(autoincrement())
   userId       String
   entrepriseId Int
 
@@ -280,9 +276,9 @@ model Livraison {
   startedAt  DateTime  @default(now())
   finishedAt DateTime?
 
-  startOdometerKm  Float  @default(0)
+  startOdometerKm  Float @default(0)
   endOdometerKm    Float?
-  distanceReelleKm Float  @default(0)
+  distanceReelleKm Float @default(0)
 
   income        Int     @default(0)
   gainSociete   Int     @default(0)
@@ -297,9 +293,9 @@ model Livraison {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user       User             @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
-  entreprise Entreprise?      @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
-  camion     Camion?          @relation(fields: [camionId], references: [id], onDelete: SetNull)
+  user       User         @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
+  entreprise Entreprise?  @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+  camion     Camion?      @relation(fields: [camionId], references: [id], onDelete: SetNull)
   pleins     PleinCarburant[]
 
   @@index([steamId])
@@ -369,16 +365,16 @@ model MouvementCuve {
 }
 
 model TackySession {
-  id           String   @id @default(cuid())
-  userId       String?
-  token        String?  @unique
-  requestId    String   @unique
-  deviceCode   String
-  deviceName   String?
-  isActive     Boolean  @default(true)
-  isLinked     Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  lastSeenAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  userId     String?
+  token      String?  @unique
+  requestId  String   @unique
+  deviceCode String
+  deviceName String?
+  isActive   Boolean  @default(true)
+  isLinked   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @updatedAt
 
   user User? @relation(fields: [userId], references: [id])
 }

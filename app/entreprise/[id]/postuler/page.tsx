@@ -42,12 +42,72 @@ export default async function PostulerPage({ params }: PageProps) {
       where: {
         steamId,
       },
+      include: {
+        memberships: {
+          include: {
+            entreprise: true,
+          },
+        },
+        entreprisesCreees: true,
+      },
     }),
   ]);
 
-  if (!entreprise) {
+  if (!entreprise || !user) {
     notFound();
   }
+
+  const candidatureExistante = await prisma.entrepriseCandidature.findFirst({
+    where: {
+      userId: user.id,
+      entrepriseId,
+      statut: "EN_ATTENTE",
+    },
+  });
+
+  const societeActuelle = user.memberships[0]?.entreprise ?? null;
+  const estDejaDansUneSociete = user.memberships.length > 0;
+  const estProprietaireSociete = user.entreprisesCreees.length > 0;
+  const estSaPropreSociete = entreprise.ownerSteamId === steamId;
+  const recrutementFerme = !entreprise.recrutement;
+  const candidatureDejaEnvoyee = Boolean(candidatureExistante);
+
+  let blocageTitre = "";
+  let blocageMessage = "";
+  let blocageLien = "/societe";
+  let blocageTexteLien = "Retour aux sociétés";
+
+  if (estSaPropreSociete) {
+    blocageTitre = "Impossible de postuler";
+    blocageMessage = "Tu es le propriétaire de cette société.";
+    blocageLien = "/monentreprise";
+    blocageTexteLien = "Retour à mon entreprise";
+  } else if (estProprietaireSociete) {
+    blocageTitre = "Impossible de postuler";
+    blocageMessage =
+      "Tu possèdes déjà une société. Tu ne peux pas postuler dans une autre entreprise.";
+    blocageLien = "/monentreprise";
+    blocageTexteLien = "Retour à mon entreprise";
+  } else if (estDejaDansUneSociete) {
+    blocageTitre = "Impossible de postuler";
+    blocageMessage = `Tu fais déjà partie de la société ${societeActuelle?.nom ?? "actuelle"}. Quitte d’abord ta société avant de postuler ailleurs.`;
+    blocageLien = "/monentreprise";
+    blocageTexteLien = "Retour à mon entreprise";
+  } else if (recrutementFerme) {
+    blocageTitre = "Recrutement fermé";
+    blocageMessage =
+      "Cette société ne recrute pas pour le moment. Tu ne peux pas envoyer de candidature.";
+    blocageLien = `/entreprise/${entreprise.id}`;
+    blocageTexteLien = "Retour à l’entreprise";
+  } else if (candidatureDejaEnvoyee) {
+    blocageTitre = "Candidature déjà envoyée";
+    blocageMessage =
+      "Tu as déjà une candidature en attente pour cette société.";
+    blocageLien = `/entreprise/${entreprise.id}`;
+    blocageTexteLien = "Retour à l’entreprise";
+  }
+
+  const formulaireBloque = Boolean(blocageTitre);
 
   return (
     <main
@@ -256,158 +316,211 @@ export default async function PostulerPage({ params }: PageProps) {
                   </h2>
 
                   <p style={smallTextStyle}>
-                    Remplis ce formulaire proprement. Cette page est prête
-                    visuellement. Ensuite on branchera l’envoi réel de la
-                    candidature en base de données.
+                    Tu ne peux envoyer une candidature que si tu n’es dans
+                    aucune autre société et que tu n’en possèdes pas déjà une.
                   </p>
                 </div>
               </aside>
 
               <section style={boxStyle}>
-                <h2 style={{ marginTop: 0, marginBottom: "8px" }}>
-                  Formulaire de candidature
-                </h2>
+                {formulaireBloque ? (
+                  <>
+                    <h2 style={{ marginTop: 0, marginBottom: "8px" }}>
+                      {blocageTitre}
+                    </h2>
 
-                <p
-                  style={{
-                    marginTop: 0,
-                    marginBottom: "20px",
-                    opacity: 0.85,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Présente-toi simplement pour donner envie au directeur de te
-                  recruter.
-                </p>
-
-                <form
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "16px",
-                  }}
-                >
-                  <div style={gridTwoStyle}>
-                    <div>
-                      <label style={inputLabelStyle}>Pseudo Steam</label>
-                      <input
-                        type="text"
-                        value={user?.username || "Utilisateur Steam"}
-                        disabled
-                        style={disabledInputStyle}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={inputLabelStyle}>Âge</label>
-                      <input
-                        type="number"
-                        placeholder="Ton âge"
-                        style={inputStyle}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={gridTwoStyle}>
-                    <div>
-                      <label style={inputLabelStyle}>Région / Pays</label>
-                      <input
-                        type="text"
-                        placeholder="Exemple : France / Bourgogne"
-                        style={inputStyle}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={inputLabelStyle}>Jeu principal</label>
-                      <select defaultValue="ETS2" style={inputStyle}>
-                        <option value="ETS2">ETS2</option>
-                        <option value="ATS">ATS</option>
-                        <option value="LES_DEUX">Les deux</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div style={gridTwoStyle}>
-                    <div>
-                      <label style={inputLabelStyle}>Expérience</label>
-                      <select defaultValue="Intermédiaire" style={inputStyle}>
-                        <option value="DEBUTANT">Débutant</option>
-                        <option value="INTERMEDIAIRE">Intermédiaire</option>
-                        <option value="EXPERIMENTE">Expérimenté</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={inputLabelStyle}>Micro</label>
-                      <select defaultValue="Oui" style={inputStyle}>
-                        <option value="OUI">Oui</option>
-                        <option value="NON">Non</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={inputLabelStyle}>Disponibilités</label>
-                    <input
-                      type="text"
-                      placeholder="Exemple : le soir et le week-end"
-                      style={inputStyle}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={inputLabelStyle}>
-                      Pourquoi veux-tu rejoindre cette entreprise ?
-                    </label>
-                    <textarea
-                      placeholder="Explique un peu ta motivation..."
-                      style={textareaStyle}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={inputLabelStyle}>Message complémentaire</label>
-                    <textarea
-                      placeholder="Tu peux ajouter un petit message libre..."
-                      style={textareaStyle}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "12px",
-                      flexWrap: "wrap",
-                      marginTop: "8px",
-                    }}
-                  >
-                    {entreprise.recrutement ? (
-                      <button type="button" style={mainButtonStyle}>
-                        Envoyer ma candidature
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        style={{
-                          ...mainButtonStyle,
-                          opacity: 0.5,
-                          cursor: "not-allowed",
-                        }}
-                        disabled
-                      >
-                        Recrutement fermé
-                      </button>
-                    )}
-
-                    <Link
-                      href={`/entreprise/${entreprise.id}`}
-                      style={secondaryButtonStyle}
+                    <p
+                      style={{
+                        marginTop: 0,
+                        marginBottom: "20px",
+                        opacity: 0.9,
+                        lineHeight: 1.6,
+                      }}
                     >
-                      Retour
-                    </Link>
-                  </div>
-                </form>
+                      {blocageMessage}
+                    </p>
+
+                    <div
+                      style={{
+                        padding: "18px",
+                        borderRadius: "14px",
+                        background: "rgba(239,68,68,0.12)",
+                        border: "1px solid rgba(239,68,68,0.30)",
+                        marginBottom: "18px",
+                      }}
+                    >
+                      <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                        Candidature bloquée
+                      </div>
+                      <div style={{ opacity: 0.9, lineHeight: 1.6 }}>
+                        Cette règle évite qu’un chauffeur soit dans plusieurs
+                        sociétés en même temps.
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                      <Link href={blocageLien} style={mainButtonStyle}>
+                        {blocageTexteLien}
+                      </Link>
+
+                      <Link
+                        href={`/entreprise/${entreprise.id}`}
+                        style={secondaryButtonStyle}
+                      >
+                        Retour à l’entreprise
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h2 style={{ marginTop: 0, marginBottom: "8px" }}>
+                      Formulaire de candidature
+                    </h2>
+
+                    <p
+                      style={{
+                        marginTop: 0,
+                        marginBottom: "20px",
+                        opacity: 0.85,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      Présente-toi simplement pour donner envie au directeur de te
+                      recruter.
+                    </p>
+
+                    <form
+                      action={`/api/entreprises/${entreprise.id}/postuler`}
+                      method="POST"
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "16px",
+                      }}
+                    >
+                      <div style={gridTwoStyle}>
+                        <div>
+                          <label style={inputLabelStyle}>Pseudo Steam</label>
+                          <input
+                            type="text"
+                            value={user.username || "Utilisateur Steam"}
+                            disabled
+                            style={disabledInputStyle}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={inputLabelStyle}>Âge</label>
+                          <input
+                            name="age"
+                            type="number"
+                            placeholder="Ton âge"
+                            style={inputStyle}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={gridTwoStyle}>
+                        <div>
+                          <label style={inputLabelStyle}>Région / Pays</label>
+                          <input
+                            name="region"
+                            type="text"
+                            placeholder="Exemple : France / Bourgogne"
+                            style={inputStyle}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={inputLabelStyle}>Jeu principal</label>
+                          <select
+                            name="jeuPrincipal"
+                            defaultValue={user.jeuPrincipal || "ETS2"}
+                            style={inputStyle}
+                          >
+                            <option value="ETS2">ETS2</option>
+                            <option value="ATS">ATS</option>
+                            <option value="LES_DEUX">Les deux</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={gridTwoStyle}>
+                        <div>
+                          <label style={inputLabelStyle}>Expérience</label>
+                          <select name="experience" defaultValue="INTERMEDIAIRE" style={inputStyle}>
+                            <option value="DEBUTANT">Débutant</option>
+                            <option value="INTERMEDIAIRE">Intermédiaire</option>
+                            <option value="EXPERIMENTE">Expérimenté</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={inputLabelStyle}>Micro</label>
+                          <select
+                            name="micro"
+                            defaultValue={user.micro ? "OUI" : "NON"}
+                            style={inputStyle}
+                          >
+                            <option value="OUI">Oui</option>
+                            <option value="NON">Non</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={inputLabelStyle}>Disponibilités</label>
+                        <input
+                          name="disponibilites"
+                          type="text"
+                          placeholder="Exemple : le soir et le week-end"
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={inputLabelStyle}>
+                          Pourquoi veux-tu rejoindre cette entreprise ?
+                        </label>
+                        <textarea
+                          name="motivation"
+                          placeholder="Explique un peu ta motivation..."
+                          style={textareaStyle}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label style={inputLabelStyle}>Message complémentaire</label>
+                        <textarea
+                          name="message"
+                          placeholder="Tu peux ajouter un petit message libre..."
+                          style={textareaStyle}
+                        />
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                          marginTop: "8px",
+                        }}
+                      >
+                        <button type="submit" style={mainButtonStyle}>
+                          Envoyer ma candidature
+                        </button>
+
+                        <Link
+                          href={`/entreprise/${entreprise.id}`}
+                          style={secondaryButtonStyle}
+                        >
+                          Retour
+                        </Link>
+                      </div>
+                    </form>
+                  </>
+                )}
               </section>
             </div>
           </section>
@@ -507,6 +620,8 @@ const mainButtonStyle = {
   fontWeight: "bold",
   cursor: "pointer",
   textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
 };
 
 const secondaryButtonStyle = {

@@ -12,6 +12,30 @@ export async function POST(request: Request) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 
+    const user = await prisma.user.findUnique({
+      where: { steamId },
+      include: {
+        memberships: true,
+        entreprisesCreees: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    if (user.entreprisesCreees.length > 0) {
+      return NextResponse.redirect(
+        new URL("/societe?error=deja-proprietaire", request.url)
+      );
+    }
+
+    if (user.memberships.length > 0) {
+      return NextResponse.redirect(
+        new URL("/societe?error=deja-dans-une-societe", request.url)
+      );
+    }
+
     const formData = await request.formData();
 
     const nom = String(formData.get("nom") || "").trim();
@@ -31,45 +55,20 @@ export async function POST(request: Request) {
     const recrutement = recrutementValue === "ouvert";
 
     if (!nom || !abreviation || !jeu || !typeTransport || !description) {
-      return NextResponse.json(
-        { error: "Tous les champs obligatoires doivent être remplis." },
-        { status: 400 }
-      );
-    }
-
-    if (!villeETS2 && !villeATS) {
-      return NextResponse.json(
-        { error: "Tu dois choisir au moins une maison mère ETS2 ou ATS." },
-        { status: 400 }
+      return NextResponse.redirect(
+        new URL("/entreprise/creer?error=champs-obligatoires", request.url)
       );
     }
 
     if (abreviation.length !== 3) {
-      return NextResponse.json(
-        { error: "L'abréviation doit contenir exactement 3 lettres." },
-        { status: 400 }
+      return NextResponse.redirect(
+        new URL("/entreprise/creer?error=abreviation", request.url)
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { steamId },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Utilisateur introuvable." },
-        { status: 404 }
-      );
-    }
-
-    const dejaUneEntreprise = await prisma.entreprise.findFirst({
-      where: { ownerSteamId: steamId },
-    });
-
-    if (dejaUneEntreprise) {
-      return NextResponse.json(
-        { error: "Tu as déjà créé une entreprise." },
-        { status: 400 }
+    if (!villeETS2 && !villeATS) {
+      return NextResponse.redirect(
+        new URL("/entreprise/creer?error=ville", request.url)
       );
     }
 
@@ -100,9 +99,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("POST /api/entreprises error:", error);
 
-    return NextResponse.json(
-      { error: "Erreur serveur pendant la création de l'entreprise." },
-      { status: 500 }
+    return NextResponse.redirect(
+      new URL("/entreprise/creer?error=server", request.url)
     );
   }
 }

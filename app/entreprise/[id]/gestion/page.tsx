@@ -285,7 +285,10 @@ export default async function GestionEntreprisePage({ params }: Props) {
       nouvelleValeur = entreprise.cuveMax;
     } else if (mode === "quantite") {
       const quantite = Math.max(0, Math.floor(quantiteDemandee));
-      nouvelleValeur = Math.min(entreprise.cuveActuelle + quantite, entreprise.cuveMax);
+      nouvelleValeur = Math.min(
+        entreprise.cuveActuelle + quantite,
+        entreprise.cuveMax
+      );
     } else {
       return;
     }
@@ -402,10 +405,7 @@ export default async function GestionEntreprisePage({ params }: Props) {
 
     const membreExiste = await prisma.entrepriseMembre.findUnique({
       where: {
-        userId_entrepriseId: {
-          userId: candidature.userId,
-          entrepriseId: entrepriseIdFromForm,
-        },
+        userId: candidature.userId,
       },
     });
 

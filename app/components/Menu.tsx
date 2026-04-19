@@ -1,6 +1,21 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
 
-export default function Menu() {
+export default async function Menu() {
+  const cookieStore = await cookies();
+  const steamId = cookieStore.get("steamId")?.value;
+
+  let hasEntreprise = false;
+
+  if (steamId) {
+    const membership = await prisma.entrepriseMembre.findFirst({
+      where: { user: { steamId } },
+    });
+
+    hasEntreprise = !!membership;
+  }
+
   return (
     <aside
       style={{
@@ -30,25 +45,34 @@ export default function Menu() {
           Mon profil
         </Link>
 
-        <Link href="/mon-entreprise" style={menuLinkStyle}>
-          Mon entreprise
-        </Link>
+        {/* 🔥 visible seulement si entreprise */}
+        {hasEntreprise && (
+          <>
+            <Link href="/mon-entreprise" style={menuLinkStyle}>
+              Mon entreprise
+            </Link>
 
-        <Link href="/finance" style={menuLinkStyle}>
-          Finance
-        </Link>
+            <Link href="/finance" style={menuLinkStyle}>
+              Finance
+            </Link>
 
-        <Link href="/camions" style={menuLinkStyle}>
-          Camion
-        </Link>
+            <Link href="/camions" style={menuLinkStyle}>
+              Camion
+            </Link>
+          </>
+        )}
 
+        {/* ✅ visible pour tout le monde */}
         <Link href="/societe/classement" style={menuLinkStyle}>
           Classement
         </Link>
 
-        <button style={menuButtonStyle} type="button">
-          Paramètres
-        </button>
+        {/* 🔥 Paramètres seulement si entreprise */}
+        {hasEntreprise && (
+          <Link href="/parametres" style={menuLinkStyle}>
+            Paramètres
+          </Link>
+        )}
 
         <a href="/api/logout" style={logoutStyle}>
           Déconnexion
@@ -57,17 +81,6 @@ export default function Menu() {
     </aside>
   );
 }
-
-const menuButtonStyle = {
-  padding: "12px 14px",
-  borderRadius: "10px",
-  border: "none",
-  background: "rgba(255,255,255,0.08)",
-  color: "white",
-  textAlign: "left" as const,
-  fontWeight: "bold",
-  cursor: "pointer",
-};
 
 const menuLinkStyle = {
   padding: "12px 14px",

@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { RoleEntreprise } from "@prisma/client";
-
-const ROLES_AUTORISES: RoleEntreprise[] = [
-  RoleEntreprise.DIRECTEUR,
-  RoleEntreprise.SOUS_DIRECTEUR,
-];
 
 function cleanValue(value: unknown) {
   const text = String(value ?? "").trim();
@@ -57,40 +51,58 @@ export async function POST(request: Request) {
     for (const webhook of webhooks) {
       if (!isValidDiscordWebhook(webhook)) {
         return NextResponse.json(
-          { success: false, error: "Un lien webhook Discord est invalide." },
+          {
+            success: false,
+            error: "Un des liens webhook Discord est invalide.",
+          },
           { status: 400 }
         );
       }
     }
 
-    const membership = await prisma.entrepriseMembre.findFirst({
-      where: {
-        user: {
-          steamId,
-        },
-      },
+    const user = await prisma.user.findUnique({
+      where: { steamId },
       include: {
-        entreprise: true,
+        memberships: {
+          include: {
+            entreprise: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
       },
     });
 
-    if (!membership || !membership.entreprise) {
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Utilisateur introuvable." },
+        { status: 404 }
+      );
+    }
+
+    if (user.memberships.length === 0) {
       return NextResponse.json(
         { success: false, error: "Aucune entreprise trouvée." },
         { status: 404 }
       );
     }
 
-    if (!ROLES_AUTORISES.includes(membership.role)) {
+    const membership = user.memberships[0];
+
+    if (
+      membership.role !== "DIRECTEUR" &&
+      membership.role !== "SOUS_DIRECTEUR"
+    ) {
       return NextResponse.json(
         { success: false, error: "Accès refusé." },
         { status: 403 }
       );
     }
 
-    await prisma.entreprise.update({
+    const updated = await prisma.entreprise.update({
       where: {
-        id: membership.entreprise.id,
+        id: membership.entrepriseId,
       },
       data: {
         discordUrl,
@@ -106,15 +118,19 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: "Paramètres enregistrés avec succès.",
+      entrepriseId: updated.id,
     });
-  } catch (error) {
-    console.error("Erreur route /api/entreprise/parametres :", error);
+  } catch (error: any) {
+    console.error("ERREUR /api/entreprise/parametres :", error);
 
     return NextResponse.json(
       {
         success: false,
         error: "Erreur serveur.",
-        details: error instanceof Error ? error.message : "Erreur inconnue",
+        details:
+          error?.message ||
+          error?.toString() ||
+          "Erreur inconnue dans la route paramètres.",
       },
       { status: 500 }
     );

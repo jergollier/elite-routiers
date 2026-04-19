@@ -44,10 +44,7 @@ export default function ParametresForm({ entreprise }: Props) {
   const [testingKey, setTestingKey] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, string>>({});
 
-  function handleChange(
-    key: keyof typeof form,
-    value: string
-  ) {
+  function handleChange(key: keyof typeof form, value: string) {
     setForm((prev) => ({
       ...prev,
       [key]: value,
@@ -68,23 +65,30 @@ export default function ParametresForm({ entreprise }: Props) {
         body: JSON.stringify(form),
       });
 
-      const data = await response.json();
+      let data: any = null;
 
-      if (!response.ok || !data.success) {
-  setMessage(
-    data.details
-      ? `${data.error || "Erreur"} (${data.details})`
-      : data.error || "Erreur lors de l'enregistrement."
-  );
-  setMessageType("error");
-  return;
-}
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+
+      if (!response.ok || !data?.success) {
+        setMessage(
+          data?.details
+            ? `${data.error || "Erreur"} - ${data.details}`
+            : data?.error ||
+                `Erreur HTTP ${response.status} sur /api/entreprise/parametres`
+        );
+        setMessageType("error");
+        return;
+      }
 
       setMessage(data.message || "Paramètres enregistrés.");
       setMessageType("success");
-    } catch (error) {
-      console.error(error);
-      setMessage("Erreur serveur.");
+    } catch (error: any) {
+      console.error("Erreur handleSave :", error);
+      setMessage(error?.message || "Erreur serveur.");
       setMessageType("error");
     } finally {
       setSaving(false);
@@ -120,12 +124,20 @@ export default function ParametresForm({ entreprise }: Props) {
         }),
       });
 
-      const data = await response.json();
+      let data: any = null;
 
-      if (!response.ok || !data.success) {
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+
+      if (!response.ok || !data?.success) {
         setTestResults((prev) => ({
           ...prev,
-          [webhookType]: `❌ ${data.error || "Erreur webhook."}`,
+          [webhookType]:
+            data?.error ||
+            `❌ Erreur HTTP ${response.status} sur /api/entreprise/webhook/test`,
         }));
         return;
       }
@@ -135,7 +147,7 @@ export default function ParametresForm({ entreprise }: Props) {
         [webhookType]: `✅ ${data.message || "Webhook valide."}`,
       }));
     } catch (error) {
-      console.error(error);
+      console.error("Erreur handleTest :", error);
       setTestResults((prev) => ({
         ...prev,
         [webhookType]: "❌ Erreur serveur.",

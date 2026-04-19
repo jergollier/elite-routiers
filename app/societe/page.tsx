@@ -12,26 +12,32 @@ export default async function SocietePage() {
     redirect("/");
   }
 
-  const entreprises = await prisma.entreprise.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      _count: {
-        select: {
-          membres: true,
+  const [entreprises, chauffeurs] = await Promise.all([
+    prisma.entreprise.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        _count: {
+          select: {
+            membres: true,
+          },
         },
       },
-    },
-  });
-
-  const chauffeurs = [
-    { id: 1, nom: "RoutierMax", statut: "connecté" },
-    { id: 2, nom: "Pierre_ETS2", statut: "déconnecté" },
-    { id: 3, nom: "Camion59", statut: "connecté" },
-    { id: 4, nom: "TruckMan", statut: "déconnecté" },
-    { id: 5, nom: "BossDuBitume", statut: "connecté" },
-  ];
+    }),
+    prisma.user.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        steamId: true,
+        username: true,
+        avatar: true,
+      },
+      take: 12,
+    }),
+  ]);
 
   return (
     <main
@@ -88,6 +94,7 @@ export default async function SocietePage() {
             }}
           >
             <div>Entreprises : {entreprises.length}</div>
+            <div>Chauffeurs : {chauffeurs.length}</div>
 
             <div
               style={{
@@ -373,7 +380,9 @@ export default async function SocietePage() {
               border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            <h2 style={{ marginTop: 0, marginBottom: "18px" }}>Chauffeurs</h2>
+            <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
+              Chauffeurs du site
+            </h2>
 
             <div
               style={{
@@ -383,7 +392,8 @@ export default async function SocietePage() {
               }}
             >
               {chauffeurs.map((chauffeur) => {
-                const isConnected = chauffeur.statut === "connecté";
+                const nomAffiche =
+                  chauffeur.username?.trim() || chauffeur.steamId;
 
                 return (
                   <div
@@ -391,7 +401,6 @@ export default async function SocietePage() {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "space-between",
                       gap: "10px",
                       padding: "12px",
                       borderRadius: "10px",
@@ -399,34 +408,66 @@ export default async function SocietePage() {
                       border: "1px solid rgba(255,255,255,0.08)",
                     }}
                   >
-                    <div style={{ fontWeight: "bold" }}>{chauffeur.nom}</div>
+                    <img
+                      src={chauffeur.avatar || "/truck.jpg"}
+                      alt={nomAffiche}
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        flexShrink: 0,
+                      }}
+                    />
 
                     <div
                       style={{
                         display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        fontSize: "13px",
-                        fontWeight: "bold",
+                        flexDirection: "column",
+                        minWidth: 0,
                       }}
                     >
-                      <span
+                      <div
                         style={{
-                          width: "10px",
-                          height: "10px",
-                          borderRadius: "50%",
-                          display: "inline-block",
-                          background: isConnected ? "#22c55e" : "#ef4444",
-                          boxShadow: isConnected
-                            ? "0 0 8px #22c55e"
-                            : "0 0 8px #ef4444",
+                          fontWeight: "bold",
+                          fontSize: "14px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
                         }}
-                      />
-                      <span>{chauffeur.statut}</span>
+                      >
+                        {nomAffiche}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          opacity: 0.75,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        Steam ID : {chauffeur.steamId}
+                      </div>
                     </div>
                   </div>
                 );
               })}
+
+              {chauffeurs.length === 0 && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "14px",
+                    background: "rgba(255,255,255,0.05)",
+                    borderRadius: "10px",
+                  }}
+                >
+                  Aucun chauffeur inscrit pour le moment.
+                </div>
+              )}
             </div>
           </aside>
         </div>

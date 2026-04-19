@@ -245,10 +245,10 @@ export default async function MonEntreprisePage() {
         >
           <section
             style={{
-              borderRadius: "20px",
-              overflow: "hidden",
               position: "relative",
-              minHeight: "260px",
+              minHeight: "185px",
+              borderRadius: "18px",
+              overflow: "hidden",
               boxShadow: "0 0 20px rgba(0,0,0,0.4)",
               border: "1px solid rgba(255,255,255,0.08)",
               background: "rgba(0, 0, 0, 0.35)",
@@ -272,16 +272,7 @@ export default async function MonEntreprisePage() {
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(90deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.46) 42%, rgba(0,0,0,0.82) 100%)",
-              }}
-            />
-
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(to top, rgba(0,0,0,0.84) 0%, rgba(0,0,0,0.18) 55%, rgba(0,0,0,0.08) 100%)",
+                  "linear-gradient(90deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.40) 50%, rgba(0,0,0,0.82) 100%)",
               }}
             />
 
@@ -289,30 +280,29 @@ export default async function MonEntreprisePage() {
               style={{
                 position: "relative",
                 zIndex: 2,
-                minHeight: "260px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-end",
-                gap: "18px",
-                padding: "28px",
+                minHeight: "185px",
+                display: "grid",
+                gridTemplateColumns: "1fr auto 1fr",
+                alignItems: "center",
+                gap: "22px",
+                padding: "22px 26px",
                 boxSizing: "border-box",
-                flexWrap: "wrap",
               }}
             >
               <div
                 style={{
-                  maxWidth: "560px",
+                  minWidth: 0,
                   display: "flex",
                   flexDirection: "column",
-                  gap: "10px",
+                  gap: "8px",
                 }}
               >
                 <div
                   style={{
-                    fontSize: "48px",
+                    fontSize: "34px",
                     fontWeight: "bold",
-                    lineHeight: 0.95,
-                    textShadow: "0 4px 20px rgba(0,0,0,0.8)",
+                    lineHeight: 1,
+                    textShadow: "0 4px 18px rgba(0,0,0,0.8)",
                     wordBreak: "break-word",
                   }}
                 >
@@ -321,7 +311,14 @@ export default async function MonEntreprisePage() {
 
                 <div
                   style={{
-                    fontSize: "20px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    width: "fit-content",
+                    padding: "6px 10px",
+                    borderRadius: "10px",
+                    background: "rgba(0,0,0,0.35)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    fontSize: "18px",
                     fontWeight: "bold",
                     opacity: 0.96,
                     textShadow: "0 3px 12px rgba(0,0,0,0.7)",
@@ -333,18 +330,43 @@ export default async function MonEntreprisePage() {
 
               <div
                 style={{
+                  width: "104px",
+                  height: "104px",
+                  borderRadius: "18px",
+                  overflow: "hidden",
+                  border: "2px solid rgba(255,255,255,0.18)",
+                  background: "rgba(0,0,0,0.35)",
+                  backdropFilter: "blur(8px)",
+                  boxShadow: "0 8px 25px rgba(0,0,0,0.35)",
+                  flexShrink: 0,
+                }}
+              >
+                <img
+                  src={entreprise.banniere || "/truck.jpg"}
+                  alt="Logo société"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
                   display: "flex",
+                  justifyContent: "flex-end",
                   gap: "12px",
                   flexWrap: "wrap",
-                  justifyContent: "flex-end",
                   alignItems: "stretch",
                 }}
               >
                 <div
                   style={{
-                    minWidth: "240px",
-                    padding: "16px 20px",
-                    borderRadius: "16px",
+                    minWidth: "230px",
+                    padding: "14px 18px",
+                    borderRadius: "14px",
                     background: "rgba(0,0,0,0.45)",
                     border: "1px solid rgba(255,255,255,0.14)",
                     backdropFilter: "blur(10px)",
@@ -353,7 +375,7 @@ export default async function MonEntreprisePage() {
                 >
                   <div
                     style={{
-                      fontSize: "13px",
+                      fontSize: "12px",
                       opacity: 0.82,
                       marginBottom: "6px",
                     }}
@@ -363,7 +385,7 @@ export default async function MonEntreprisePage() {
 
                   <div
                     style={{
-                      fontSize: "32px",
+                      fontSize: "28px",
                       fontWeight: "bold",
                       lineHeight: 1.05,
                       textShadow: "0 3px 12px rgba(0,0,0,0.45)",
@@ -377,9 +399,9 @@ export default async function MonEntreprisePage() {
                   <Link
                     href={`/entreprise/${entreprise.id}/gestion`}
                     style={{
-                      minWidth: "170px",
-                      padding: "16px 22px",
-                      borderRadius: "16px",
+                      minWidth: "160px",
+                      padding: "14px 18px",
+                      borderRadius: "14px",
                       background: "rgba(20, 26, 39, 0.92)",
                       color: "white",
                       textDecoration: "none",
@@ -400,9 +422,9 @@ export default async function MonEntreprisePage() {
                   <button
                     type="submit"
                     style={{
-                      minWidth: "170px",
-                      padding: "16px 22px",
-                      borderRadius: "16px",
+                      minWidth: "160px",
+                      padding: "14px 18px",
+                      borderRadius: "14px",
                       background: "rgba(153, 27, 27, 0.96)",
                       color: "white",
                       fontWeight: "bold",

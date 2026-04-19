@@ -108,11 +108,11 @@ export default async function MonEntreprisePage() {
         ? "Annulée"
         : "En cours";
 
-        const income = livraison.income ?? 0;
+    const income = livraison.income ?? 0;
 
-        const gainSociete = Math.round(income * 0.15);
-        const gainChauffeur = Math.round(income * 0.2);
-        const charges = income - gainSociete - gainChauffeur;
+    const gainSociete = Math.round(income * 0.15);
+    const gainChauffeur = Math.round(income * 0.2);
+    const charges = income - gainSociete - gainChauffeur;
 
     return {
       id: livraison.id,
@@ -122,7 +122,6 @@ export default async function MonEntreprisePage() {
       statut: statutLabel,
       cargo: livraison.cargo?.trim() || "Cargo inconnu",
       truck: truckLabel,
-
       gainSociete,
       gainChauffeur,
       charges,
@@ -333,6 +332,29 @@ export default async function MonEntreprisePage() {
                       Bureau
                     </Link>
                   )}
+
+                  <form action="/api/entreprise/demission" method="POST">
+                    <button
+                      type="submit"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "160px",
+                        padding: "14px 18px",
+                        borderRadius: "12px",
+                        background: "#991b1b",
+                        color: "white",
+                        textDecoration: "none",
+                        fontWeight: "bold",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        boxShadow: "0 0 20px rgba(0,0,0,0.25)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Démissionner
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
@@ -377,7 +399,7 @@ export default async function MonEntreprisePage() {
                     display: "flex",
                     flexDirection: "column",
                     gap: "12px",
-                    height: "540px",
+                    height: "330px",
                     overflowY: "auto",
                     paddingRight: "8px",
                     scrollbarWidth: "thin",
@@ -443,7 +465,13 @@ export default async function MonEntreprisePage() {
                             >
                               {livraison.cargo} • {livraison.truck}
 
-                              <div style={{ marginTop: "6px", fontSize: "12px", opacity: 0.85 }}>
+                              <div
+                                style={{
+                                  marginTop: "6px",
+                                  fontSize: "12px",
+                                  opacity: 0.85,
+                                }}
+                              >
                                 💰 {livraison.gain}
                               </div>
 
@@ -531,9 +559,10 @@ export default async function MonEntreprisePage() {
                     display: "flex",
                     flexDirection: "column",
                     gap: "12px",
-                    maxHeight: "320px",
+                    height: "150px",
                     overflowY: "auto",
                     paddingRight: "6px",
+                    scrollbarWidth: "thin",
                   }}
                 >
                   {entreprise.membres.length > 0 ? (
@@ -548,6 +577,7 @@ export default async function MonEntreprisePage() {
                           display: "flex",
                           alignItems: "center",
                           gap: "12px",
+                          flexShrink: 0,
                         }}
                       >
                         <div

@@ -245,48 +245,20 @@ export default async function MonEntreprisePage() {
         >
           <section
             style={{
-              position: "relative",
-              minHeight: "185px",
+              background: "rgba(0, 0, 0, 0.45)",
               borderRadius: "18px",
-              overflow: "hidden",
+              padding: "20px",
+              backdropFilter: "blur(6px)",
               boxShadow: "0 0 20px rgba(0,0,0,0.4)",
               border: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(0, 0, 0, 0.35)",
             }}
           >
-            <img
-              src={entreprise.banniere || "/truck.jpg"}
-              alt="Bannière entreprise"
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-              }}
-            />
-
             <div
               style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(90deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.40) 50%, rgba(0,0,0,0.82) 100%)",
-              }}
-            />
-
-            <div
-              style={{
-                position: "relative",
-                zIndex: 2,
-                minHeight: "185px",
                 display: "grid",
-                gridTemplateColumns: "1fr auto 1fr",
+                gridTemplateColumns: "260px 1fr 420px",
+                gap: "20px",
                 alignItems: "center",
-                gap: "22px",
-                padding: "22px 26px",
-                boxSizing: "border-box",
               }}
             >
               <div
@@ -294,7 +266,7 @@ export default async function MonEntreprisePage() {
                   minWidth: 0,
                   display: "flex",
                   flexDirection: "column",
-                  gap: "8px",
+                  gap: "10px",
                 }}
               >
                 <div
@@ -302,7 +274,6 @@ export default async function MonEntreprisePage() {
                     fontSize: "34px",
                     fontWeight: "bold",
                     lineHeight: 1,
-                    textShadow: "0 4px 18px rgba(0,0,0,0.8)",
                     wordBreak: "break-word",
                   }}
                 >
@@ -316,12 +287,10 @@ export default async function MonEntreprisePage() {
                     width: "fit-content",
                     padding: "6px 10px",
                     borderRadius: "10px",
-                    background: "rgba(0,0,0,0.35)",
+                    background: "rgba(255,255,255,0.08)",
                     border: "1px solid rgba(255,255,255,0.10)",
                     fontSize: "18px",
                     fontWeight: "bold",
-                    opacity: 0.96,
-                    textShadow: "0 3px 12px rgba(0,0,0,0.7)",
                   }}
                 >
                   [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
@@ -330,25 +299,32 @@ export default async function MonEntreprisePage() {
 
               <div
                 style={{
-                  width: "104px",
-                  height: "104px",
-                  borderRadius: "18px",
+                  height: "150px",
+                  width: "100%",
+                  borderRadius: "16px",
                   overflow: "hidden",
-                  border: "2px solid rgba(255,255,255,0.18)",
-                  background: "rgba(0,0,0,0.35)",
-                  backdropFilter: "blur(8px)",
-                  boxShadow: "0 8px 25px rgba(0,0,0,0.35)",
-                  flexShrink: 0,
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
+                  position: "relative",
+                  background: "rgba(255,255,255,0.05)",
                 }}
               >
                 <img
                   src={entreprise.banniere || "/truck.jpg"}
-                  alt="Logo société"
+                  alt="Bannière société"
                   style={{
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
                     display: "block",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      "linear-gradient(90deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.15) 100%)",
                   }}
                 />
               </div>
@@ -364,10 +340,10 @@ export default async function MonEntreprisePage() {
               >
                 <div
                   style={{
-                    minWidth: "230px",
+                    minWidth: "220px",
                     padding: "14px 18px",
                     borderRadius: "14px",
-                    background: "rgba(0,0,0,0.45)",
+                    background: "rgba(255,255,255,0.08)",
                     border: "1px solid rgba(255,255,255,0.14)",
                     backdropFilter: "blur(10px)",
                     boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
@@ -388,7 +364,6 @@ export default async function MonEntreprisePage() {
                       fontSize: "28px",
                       fontWeight: "bold",
                       lineHeight: 1.05,
-                      textShadow: "0 3px 12px rgba(0,0,0,0.45)",
                     }}
                   >
                     {argentSociete.toLocaleString("fr-FR")} €
@@ -399,7 +374,7 @@ export default async function MonEntreprisePage() {
                   <Link
                     href={`/entreprise/${entreprise.id}/gestion`}
                     style={{
-                      minWidth: "160px",
+                      minWidth: "150px",
                       padding: "14px 18px",
                       borderRadius: "14px",
                       background: "rgba(20, 26, 39, 0.92)",
@@ -422,7 +397,7 @@ export default async function MonEntreprisePage() {
                   <button
                     type="submit"
                     style={{
-                      minWidth: "160px",
+                      minWidth: "150px",
                       padding: "14px 18px",
                       borderRadius: "14px",
                       background: "rgba(153, 27, 27, 0.96)",

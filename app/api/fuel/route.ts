@@ -19,42 +19,56 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as FuelBody;
 
-    const {
-      steamId,
-      litresAjoutes,
-      fuelBefore,
-      fuelAfter,
-      moteurEteint,
-      camionId,
-      livraisonId,
-      game,
-      sessionId,
-      deviceId,
-      truck,
-    } = body;
+    const steamId = String(body.steamId || "").trim();
+    const livraisonId = body.livraisonId ? String(body.livraisonId).trim() : null;
+    const game = body.game ? String(body.game).trim() : null;
+    const sessionId = body.sessionId ? String(body.sessionId).trim() : null;
+    const deviceId = body.deviceId ? String(body.deviceId).trim() : null;
+    const truck = body.truck ? String(body.truck).trim() : null;
 
-    // 🔒 Vérifs de base
+    const litresAjoutes =
+      typeof body.litresAjoutes === "number" && Number.isFinite(body.litresAjoutes)
+        ? body.litresAjoutes
+        : NaN;
+
+    const fuelBefore =
+      typeof body.fuelBefore === "number" && Number.isFinite(body.fuelBefore)
+        ? body.fuelBefore
+        : 0;
+
+    const fuelAfter =
+      typeof body.fuelAfter === "number" && Number.isFinite(body.fuelAfter)
+        ? body.fuelAfter
+        : 0;
+
+    const moteurEteint = body.moteurEteint === true;
+
+    const camionId =
+      typeof body.camionId === "number" && Number.isInteger(body.camionId)
+        ? body.camionId
+        : null;
+
     if (!steamId) {
-      return NextResponse.json({ error: "steamId manquant" }, { status: 400 });
-    }
-
-    if (
-      typeof litresAjoutes !== "number" ||
-      litresAjoutes <= 0 ||
-      !Number.isFinite(litresAjoutes)
-    ) {
-      return NextResponse.json({ error: "litres invalides" }, { status: 400 });
-    }
-
-    // 🔒 sécurité anti faux plein
-    if (!moteurEteint) {
       return NextResponse.json(
-        { error: "plein refusé (moteur allumé)" },
+        { success: false, error: "steamId manquant" },
         { status: 400 }
       );
     }
 
-    // 🔎 utilisateur + entreprise
+    if (!Number.isFinite(litresAjoutes) || litresAjoutes <= 0) {
+      return NextResponse.json(
+        { success: false, error: "litres invalides" },
+        { status: 400 }
+      );
+    }
+
+    if (!moteurEteint) {
+      return NextResponse.json(
+        { success: false, error: "plein refusé (moteur allumé)" },
+        { status: 400 }
+      );
+    }
+
     const user = await prisma.user.findUnique({
       where: { steamId },
       include: {
@@ -62,36 +76,48 @@ export async function POST(req: Request) {
           include: {
             entreprise: true,
           },
+          orderBy: {
+            createdAt: "asc",
+          },
         },
       },
     });
 
-    if (!user || user.memberships.length === 0) {
-      return NextResponse.json({ error: "chauffeur sans entreprise" }, { status: 404 });
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: `user introuvable pour steamId ${steamId}` },
+        { status: 404 }
+      );
     }
 
-    const entreprise = user.memberships[0].entreprise;
+    if (user.memberships.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "chauffeur sans entreprise" },
+        { status: 404 }
+      );
+    }
+
+    const membership = user.memberships[0];
+    const entreprise = membership.entreprise;
 
     if (!entreprise) {
-      return NextResponse.json({ error: "entreprise introuvable" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "entreprise introuvable" },
+        { status: 404 }
+      );
     }
 
+    const litres = Math.max(1, Math.round(litresAjoutes));
     const cuveAvant = entreprise.cuveActuelle;
-
-    // 🧠 calcul carburant
-    const litres = Math.round(litresAjoutes);
 
     const litresPrisCuve = Math.min(litres, cuveAvant);
     const litresHorsCuve = Math.max(0, litres - cuveAvant);
-
     const nouveauStock = Math.max(0, cuveAvant - litresPrisCuve);
 
-    const prixHorsCuve = Number(entreprise.prixLitreHorsCuve);
+    const prixHorsCuve = Number(entreprise.prixLitreHorsCuve ?? 2.3);
     const montantHorsCuve = Math.round(litresHorsCuve * prixHorsCuve);
 
-    // 🔁 transaction
     const result = await prisma.$transaction(async (tx) => {
-      // 1. update cuve
       await tx.entreprise.update({
         where: { id: entreprise.id },
         data: {
@@ -99,7 +125,6 @@ export async function POST(req: Request) {
         },
       });
 
-      // 2. créer plein
       const plein = await tx.pleinCarburant.create({
         data: {
           steamId,
@@ -110,22 +135,19 @@ export async function POST(req: Request) {
           sessionId,
           deviceId,
           truck,
-          fuelBefore: fuelBefore ?? 0,
-          fuelAfter: fuelAfter ?? 0,
+          fuelBefore,
+          fuelAfter,
           litresAjoutes: litres,
-
           moteurEteint: true,
           litresPrisCuve,
           litresHorsCuve,
           prixLitreHorsCuve: prixHorsCuve,
           montantHorsCuve,
-
           cuveAvant,
           cuveApres: nouveauStock,
         },
       });
 
-      // 3. mouvement cuve
       if (litresPrisCuve > 0) {
         await tx.mouvementCuve.create({
           data: {
@@ -141,7 +163,6 @@ export async function POST(req: Request) {
         });
       }
 
-      // 4. charge hors cuve
       if (litresHorsCuve > 0) {
         await tx.finance.create({
           data: {
@@ -160,16 +181,24 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
+      message: "plein enregistré",
       plein: result,
       resume: {
+        steamId,
+        entrepriseId: entreprise.id,
         litres,
         prisCuve: litresPrisCuve,
         horsCuve: litresHorsCuve,
         montant: montantHorsCuve,
+        cuveAvant,
+        cuveApres: nouveauStock,
       },
     });
   } catch (error) {
     console.error("Erreur /api/fuel :", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Erreur serveur" },
+      { status: 500 }
+    );
   }
 }

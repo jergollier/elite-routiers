@@ -95,6 +95,14 @@ model Entreprise {
   cuveActuelle Int @default(6200)
   cuveMax      Int @default(10000)
 
+  discordUrl                String?
+  discordWebhookLivraison   String?
+  discordWebhookAchatCamion String?
+  discordWebhookVenteCamion String?
+  discordWebhookRecrutement String?
+  discordWebhookDepart      String?
+  discordWebhookMaintenance String?
+
   owner User @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
 
   membres         EntrepriseMembre[]
@@ -139,8 +147,8 @@ model EntrepriseCandidature {
   entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, entrepriseId])
-  @@index([entrepriseId])
   @@index([userId])
+  @@index([entrepriseId])
   @@index([statut])
 }
 
@@ -293,9 +301,9 @@ model Livraison {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user       User         @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
-  entreprise Entreprise?  @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
-  camion     Camion?      @relation(fields: [camionId], references: [id], onDelete: SetNull)
+  user       User        @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
+  entreprise Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+  camion     Camion?     @relation(fields: [camionId], references: [id], onDelete: SetNull)
   pleins     PleinCarburant[]
 
   @@index([steamId])

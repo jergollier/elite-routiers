@@ -4,6 +4,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Menu from "@/app/components/Menu";
 import DeleteLivraisonButton from "@/app/components/DeleteLivraisonButton";
+import DemissionButton from "@/app/components/DemissionButton";
 
 export default async function MonEntreprisePage() {
   const cookieStore = await cookies();

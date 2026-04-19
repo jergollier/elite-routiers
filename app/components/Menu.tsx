@@ -57,7 +57,11 @@ export default async function Menu() {
             </Link>
 
             <Link href="/camions" style={menuLinkStyle}>
-              Camion
+              Camions
+            </Link>
+
+            <Link href="/parametres" style={menuLinkStyle}>
+              Paramètres
             </Link>
           </>
         )}
@@ -67,12 +71,13 @@ export default async function Menu() {
           Classement
         </Link>
 
-        {/* 🔥 Paramètres seulement si entreprise */}
-        {hasEntreprise && (
-          <Link href="/parametres" style={menuLinkStyle}>
-            Paramètres
-          </Link>
-        )}
+        {/* 🔥 NOUVEAU : Télécharger le Tacky */}
+        <a
+          href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/Elite%20Routier%20Tacky%20Setup%201.0.0.exe"
+          style={downloadStyle}
+        >
+          ⬇ Télécharger le Tacky
+        </a>
 
         <a href="/api/logout" style={logoutStyle}>
           Déconnexion
@@ -85,13 +90,23 @@ export default async function Menu() {
 const menuLinkStyle = {
   padding: "12px 14px",
   borderRadius: "10px",
-  border: "none",
   background: "rgba(255,255,255,0.08)",
   color: "white",
-  textAlign: "left" as const,
   fontWeight: "bold",
   textDecoration: "none",
   display: "block",
+};
+
+const downloadStyle = {
+  padding: "12px 14px",
+  borderRadius: "10px",
+  background: "linear-gradient(135deg, #22c55e, #16a34a)",
+  color: "white",
+  fontWeight: "bold",
+  textDecoration: "none",
+  display: "block",
+  textAlign: "center" as const,
+  boxShadow: "0 0 10px rgba(34,197,94,0.5)",
 };
 
 const logoutStyle = {

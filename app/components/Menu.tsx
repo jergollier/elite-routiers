@@ -45,7 +45,6 @@ export default async function Menu() {
           Mon profil
         </Link>
 
-        {/* 🔥 visible seulement si entreprise */}
         {hasEntreprise && (
           <>
             <Link href="/mon-entreprise" style={menuLinkStyle}>
@@ -66,12 +65,11 @@ export default async function Menu() {
           </>
         )}
 
-        {/* ✅ visible pour tout le monde */}
         <Link href="/societe/classement" style={menuLinkStyle}>
           Classement
         </Link>
 
-        {/* 🔥 NOUVEAU : Télécharger le Tacky */}
+        {/* ✅ TACKY (1 seul bouton) */}
         <a
           href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/Elite%20Routier%20Tacky%20Setup%201.0.1.exe"
           style={downloadStyle}
@@ -79,17 +77,9 @@ export default async function Menu() {
           ⬇ Télécharger le Tacky
         </a>
 
-                {/* 🔥 Télécharger le Tacky */}
+        {/* ✅ PLUGIN (corrigé) */}
         <a
-          href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/Elite%20Routier%20Tacky%20Setup%201.0.1.exe"
-          style={downloadStyle}
-        >
-          ⬇ Télécharger le Tacky
-        </a>
-
-        {/* 🔥 NOUVEAU : Télécharger le Plugin */}
-        <a
-          href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/Tacky-Elite-Routiers.zip"
+          href="/downloads/Plugin-Elite-Routiers.zip"
           style={pluginStyle}
         >
           🔌 Télécharger le Plugin
@@ -125,17 +115,6 @@ const downloadStyle = {
   boxShadow: "0 0 10px rgba(34,197,94,0.5)",
 };
 
-const logoutStyle = {
-  padding: "12px 14px",
-  borderRadius: "10px",
-  background: "rgba(255,80,80,0.2)",
-  color: "#ff4d4d",
-  fontWeight: "bold",
-  textDecoration: "none",
-  display: "block",
-  marginTop: "10px",
-};
-
 const pluginStyle = {
   padding: "12px 14px",
   borderRadius: "10px",
@@ -146,4 +125,15 @@ const pluginStyle = {
   display: "block",
   textAlign: "center" as const,
   boxShadow: "0 0 10px rgba(59,130,246,0.5)",
+};
+
+const logoutStyle = {
+  padding: "12px 14px",
+  borderRadius: "10px",
+  background: "rgba(255,80,80,0.2)",
+  color: "#ff4d4d",
+  fontWeight: "bold",
+  textDecoration: "none",
+  display: "block",
+  marginTop: "10px",
 };

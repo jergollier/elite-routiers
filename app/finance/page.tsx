@@ -82,7 +82,9 @@ export default async function FinancePage() {
 
   const totalEntretien = transactions
     .filter((t) =>
-      ["ENTRETIEN", "CARBURANT", "VIDANGE", "MAINTENANCE", "REPARATION"].includes(t.type)
+      ["ENTRETIEN", "CARBURANT", "VIDANGE", "MAINTENANCE", "REPARATION"].includes(
+        t.type
+      )
     )
     .reduce((acc, t) => acc + Math.abs(t.montant), 0);
 
@@ -115,7 +117,7 @@ export default async function FinancePage() {
 
       <div style={{ position: "relative", zIndex: 1 }}>
         <header style={headerStyle}>
-          <h1>Finance société</h1>
+          <h1 style={{ margin: 0 }}>Finance société</h1>
           <Link href="/societe" style={btnStyle}>
             ← Retour
           </Link>
@@ -123,7 +125,6 @@ export default async function FinancePage() {
 
         <div style={containerStyle}>
           <div style={gridStyle}>
-            {/* LEFT */}
             <aside style={sidebarStyle}>
               <Box title="Résumé">
                 <Line label="Solde" value={solde} green />
@@ -140,53 +141,56 @@ export default async function FinancePage() {
               </Box>
             </aside>
 
-            {/* TABLE */}
             <section style={tableBox}>
-              <h2>Historique</h2>
+              <h2 style={{ marginTop: 0 }}>Historique</h2>
 
-              <table style={tableStyle}>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Chauffeur</th>
-                    <th>Type</th>
-                    <th>Description</th>
-                    <th>Montant</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {transactions.map((t) => (
-                    <tr
-                      key={t.id}
-                      style={rowStyle}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "rgba(255,255,255,0.05)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
-                    >
-                      <td>{formatDate(t.createdAt)}</td>
-                      <td>{t.chauffeur?.username || "Entreprise"}</td>
-                      <td>
-                        <span style={badgeStyle(t.type)}>
-                          {formatType(t.type)}
-                        </span>
-                      </td>
-                      <td>{t.description}</td>
-                      <td
-                        style={{
-                          color: t.montant >= 0 ? "#22c55e" : "#ef4444",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {formatSignedMontant(t.montant)}
-                      </td>
+              <div style={{ overflowX: "auto" }}>
+                <table style={tableStyle}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>Date</th>
+                      <th style={thStyle}>Chauffeur</th>
+                      <th style={thStyle}>Type</th>
+                      <th style={thStyle}>Description</th>
+                      <th style={thStyle}>Montant</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+
+                  <tbody>
+                    {transactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={emptyStyle}>
+                          Aucune transaction pour le moment.
+                        </td>
+                      </tr>
+                    ) : (
+                      transactions.map((t) => (
+                        <tr key={t.id} style={rowStyle}>
+                          <td style={tdStyle}>{formatDate(t.createdAt)}</td>
+                          <td style={tdStyle}>
+                            {t.chauffeur?.username || "Entreprise"}
+                          </td>
+                          <td style={tdStyle}>
+                            <span style={badgeStyle(t.type)}>
+                              {formatType(t.type)}
+                            </span>
+                          </td>
+                          <td style={tdStyle}>{t.description}</td>
+                          <td
+                            style={{
+                              ...tdStyle,
+                              color: t.montant >= 0 ? "#22c55e" : "#ef4444",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {formatSignedMontant(t.montant)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </section>
           </div>
         </div>
@@ -195,72 +199,43 @@ export default async function FinancePage() {
   );
 }
 
-/* ================= UI ================= */
-
-const headerStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  padding: "20px",
-  borderBottom: "1px solid rgba(255,255,255,0.1)",
-};
-
-const btnStyle = {
-  background: "rgba(255,255,255,0.1)",
-  padding: "10px",
-  borderRadius: "10px",
-  textDecoration: "none",
-  color: "white",
-};
-
-const containerStyle = {
-  maxWidth: "1400px",
-  margin: "auto",
-  padding: "20px",
-};
-
-const gridStyle = {
-  display: "grid",
-  gridTemplateColumns: "300px 1fr",
-  gap: "20px",
-};
-
-const sidebarStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "20px",
-};
-
-const tableBox = {
-  background: "rgba(0,0,0,0.4)",
-  padding: "20px",
-  borderRadius: "16px",
-};
-
-const tableStyle = {
-  width: "100%",
-};
-
-const rowStyle = {
-  borderBottom: "1px solid rgba(255,255,255,0.08)",
-  transition: "0.2s",
-};
-
 /* ================= COMPONENTS ================= */
 
-function Box({ title, children }: any) {
+function Box({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div style={{ background: "rgba(0,0,0,0.4)", padding: "20px", borderRadius: "16px" }}>
-      <h3>{title}</h3>
+    <div style={boxStyle}>
+      <h3 style={{ marginTop: 0 }}>{title}</h3>
       {children}
     </div>
   );
 }
 
-function Line({ label, value, green, red }: any) {
+function Line({
+  label,
+  value,
+  green,
+  red,
+}: {
+  label: string;
+  value: number;
+  green?: boolean;
+  red?: boolean;
+}) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
+    <div style={lineStyle}>
       <span>{label}</span>
-      <span style={{ color: green ? "#22c55e" : red ? "#ef4444" : "white" }}>
+      <span
+        style={{
+          color: green ? "#22c55e" : red ? "#ef4444" : "white",
+          fontWeight: "bold",
+        }}
+      >
         {formatSignedMontant(value)}
       </span>
     </div>
@@ -269,39 +244,281 @@ function Line({ label, value, green, red }: any) {
 
 /* ================= UTILS ================= */
 
-function formatDate(date: any) {
-  return new Date(date).toLocaleString("fr-FR");
+function formatDate(date: Date | string) {
+  return new Date(date).toLocaleString("fr-FR", {
+    timeZone: "Europe/Paris",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatSignedMontant(v: number) {
-  return v > 0 ? "+" + v + " €" : v + " €";
+  if (v > 0) return `+${v.toLocaleString("fr-FR")} €`;
+  if (v < 0) return `${v.toLocaleString("fr-FR")} €`;
+  return "0 €";
 }
 
 function formatType(type: string) {
   switch (type) {
     case "LIVRAISON":
       return "Livraison";
-    case "TELEPEAGE":
-      return "Télépéage";
+    case "PRIME":
+      return "Prime";
+    case "LIVRAISON_ENTREPRISE":
+      return "Part société";
+    case "SALAIRE_CHAUFFEUR":
+      return "Salaire chauffeur";
+    case "CHARGES_LIVRAISON":
+      return "Charges livraison";
     case "CARBURANT":
       return "Carburant";
+    case "TELEPEAGE":
+      return "Télépéage";
+    case "ENTRETIEN":
+      return "Entretien";
+    case "VIDANGE":
+      return "Vidange";
+    case "MAINTENANCE":
+      return "Maintenance";
+    case "REPARATION":
+      return "Réparation";
     case "ACHAT_CAMION":
       return "Achat camion";
     case "VENTE_CAMION":
       return "Vente camion";
-    case "SALAIRE_CHAUFFEUR":
-      return "Salaire chauffeur";
-    case "LIVRAISON_ENTREPRISE":
-      return "Part société";
+    case "MODIFICATION_CAMION":
+      return "Modification camion";
+    case "AMENDE_VITESSE":
+    case "AMENDE_FEU":
+    case "AUTRE_AMENDE":
+      return "Amende";
     default:
       return type;
   }
 }
 
 function badgeStyle(type: string) {
-  return {
-    padding: "5px 10px",
+  const baseStyle = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "6px 12px",
     borderRadius: "999px",
-    background: "rgba(255,255,255,0.1)",
+    fontSize: "12px",
+    fontWeight: "bold" as const,
+    border: "1px solid rgba(255,255,255,0.12)",
+    backdropFilter: "blur(4px)",
+  };
+
+  if (type === "LIVRAISON" || type === "PRIME") {
+    return {
+      ...baseStyle,
+      background: "rgba(34,197,94,0.18)",
+      color: "#4ade80",
+      boxShadow: "0 0 8px rgba(34,197,94,0.25)",
+    };
+  }
+
+  if (type === "LIVRAISON_ENTREPRISE") {
+    return {
+      ...baseStyle,
+      background: "rgba(59,130,246,0.18)",
+      color: "#60a5fa",
+      boxShadow: "0 0 8px rgba(59,130,246,0.25)",
+    };
+  }
+
+  if (type === "SALAIRE_CHAUFFEUR") {
+    return {
+      ...baseStyle,
+      background: "rgba(168,85,247,0.18)",
+      color: "#c084fc",
+      boxShadow: "0 0 8px rgba(168,85,247,0.25)",
+    };
+  }
+
+  if (type === "CHARGES_LIVRAISON") {
+    return {
+      ...baseStyle,
+      background: "rgba(245,158,11,0.18)",
+      color: "#fbbf24",
+      boxShadow: "0 0 8px rgba(245,158,11,0.25)",
+    };
+  }
+
+  if (type === "CARBURANT") {
+    return {
+      ...baseStyle,
+      background: "rgba(239,68,68,0.18)",
+      color: "#f87171",
+      boxShadow: "0 0 8px rgba(239,68,68,0.25)",
+    };
+  }
+
+  if (type === "TELEPEAGE") {
+    return {
+      ...baseStyle,
+      background: "rgba(250,204,21,0.18)",
+      color: "#fde047",
+      boxShadow: "0 0 8px rgba(250,204,21,0.25)",
+    };
+  }
+
+  if (
+    type === "ENTRETIEN" ||
+    type === "VIDANGE" ||
+    type === "MAINTENANCE" ||
+    type === "REPARATION"
+  ) {
+    return {
+      ...baseStyle,
+      background: "rgba(107,114,128,0.18)",
+      color: "#d1d5db",
+      boxShadow: "0 0 6px rgba(107,114,128,0.25)",
+    };
+  }
+
+  if (
+    type === "AMENDE_VITESSE" ||
+    type === "AMENDE_FEU" ||
+    type === "AUTRE_AMENDE"
+  ) {
+    return {
+      ...baseStyle,
+      background: "rgba(220,38,38,0.25)",
+      color: "#f87171",
+      boxShadow: "0 0 8px rgba(220,38,38,0.35)",
+    };
+  }
+
+  if (type === "ACHAT_CAMION") {
+    return {
+      ...baseStyle,
+      background: "rgba(249,115,22,0.18)",
+      color: "#fb923c",
+      boxShadow: "0 0 8px rgba(249,115,22,0.25)",
+    };
+  }
+
+  if (type === "VENTE_CAMION") {
+    return {
+      ...baseStyle,
+      background: "rgba(16,185,129,0.18)",
+      color: "#34d399",
+      boxShadow: "0 0 8px rgba(16,185,129,0.25)",
+    };
+  }
+
+  if (type === "MODIFICATION_CAMION") {
+    return {
+      ...baseStyle,
+      background: "rgba(59,130,246,0.18)",
+      color: "#60a5fa",
+      boxShadow: "0 0 8px rgba(59,130,246,0.25)",
+    };
+  }
+
+  return {
+    ...baseStyle,
+    background: "rgba(255,255,255,0.08)",
+    color: "#e5e7eb",
   };
 }
+
+/* ================= STYLES ================= */
+
+const headerStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "20px 24px",
+  borderBottom: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(0,0,0,0.35)",
+  backdropFilter: "blur(6px)",
+} as const;
+
+const btnStyle = {
+  background: "rgba(255,255,255,0.1)",
+  padding: "10px 14px",
+  borderRadius: "10px",
+  textDecoration: "none",
+  color: "white",
+  fontWeight: "bold",
+  border: "1px solid rgba(255,255,255,0.12)",
+  display: "inline-flex",
+  alignItems: "center",
+} as const;
+
+const containerStyle = {
+  maxWidth: "1400px",
+  margin: "0 auto",
+  padding: "24px",
+} as const;
+
+const gridStyle = {
+  display: "grid",
+  gridTemplateColumns: "300px 1fr",
+  gap: "20px",
+} as const;
+
+const sidebarStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px",
+} as const;
+
+const boxStyle = {
+  background: "rgba(0,0,0,0.4)",
+  padding: "20px",
+  borderRadius: "16px",
+  border: "1px solid rgba(255,255,255,0.08)",
+  boxShadow: "0 0 20px rgba(0,0,0,0.25)",
+} as const;
+
+const tableBox = {
+  background: "rgba(0,0,0,0.4)",
+  padding: "20px",
+  borderRadius: "16px",
+  border: "1px solid rgba(255,255,255,0.08)",
+  boxShadow: "0 0 20px rgba(0,0,0,0.25)",
+} as const;
+
+const tableStyle = {
+  width: "100%",
+  borderCollapse: "collapse",
+  minWidth: "900px",
+} as const;
+
+const rowStyle = {
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+} as const;
+
+const thStyle = {
+  textAlign: "left",
+  padding: "12px",
+  fontSize: "14px",
+  borderBottom: "1px solid rgba(255,255,255,0.10)",
+  opacity: 0.9,
+} as const;
+
+const tdStyle = {
+  padding: "14px 12px",
+  fontSize: "14px",
+} as const;
+
+const emptyStyle = {
+  padding: "24px 12px",
+  textAlign: "center",
+  opacity: 0.8,
+} as const;
+
+const lineStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "10px 0",
+  borderBottom: "1px solid rgba(255,255,255,0.06)",
+} as const;

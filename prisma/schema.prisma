@@ -116,6 +116,7 @@ model Entreprise {
   livraisons      Livraison[]
   pleinsCarburant PleinCarburant[]
   mouvementsCuve  MouvementCuve[]
+  avertissements  AvertissementEntreprise[]
 
   @@index([nom])
   @@index([jeu])
@@ -130,6 +131,9 @@ model EntrepriseMembre {
 
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+
+  avertissementsRecus  AvertissementEntreprise[] @relation("AvertissementMembre")
+  avertissementsDonnes AvertissementEntreprise[] @relation("AvertissementAuteur")
 
   @@index([entrepriseId])
 }
@@ -220,9 +224,9 @@ model Camion {
   actif                Boolean      @default(true)
   createdAt            DateTime     @default(now())
 
-  entreprise        Entreprise?      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  chauffeurAttribue User?            @relation("CamionsAttribues", fields: [chauffeurAttribueId], references: [id], onDelete: SetNull)
-  proprietaire      User?            @relation("CamionsPerso", fields: [proprietaireId], references: [id], onDelete: SetNull)
+  entreprise        Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  chauffeurAttribue User?       @relation("CamionsAttribues", fields: [chauffeurAttribueId], references: [id], onDelete: SetNull)
+  proprietaire      User?       @relation("CamionsPerso", fields: [proprietaireId], references: [id], onDelete: SetNull)
   livraisons        Livraison[]
   pleins            PleinCarburant[]
 
@@ -311,9 +315,9 @@ model Livraison {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user       User             @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
-  entreprise Entreprise?      @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
-  camion     Camion?          @relation(fields: [camionId], references: [id], onDelete: SetNull)
+  user       User        @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
+  entreprise Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+  camion     Camion?     @relation(fields: [camionId], references: [id], onDelete: SetNull)
   pleins     PleinCarburant[]
 
   @@index([steamId])
@@ -407,4 +411,22 @@ model TackySession {
   @@index([userId])
   @@index([token])
   @@index([deviceCode])
+}
+
+model AvertissementEntreprise {
+  id           Int      @id @default(autoincrement())
+  entrepriseId Int
+  membreId     Int
+  auteurId     Int
+  raison       String
+  createdAt    DateTime @default(now())
+
+  entreprise Entreprise       @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  membre     EntrepriseMembre @relation("AvertissementMembre", fields: [membreId], references: [id], onDelete: Cascade)
+  auteur     EntrepriseMembre @relation("AvertissementAuteur", fields: [auteurId], references: [id], onDelete: Cascade)
+
+  @@index([entrepriseId])
+  @@index([membreId])
+  @@index([auteurId])
+  @@index([createdAt])
 }

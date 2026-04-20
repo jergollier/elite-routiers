@@ -184,7 +184,7 @@ export default async function CreerEntreprisePage() {
             </section>
           ) : (
             <form
-              action="/api/entreprises"
+              action="/api/entreprise"
               method="POST"
               encType="multipart/form-data"
               style={{

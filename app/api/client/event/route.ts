@@ -30,13 +30,11 @@ function normalizeType(type: string): string {
 }
 
 function isStartType(type: string): boolean {
-  const t = normalizeType(type);
-  return t === "delivery_started";
+  return normalizeType(type) === "delivery_started";
 }
 
 function isFinishType(type: string): boolean {
-  const t = normalizeType(type);
-  return t === "delivery_finished";
+  return normalizeType(type) === "delivery_finished";
 }
 
 function getTruckName(data: Record<string, unknown>): string {
@@ -76,7 +74,11 @@ function getJobId(data: Record<string, unknown>): string | null {
 
   return jobId;
 }
-function getOptionalString(data: Record<string, unknown>, key: string): string | null {
+
+function getOptionalString(
+  data: Record<string, unknown>,
+  key: string
+): string | null {
   const value = toStringValue(data[key]);
   return value.trim() ? value.trim() : null;
 }
@@ -84,26 +86,26 @@ function getOptionalString(data: Record<string, unknown>, key: string): string |
 export async function POST(request: Request) {
   try {
     console.log("🔥 ROUTE LIVRAISON ACTIVE 🔥");
-    const body = (await request.json()) as ClientBody;
 
+    const body = (await request.json()) as ClientBody;
     const type = body.type ?? "unknown";
     const data = (body.data ?? {}) as Record<string, unknown>;
 
     await prisma.clientEvent.create({
-  data: {
-    type,
-    payload: data as Prisma.InputJsonValue,
-  },
-});
+      data: {
+        type,
+        payload: data as Prisma.InputJsonValue,
+      },
+    });
 
     if (isStartType(type)) {
-  const steamId = getSteamId(data);
-  const truck = getTruckName(data);
-  const startOdometerKm = getOdometerKm(data);
-  const jobId = getJobId(data);
-  const sourceCity = getOptionalString(data, "sourceCity");
-  const destinationCity = getOptionalString(data, "destinationCity");
-  const cargo = getOptionalString(data, "cargo");
+      const steamId = getSteamId(data);
+      const truck = getTruckName(data);
+      const startOdometerKm = getOdometerKm(data);
+      const jobId = getJobId(data);
+      const sourceCity = getOptionalString(data, "sourceCity");
+      const destinationCity = getOptionalString(data, "destinationCity");
+      const cargo = getOptionalString(data, "cargo");
 
       if (!steamId) {
         return NextResponse.json(
@@ -131,28 +133,33 @@ export async function POST(request: Request) {
       }
 
       const user = await prisma.user.findUnique({
-  where: { steamId },
-  include: {
-    memberships: true,
-  },
-});
+        where: { steamId },
+      });
 
-const entrepriseId = user?.memberships?.entrepriseId ?? null;
+      const membership = user
+        ? await prisma.entrepriseMembre.findUnique({
+            where: {
+              userId: user.id,
+            },
+          })
+        : null;
+
+      const entrepriseId = membership?.entrepriseId ?? null;
 
       const livraison = await prisma.livraison.create({
-  data: {
-    jobId,
-    steamId,
-    entrepriseId,
-    truck,
-    cargo,
-    sourceCity,
-    destinationCity,
-    status: "EN_COURS",
-    startedAt: new Date(),
-    startOdometerKm,
-  },
-});
+        data: {
+          jobId,
+          steamId,
+          entrepriseId,
+          truck,
+          cargo,
+          sourceCity,
+          destinationCity,
+          status: "EN_COURS",
+          startedAt: new Date(),
+          startOdometerKm,
+        },
+      });
 
       if (user) {
         const camionAttribue = await prisma.camion.findFirst({
@@ -187,12 +194,12 @@ const entrepriseId = user?.memberships?.entrepriseId ?? null;
     }
 
     if (isFinishType(type)) {
-  const steamId = getSteamId(data);
-  const endOdometerKm = getOdometerKm(data);
-  const income = getIncome(data);
-  const sourceCity = getOptionalString(data, "sourceCity");
-  const destinationCity = getOptionalString(data, "destinationCity");
-  const cargo = getOptionalString(data, "cargo");
+      const steamId = getSteamId(data);
+      const endOdometerKm = getOdometerKm(data);
+      const income = getIncome(data);
+      const sourceCity = getOptionalString(data, "sourceCity");
+      const destinationCity = getOptionalString(data, "destinationCity");
+      const cargo = getOptionalString(data, "cargo");
 
       if (!steamId) {
         return NextResponse.json(
@@ -224,31 +231,37 @@ const entrepriseId = user?.memberships?.entrepriseId ?? null;
       );
 
       const user = await prisma.user.findUnique({
-  where: { steamId },
-  include: {
-    memberships: true,
-  },
-});
+        where: { steamId },
+      });
 
-const entrepriseId =
-  activeLivraison.entrepriseId ?? user?.memberships?.entrepriseId ?? null;
+      const membership = user
+        ? await prisma.entrepriseMembre.findUnique({
+            where: {
+              userId: user.id,
+            },
+          })
+        : null;
+
+      const entrepriseId =
+        activeLivraison.entrepriseId ?? membership?.entrepriseId ?? null;
 
       const result = await prisma.$transaction(async (tx) => {
         const livraisonMaj = await tx.livraison.update({
-  where: { id: activeLivraison.id },
-  data: {
-    status: "TERMINEE",
-    finishedAt: new Date(),
-    endOdometerKm,
-    distanceReelleKm,
-    income,
-    argentAjoute: true,
-    entrepriseId,
-    sourceCity: activeLivraison.sourceCity ?? sourceCity,
-    destinationCity: activeLivraison.destinationCity ?? destinationCity,
-    cargo: activeLivraison.cargo ?? cargo,
-  },
-});
+          where: { id: activeLivraison.id },
+          data: {
+            status: "TERMINEE",
+            finishedAt: new Date(),
+            endOdometerKm,
+            distanceReelleKm,
+            income,
+            argentAjoute: true,
+            entrepriseId,
+            sourceCity: activeLivraison.sourceCity ?? sourceCity,
+            destinationCity:
+              activeLivraison.destinationCity ?? destinationCity,
+            cargo: activeLivraison.cargo ?? cargo,
+          },
+        });
 
         if (entrepriseId && income > 0) {
           const financeExiste = await tx.finance.findFirst({

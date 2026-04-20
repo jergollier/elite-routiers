@@ -131,17 +131,13 @@ export async function POST(request: Request) {
       }
 
       const user = await prisma.user.findUnique({
-           where: { steamId },
-           include: {
-           memberships: true,
-        },
-      });
+  where: { steamId },
+  include: {
+    memberships: true,
+  },
+});
 
-      const memberships = [...(user?.memberships ?? [])].sort(
-       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-     );
-
-      const entrepriseId = memberships[0]?.entrepriseId ?? null;
+const entrepriseId = user?.memberships?.entrepriseId ?? null;
 
       const livraison = await prisma.livraison.create({
   data: {
@@ -234,12 +230,8 @@ export async function POST(request: Request) {
   },
 });
 
-      const memberships = [...(user?.memberships ?? [])].sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-);
-
-      const entrepriseId =
-        activeLivraison.entrepriseId ?? memberships[0]?.entrepriseId ?? null;
+const entrepriseId =
+  activeLivraison.entrepriseId ?? user?.memberships?.entrepriseId ?? null;
 
       const result = await prisma.$transaction(async (tx) => {
         const livraisonMaj = await tx.livraison.update({

@@ -7,8 +7,11 @@ export async function POST() {
     const cookieStore = await cookies();
     const steamId = cookieStore.get("steamId")?.value;
 
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
     if (!steamId) {
-      return NextResponse.redirect(new URL("/", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+      return NextResponse.redirect(new URL("/", baseUrl), 303);
     }
 
     const user = await prisma.user.findUnique({
@@ -19,7 +22,7 @@ export async function POST() {
     });
 
     if (!user || user.memberships.length === 0) {
-      return NextResponse.redirect(new URL("/societe", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+      return NextResponse.redirect(new URL("/societe", baseUrl), 303);
     }
 
     const membership = user.memberships[0];
@@ -30,9 +33,13 @@ export async function POST() {
       },
     });
 
-    return NextResponse.redirect(new URL("/societe", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+    return NextResponse.redirect(new URL("/societe", baseUrl), 303);
   } catch (error) {
     console.error("Erreur démission entreprise :", error);
-    return NextResponse.redirect(new URL("/mon-entreprise", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    return NextResponse.redirect(new URL("/mon-entreprise", baseUrl), 303);
   }
 }

@@ -63,72 +63,36 @@ export default async function FinancePage() {
   const solde = entreprise.argent ?? 0;
 
   const totalGains = transactions
-    .filter((transaction) => transaction.montant > 0)
-    .reduce((acc, transaction) => acc + transaction.montant, 0);
+    .filter((t) => t.montant > 0)
+    .reduce((acc, t) => acc + t.montant, 0);
 
   const totalDepenses = transactions
-    .filter((transaction) => transaction.montant < 0)
-    .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
+    .filter((t) => t.montant < 0)
+    .reduce((acc, t) => acc + Math.abs(t.montant), 0);
 
   const totalAmendes = transactions
-    .filter(
-      (transaction) =>
-        transaction.type === "AMENDE_VITESSE" ||
-        transaction.type === "AMENDE_FEU" ||
-        transaction.type === "AUTRE_AMENDE"
+    .filter((t) =>
+      ["AMENDE_VITESSE", "AMENDE_FEU", "AUTRE_AMENDE"].includes(t.type)
     )
-    .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
+    .reduce((acc, t) => acc + Math.abs(t.montant), 0);
 
   const totalPeages = transactions
-    .filter((transaction) => transaction.type === "PEAGE")
-    .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
+    .filter((t) => t.type === "TELEPEAGE")
+    .reduce((acc, t) => acc + Math.abs(t.montant), 0);
 
   const totalEntretien = transactions
-    .filter(
-      (transaction) =>
-        transaction.type === "ENTRETIEN" ||
-        transaction.type === "CARBURANT" ||
-        transaction.type === "VIDANGE" ||
-        transaction.type === "MAINTENANCE" ||
-        transaction.type === "REPARATION"
+    .filter((t) =>
+      ["ENTRETIEN", "CARBURANT", "VIDANGE", "MAINTENANCE", "REPARATION"].includes(t.type)
     )
-    .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
+    .reduce((acc, t) => acc + Math.abs(t.montant), 0);
 
   const totalCamions = transactions
-    .filter((transaction) => transaction.type === "ACHAT_CAMION")
-    .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
+    .filter((t) => t.type === "ACHAT_CAMION")
+    .reduce((acc, t) => acc + Math.abs(t.montant), 0);
 
   const totalChargesLivraison = transactions
-    .filter((transaction) => transaction.type === "CHARGES_LIVRAISON")
-    .reduce((acc, transaction) => acc + Math.abs(transaction.montant), 0);
-
-  const livraisonsTerminees = await prisma.livraison.findMany({
-    where: {
-      entrepriseId: entreprise.id,
-      status: "TERMINEE",
-    },
-    select: {
-      income: true,
-    },
-  });
-
-  const totalBrutLivraisons = livraisonsTerminees.reduce(
-    (acc, livraison) => acc + (livraison.income ?? 0),
-    0
-  );
-
-  const totalPartSociete = livraisonsTerminees.reduce(
-    (acc, livraison) => acc + Math.round((livraison.income ?? 0) * 0.15),
-    0
-  );
-
-  const totalPartChauffeurs = livraisonsTerminees.reduce(
-    (acc, livraison) => acc + Math.round((livraison.income ?? 0) * 0.2),
-    0
-  );
-
-  const totalCharges =
-    totalBrutLivraisons - totalPartSociete - totalPartChauffeurs;
+    .filter((t) => t.type === "CHARGES_LIVRAISON")
+    .reduce((acc, t) => acc + Math.abs(t.montant), 0);
 
   return (
     <main
@@ -137,513 +101,207 @@ export default async function FinancePage() {
         backgroundImage: "url('/truck.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        position: "relative",
         color: "white",
+        position: "relative",
       }}
     >
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.65)",
+          background: "rgba(0,0,0,0.65)",
         }}
       />
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <header
-          style={{
-            height: "80px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 24px",
-            borderBottom: "1px solid rgba(255,255,255,0.15)",
-            background: "rgba(0,0,0,0.35)",
-            backdropFilter: "blur(6px)",
-          }}
-        >
-          <div style={{ fontSize: "28px", fontWeight: "bold" }}>
-            Elite Routiers
-          </div>
-
-          <Link
-            href="/societe"
-            style={{
-              color: "white",
-              textDecoration: "none",
-              fontWeight: "bold",
-              padding: "10px 16px",
-              borderRadius: "10px",
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(255,255,255,0.08)",
-              display: "inline-flex",
-              alignItems: "center",
-            }}
-          >
-            ← Retour à société
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <header style={headerStyle}>
+          <h1>Finance société</h1>
+          <Link href="/societe" style={btnStyle}>
+            ← Retour
           </Link>
         </header>
 
-        <div
-          style={{
-            maxWidth: "1400px",
-            width: "100%",
-            margin: "0 auto",
-            padding: "24px",
-          }}
-        >
-          <section
-            style={{
-              background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "18px",
-              overflow: "hidden",
-              backdropFilter: "blur(6px)",
-              boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div
-              style={{
-                height: "240px",
-                backgroundImage: "url('/truck.jpg')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                position: "relative",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background:
-                    "linear-gradient(to top, rgba(0,0,0,0.88), rgba(0,0,0,0.20))",
-                }}
-              />
+        <div style={containerStyle}>
+          <div style={gridStyle}>
+            {/* LEFT */}
+            <aside style={sidebarStyle}>
+              <Box title="Résumé">
+                <Line label="Solde" value={solde} green />
+                <Line label="Gains" value={totalGains} green />
+                <Line label="Dépenses" value={-totalDepenses} red />
+              </Box>
 
-              <div
-                style={{
-                  position: "absolute",
-                  left: "24px",
-                  bottom: "24px",
-                  right: "24px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                  gap: "16px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div>
-                  <h1 style={{ margin: 0, fontSize: "36px" }}>
-                    Finance de la société
-                  </h1>
+              <Box title="Dépenses">
+                <Line label="Amendes" value={-totalAmendes} red />
+                <Line label="Télépéage" value={-totalPeages} red />
+                <Line label="Entretien" value={-totalEntretien} red />
+                <Line label="Charges livraison" value={-totalChargesLivraison} red />
+                <Line label="Camions" value={-totalCamions} red />
+              </Box>
+            </aside>
 
-                  <div
-                    style={{
-                      marginTop: "8px",
-                      fontWeight: "bold",
-                      opacity: 0.95,
-                    }}
-                  >
-                    {entreprise.nom} • suivi complet de tous les mouvements d’argent
-                  </div>
-                </div>
+            {/* TABLE */}
+            <section style={tableBox}>
+              <h2>Historique</h2>
 
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    background: "rgba(255,255,255,0.10)",
-                    padding: "10px 14px",
-                    borderRadius: "999px",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    fontWeight: "bold",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "10px",
-                      height: "10px",
-                      borderRadius: "50%",
-                      display: "inline-block",
-                      background: "#22c55e",
-                      boxShadow: "0 0 8px #22c55e",
-                    }}
-                  />
-                  {transactions.length} transaction{transactions.length > 1 ? "s" : ""}
-                </div>
-              </div>
-            </div>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Chauffeur</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Montant</th>
+                  </tr>
+                </thead>
 
-            <div
-              style={{
-                padding: "24px",
-                display: "grid",
-                gridTemplateColumns: "320px 1fr",
-                gap: "20px",
-              }}
-            >
-              <aside
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                }}
-              >
-                <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "14px" }}>
-                    Résumé général
-                  </h2>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Solde actuel</span>
-                    <span
-                      style={{
-                        ...valueStyle,
-                        color: solde >= 0 ? "#22c55e" : "#ef4444",
-                      }}
+                <tbody>
+                  {transactions.map((t) => (
+                    <tr
+                      key={t.id}
+                      style={rowStyle}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "rgba(255,255,255,0.05)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
                     >
-                      {formatSignedMontant(solde)}
-                    </span>
-                  </div>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Total gagné</span>
-                    <span style={{ ...valueStyle, color: "#22c55e" }}>
-                      +{formatMontant(totalGains)}
-                    </span>
-                  </div>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Total dépensé</span>
-                    <span style={{ ...valueStyle, color: "#ef4444" }}>
-                      -{formatMontant(totalDepenses)}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "14px" }}>
-                    Répartition des livraisons
-                  </h2>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Brut livraisons</span>
-                    <span style={{ ...valueStyle, color: "#22c55e" }}>
-                      {formatMontant(totalBrutLivraisons)}
-                    </span>
-                  </div>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Part société (15%)</span>
-                    <span style={{ ...valueStyle, color: "#22c55e" }}>
-                      {formatMontant(totalPartSociete)}
-                    </span>
-                  </div>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Part chauffeurs (20%)</span>
-                    <span style={{ ...valueStyle, color: "#60a5fa" }}>
-                      {formatMontant(totalPartChauffeurs)}
-                    </span>
-                  </div>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Charges sociales</span>
-                    <span style={{ ...valueStyle, color: "#f59e0b" }}>
-                      {formatMontant(totalCharges)}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "14px" }}>
-                    Dépenses détaillées
-                  </h2>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Amendes</span>
-                    <span style={{ ...valueStyle, color: "#ef4444" }}>
-                      -{formatMontant(totalAmendes)}
-                    </span>
-                  </div>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Péages</span>
-                    <span style={{ ...valueStyle, color: "#ef4444" }}>
-                      -{formatMontant(totalPeages)}
-                    </span>
-                  </div>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Entretien / carburant</span>
-                    <span style={{ ...valueStyle, color: "#ef4444" }}>
-                      -{formatMontant(totalEntretien)}
-                    </span>
-                  </div>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Charges livraison</span>
-                    <span style={{ ...valueStyle, color: "#ef4444" }}>
-                      -{formatMontant(totalChargesLivraison)}
-                    </span>
-                  </div>
-
-                  <div style={infoLineStyle}>
-                    <span style={labelStyle}>Achat camions</span>
-                    <span style={{ ...valueStyle, color: "#ef4444" }}>
-                      -{formatMontant(totalCamions)}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "10px" }}>
-                    Types suivis
-                  </h2>
-
-                  <p style={smallTextStyle}>
-                    Livraisons, charges livraison, amendes, péages, carburant,
-                    entretien, vidange, maintenance, réparation, achat camion.
-                  </p>
-                </div>
-              </aside>
-
-              <section style={boxStyle}>
-                <h2 style={{ marginTop: 0, marginBottom: "8px" }}>
-                  Historique financier
-                </h2>
-
-                <p
-                  style={{
-                    marginTop: 0,
-                    marginBottom: "20px",
-                    opacity: 0.85,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Toutes les actions financières réalisées en jeu apparaissent ici.
-                </p>
-
-                <div style={{ overflowX: "auto" }}>
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                      minWidth: "900px",
-                    }}
-                  >
-                    <thead>
-                      <tr>
-                        <th style={thStyle}>Date</th>
-                        <th style={thStyle}>Chauffeur</th>
-                        <th style={thStyle}>Type</th>
-                        <th style={thStyle}>Description</th>
-                        <th style={thStyle}>Montant</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {transactions.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={5}
-                            style={{
-                              padding: "24px 12px",
-                              textAlign: "center",
-                              opacity: 0.8,
-                            }}
-                          >
-                            Aucune transaction pour le moment.
-                          </td>
-                        </tr>
-                      ) : (
-                        transactions.map((transaction) => (
-                          <tr
-                            key={transaction.id}
-                            style={{
-                              borderBottom: "1px solid rgba(255,255,255,0.08)",
-                            }}
-                          >
-                            <td style={tdStyle}>
-                              {formatDate(transaction.createdAt)}
-                            </td>
-                            <td style={tdStyle}>
-                              {transaction.chauffeur?.username || "Entreprise"}
-                            </td>
-                            <td style={tdStyle}>
-                              <span style={badgeStyle(transaction.type)}>
-                                {formatType(transaction.type)}
-                              </span>
-                            </td>
-                            <td style={tdStyle}>{transaction.description}</td>
-                            <td
-                              style={{
-                                ...tdStyle,
-                                fontWeight: "bold",
-                                color:
-                                  transaction.montant >= 0 ? "#22c55e" : "#ef4444",
-                              }}
-                            >
-                              {formatSignedMontant(transaction.montant)}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </div>
-          </section>
+                      <td>{formatDate(t.createdAt)}</td>
+                      <td>{t.chauffeur?.username || "Entreprise"}</td>
+                      <td>
+                        <span style={badgeStyle(t.type)}>
+                          {formatType(t.type)}
+                        </span>
+                      </td>
+                      <td>{t.description}</td>
+                      <td
+                        style={{
+                          color: t.montant >= 0 ? "#22c55e" : "#ef4444",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {formatSignedMontant(t.montant)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          </div>
         </div>
       </div>
     </main>
   );
 }
 
-function formatDate(date: Date | string) {
-  return new Date(date).toLocaleString("fr-FR", {
-    timeZone: "Europe/Paris",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+/* ================= UI ================= */
+
+const headerStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  padding: "20px",
+  borderBottom: "1px solid rgba(255,255,255,0.1)",
+};
+
+const btnStyle = {
+  background: "rgba(255,255,255,0.1)",
+  padding: "10px",
+  borderRadius: "10px",
+  textDecoration: "none",
+  color: "white",
+};
+
+const containerStyle = {
+  maxWidth: "1400px",
+  margin: "auto",
+  padding: "20px",
+};
+
+const gridStyle = {
+  display: "grid",
+  gridTemplateColumns: "300px 1fr",
+  gap: "20px",
+};
+
+const sidebarStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px",
+};
+
+const tableBox = {
+  background: "rgba(0,0,0,0.4)",
+  padding: "20px",
+  borderRadius: "16px",
+};
+
+const tableStyle = {
+  width: "100%",
+};
+
+const rowStyle = {
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+  transition: "0.2s",
+};
+
+/* ================= COMPONENTS ================= */
+
+function Box({ title, children }: any) {
+  return (
+    <div style={{ background: "rgba(0,0,0,0.4)", padding: "20px", borderRadius: "16px" }}>
+      <h3>{title}</h3>
+      {children}
+    </div>
+  );
 }
 
-function formatMontant(montant: number) {
-  return Math.abs(montant).toLocaleString("fr-FR") + " €";
+function Line({ label, value, green, red }: any) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
+      <span>{label}</span>
+      <span style={{ color: green ? "#22c55e" : red ? "#ef4444" : "white" }}>
+        {formatSignedMontant(value)}
+      </span>
+    </div>
+  );
 }
 
-function formatSignedMontant(montant: number) {
-  if (montant > 0) {
-    return "+" + montant.toLocaleString("fr-FR") + " €";
-  }
+/* ================= UTILS ================= */
 
-  if (montant < 0) {
-    return montant.toLocaleString("fr-FR") + " €";
-  }
+function formatDate(date: any) {
+  return new Date(date).toLocaleString("fr-FR");
+}
 
-  return "0 €";
+function formatSignedMontant(v: number) {
+  return v > 0 ? "+" + v + " €" : v + " €";
 }
 
 function formatType(type: string) {
   switch (type) {
     case "LIVRAISON":
       return "Livraison";
-    case "CHARGES_LIVRAISON":
-      return "Charges livraison";
-    case "PRIME":
-      return "Prime";
-    case "PEAGE":
-      return "Péage";
-    case "AMENDE_VITESSE":
-      return "Amende vitesse";
-    case "AMENDE_FEU":
-      return "Amende feu rouge";
-    case "AUTRE_AMENDE":
-      return "Autre amende";
-    case "ENTRETIEN":
-      return "Entretien";
+    case "TELEPEAGE":
+      return "Télépéage";
     case "CARBURANT":
       return "Carburant";
-    case "VIDANGE":
-      return "Vidange";
-    case "MAINTENANCE":
-      return "Maintenance";
-    case "REPARATION":
-      return "Réparation";
     case "ACHAT_CAMION":
       return "Achat camion";
+    case "VENTE_CAMION":
+      return "Vente camion";
+    case "SALAIRE_CHAUFFEUR":
+      return "Salaire chauffeur";
+    case "LIVRAISON_ENTREPRISE":
+      return "Part société";
     default:
       return type;
   }
 }
 
 function badgeStyle(type: string) {
-  const baseStyle = {
-    display: "inline-block",
-    padding: "6px 10px",
-    borderRadius: "999px",
-    fontSize: "12px",
-    fontWeight: "bold" as const,
-    border: "1px solid rgba(255,255,255,0.12)",
-  };
-
-  if (type === "LIVRAISON" || type === "PRIME") {
-    return {
-      ...baseStyle,
-      background: "rgba(34,197,94,0.18)",
-      color: "#86efac",
-    };
-  }
-
-  if (type === "CHARGES_LIVRAISON") {
-    return {
-      ...baseStyle,
-      background: "rgba(245,158,11,0.18)",
-      color: "#fcd34d",
-    };
-  }
-
   return {
-    ...baseStyle,
-    background: "rgba(239,68,68,0.18)",
-    color: "#fca5a5",
+    padding: "5px 10px",
+    borderRadius: "999px",
+    background: "rgba(255,255,255,0.1)",
   };
 }
-
-const boxStyle = {
-  background: "rgba(255,255,255,0.08)",
-  borderRadius: "16px",
-  padding: "20px",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const infoLineStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "12px",
-  padding: "10px 0",
-  borderBottom: "1px solid rgba(255,255,255,0.06)",
-};
-
-const labelStyle = {
-  opacity: 0.8,
-};
-
-const valueStyle = {
-  fontWeight: "bold",
-};
-
-const smallTextStyle = {
-  margin: 0,
-  lineHeight: 1.6,
-  opacity: 0.9,
-};
-
-const thStyle = {
-  textAlign: "left" as const,
-  padding: "12px",
-  fontSize: "14px",
-  borderBottom: "1px solid rgba(255,255,255,0.10)",
-  opacity: 0.9,
-};
-
-const tdStyle = {
-  padding: "14px 12px",
-  fontSize: "14px",
-};

@@ -6,6 +6,343 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id                   String                  @id @default(cuid())
+  steamId              String                  @unique
+  username             String?
+  avatar               String?
+  age                  Int?
+  region               String?
+  email                String?                 @unique
+  password             String?
+  jeuPrincipal         String?
+  typeTransportPrefere String?
+  descriptionChauffeur String?
+  styleConduite        String?
+  micro                Boolean                 @default(false)
+  createdAt            DateTime                @default(now())
+  argent               Int                     @default(0)
+  argentPerso          Int                     @default(0)
+  parkingPlaces        Int                     @default(0)
+  camionsAttribues     Camion[]                @relation("CamionsAttribues")
+  camionsPerso         Camion[]                @relation("CamionsPerso")
+  chauffeurStats       ChauffeurStat[]
+  entreprisesCreees    Entreprise?             @relation("EntrepriseOwner")
+  candidatures         EntrepriseCandidature[]
+  memberships          EntrepriseMembre?
+  finances             Finance[]
+  livraisons           Livraison[]
+  mouvementsCuve       MouvementCuve[]
+  pleinsCarburant      PleinCarburant[]
+  tackySessions        TackySession[]
+  dlcs                 UserDlc[]
+}
+
+model Entreprise {
+  id                        Int                     @id @default(autoincrement())
+  nom                       String
+  abreviation               String                  @db.VarChar(3)
+  villeETS2                 String?
+  villeATS                  String?
+  jeu                       String
+  typeTransport             String
+  description               String
+  recrutement               Boolean                 @default(true)
+  banniere                  String?
+  ownerSteamId              String                  @unique
+  createdAt                 DateTime                @default(now())
+  argent                    Int                     @default(125000)
+  cuveActuelle              Int                     @default(6200)
+  cuveMax                   Int                     @default(10000)
+  entrepriseId              String?
+  discordUrl                String?
+  discordWebhookAchatCamion String?
+  discordWebhookDepart      String?
+  discordWebhookLivraison   String?
+  discordWebhookMaintenance String?
+  discordWebhookRecrutement String?
+  discordWebhookVenteCamion String?
+  prixLitreCuve             Decimal                 @default(1.35) @db.Decimal(10, 2)
+  prixLitreHorsCuve         Decimal                 @default(2.30) @db.Decimal(10, 2)
+  camions                   Camion[]
+  chauffeurStats            ChauffeurStat[]
+  owner                     User                    @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
+  candidatures              EntrepriseCandidature[]
+  membres                   EntrepriseMembre[]
+  finances                  Finance[]
+  livraisons                Livraison[]
+  mouvementsCuve            MouvementCuve[]
+  pleinsCarburant           PleinCarburant[]
+  avertissements            AvertissementEntreprise[]
+
+  @@index([nom])
+  @@index([jeu])
+}
+
+model EntrepriseMembre {
+  id           Int            @id @default(autoincrement())
+  userId       String         @unique
+  entrepriseId Int
+  role         RoleEntreprise @default(CHAUFFEUR)
+  createdAt    DateTime       @default(now())
+  entreprise   Entreprise     @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avertissementsRecus       AvertissementEntreprise[] @relation("AvertissementMembre")
+  avertissementsDonnes      AvertissementEntreprise[] @relation("AvertissementAuteur")
+
+  @@index([entrepriseId])
+}
+
+model EntrepriseCandidature {
+  id             Int               @id @default(autoincrement())
+  userId         String
+  entrepriseId   Int
+  age            Int?
+  region         String?
+  jeuPrincipal   String
+  experience     String
+  micro          Boolean           @default(false)
+  disponibilites String?
+  motivation     String
+  message        String?
+  statut         StatutCandidature @default(EN_ATTENTE)
+  createdAt      DateTime          @default(now())
+  entreprise     Entreprise        @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entrepriseId])
+  @@index([userId])
+  @@index([entrepriseId])
+  @@index([statut])
+}
+
+model UserDlc {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  jeu       String
+  nomDlc    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jeu, nomDlc])
+  @@index([userId])
+  @@index([jeu])
+}
+
+model Finance {
+  id           Int             @id @default(autoincrement())
+  entrepriseId Int
+  chauffeurId  String?
+  type         String
+  description  String
+  montant      Int
+  createdAt    DateTime        @default(now())
+  pleinId      String?
+  chauffeur    User?           @relation(fields: [chauffeurId], references: [id])
+  entreprise   Entreprise      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  plein        PleinCarburant? @relation(fields: [pleinId], references: [id])
+
+  @@index([entrepriseId])
+  @@index([chauffeurId])
+  @@index([pleinId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model Camion {
+  id                   Int              @id @default(autoincrement())
+  entrepriseId         Int?
+  marque               MarqueCamion
+  modele               String
+  image                String?
+  kilometrage          Int              @default(0)
+  etat                 Int              @default(100)
+  carburant            Int              @default(100)
+  positionActuelle     String?
+  statut               StatutCamion     @default(DISPONIBLE)
+  vidangeRestante      Int              @default(60000)
+  revisionRestante     Int              @default(120000)
+  actif                Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  cabine               String?
+  chassis              String?
+  moteur               String?
+  peinture             String?
+  preuveAchat          String?
+  transmission         String?
+  accessoiresExterieur String?
+  accessoiresInterieur String?
+  prixAchat            Int?
+  chauffeurAttribueId  String?
+  proprietaireId       String?
+  chauffeurAttribue    User?            @relation("CamionsAttribues", fields: [chauffeurAttribueId], references: [id])
+  entreprise           Entreprise?      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  proprietaire         User?            @relation("CamionsPerso", fields: [proprietaireId], references: [id])
+  livraisons           Livraison[]
+  pleins               PleinCarburant[]
+
+  @@index([entrepriseId])
+  @@index([chauffeurAttribueId])
+  @@index([proprietaireId])
+  @@index([statut])
+}
+
+model ChauffeurStat {
+  id           Int        @id @default(autoincrement())
+  userId       String
+  entrepriseId Int
+  argentGagne  Int        @default(0)
+  kilometres   Int        @default(0)
+  infractions  Int        @default(0)
+  accidents    Int        @default(0)
+  livraisons   Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entrepriseId])
+  @@index([entrepriseId])
+  @@index([userId])
+}
+
+model ClientEvent {
+  id        String   @id @default(cuid())
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+  deviceId  String?
+  game      String?
+  sessionId String?
+  steamId   String?
+
+  @@index([steamId])
+  @@index([deviceId])
+  @@index([sessionId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Livraison {
+  id                String           @id @default(cuid())
+  jobId             String?          @unique
+  truck             String
+  sourceCity        String?
+  destinationCity   String?
+  income            Int              @default(0)
+  startedAt         DateTime         @default(now())
+  finishedAt        DateTime?
+  status            String           @default("EN_COURS")
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  steamId           String
+  entrepriseId      Int?
+  argentAjoute      Boolean          @default(false)
+  distanceReelleKm  Float            @default(0)
+  endOdometerKm     Float?
+  kmPrevu           Int?
+  startOdometerKm   Float            @default(0)
+  cargo             String?
+  camionId          Int?
+  cancelReason      String?
+  deviceId          String?
+  game              String?
+  sessionId         String?
+  truckBrand        String?
+  truckModel        String?
+  validatedByServer Boolean          @default(false)
+  charges           Int              @default(0)
+  gainChauffeur     Int              @default(0)
+  gainSociete       Int              @default(0)
+  camion            Camion?          @relation(fields: [camionId], references: [id])
+  entreprise        Entreprise?      @relation(fields: [entrepriseId], references: [id])
+  user              User             @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
+  pleins            PleinCarburant[]
+
+  @@index([steamId])
+  @@index([entrepriseId])
+  @@index([camionId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([finishedAt])
+}
+
+model PleinCarburant {
+  id                String          @id @default(cuid())
+  steamId           String
+  entrepriseId      Int?
+  camionId          Int?
+  livraisonId       String?
+  game              String?
+  sessionId         String?
+  deviceId          String?
+  truck             String?
+  fuelBefore        Float
+  fuelAfter         Float
+  litresAjoutes     Float
+  cuveAvant         Int?
+  cuveApres         Int?
+  detectedAt        DateTime        @default(now())
+  createdAt         DateTime        @default(now())
+  moteurEteint      Boolean         @default(false)
+  litresPrisCuve    Int             @default(0)
+  litresHorsCuve    Int             @default(0)
+  prixLitreHorsCuve Decimal         @default(2.30) @db.Decimal(10, 2)
+  montantHorsCuve   Decimal         @default(0.00) @db.Decimal(10, 2)
+  finances          Finance[]
+  mouvements        MouvementCuve[]
+  camion            Camion?         @relation(fields: [camionId], references: [id])
+  entreprise        Entreprise?     @relation(fields: [entrepriseId], references: [id])
+  livraison         Livraison?      @relation(fields: [livraisonId], references: [id])
+  user              User            @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
+
+  @@index([steamId])
+  @@index([entrepriseId])
+  @@index([camionId])
+  @@index([livraisonId])
+  @@index([detectedAt])
+}
+
+model MouvementCuve {
+  id           String          @id @default(cuid())
+  entrepriseId Int
+  pleinId      String?
+  chauffeurId  String?
+  type         String
+  litres       Int
+  cuveAvant    Int
+  cuveApres    Int
+  description  String?
+  createdAt    DateTime        @default(now())
+  chauffeur    User?           @relation(fields: [chauffeurId], references: [id])
+  entreprise   Entreprise      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  plein        PleinCarburant? @relation(fields: [pleinId], references: [id])
+
+  @@index([entrepriseId])
+  @@index([pleinId])
+  @@index([chauffeurId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model TackySession {
+  id         String   @id @default(cuid())
+  userId     String?
+  token      String?  @unique
+  deviceName String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @updatedAt
+  deviceCode String
+  isLinked   Boolean  @default(false)
+  requestId  String   @unique
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([token])
+  @@index([deviceCode])
+}
+
 enum RoleEntreprise {
   DIRECTEUR
   SOUS_DIRECTEUR
@@ -42,388 +379,17 @@ enum MarqueCamion {
   WESTERN_STAR
 }
 
-model User {
-  id                   String   @id @default(cuid())
-  steamId              String   @unique
-  parkingPlaces        Int      @default(0)
-  username             String?
-  avatar               String?
-  age                  Int?
-  region               String?
-  email                String?  @unique
-  password             String?
-  jeuPrincipal         String?
-  typeTransportPrefere String?
-  descriptionChauffeur String?
-  styleConduite        String?
-  micro                Boolean  @default(false)
-  createdAt            DateTime @default(now())
-
-  argent      Int @default(0)
-  argentPerso Int @default(0)
-
-  tackySessions     TackySession[]
-  entreprisesCreees Entreprise[]            @relation("EntrepriseOwner")
-  memberships       EntrepriseMembre[]
-  candidatures      EntrepriseCandidature[]
-  dlcs              UserDlc[]
-  finances          Finance[]
-  camionsAttribues  Camion[]                @relation("CamionsAttribues")
-  camionsPerso      Camion[]                @relation("CamionsPerso")
-  chauffeurStats    ChauffeurStat[]
-  livraisons        Livraison[]
-  pleinsCarburant   PleinCarburant[]
-  mouvementsCuve    MouvementCuve[]
-}
-
-model Entreprise {
-  id            Int      @id @default(autoincrement())
-  nom           String
-  abreviation   String   @db.VarChar(3)
-  villeETS2     String?
-  villeATS      String?
-  jeu           String
-  typeTransport String
-  description   String
-  recrutement   Boolean  @default(true)
-  banniere      String?
-  ownerSteamId  String   @unique
-  entrepriseId  String?
-  createdAt     DateTime @default(now())
-
-  argent       Int @default(125000)
-  cuveActuelle Int @default(6200)
-  cuveMax      Int @default(10000)
-
-  prixLitreCuve     Decimal @default(1.35) @db.Decimal(10, 2)
-  prixLitreHorsCuve Decimal @default(2.30) @db.Decimal(10, 2)
-
-  discordUrl                String?
-  discordWebhookLivraison   String?
-  discordWebhookAchatCamion String?
-  discordWebhookVenteCamion String?
-  discordWebhookRecrutement String?
-  discordWebhookDepart      String?
-  discordWebhookMaintenance String?
-
-  owner User @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
-
-  membres         EntrepriseMembre[]
-  candidatures    EntrepriseCandidature[]
-  finances        Finance[]
-  camions         Camion[]
-  chauffeurStats  ChauffeurStat[]
-  livraisons      Livraison[]
-  pleinsCarburant PleinCarburant[]
-  mouvementsCuve  MouvementCuve[]
-  avertissements  AvertissementEntreprise[]
-
-  @@index([nom])
-  @@index([jeu])
-}
-
-model EntrepriseMembre {
-  id           Int            @id @default(autoincrement())
-  userId       String         @unique
-  entrepriseId Int
-  role         RoleEntreprise @default(CHAUFFEUR)
-  createdAt    DateTime       @default(now())
-
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-
-  avertissementsRecus  AvertissementEntreprise[] @relation("AvertissementMembre")
-  avertissementsDonnes AvertissementEntreprise[] @relation("AvertissementAuteur")
-
-  @@index([entrepriseId])
-}
-
-model EntrepriseCandidature {
-  id             Int               @id @default(autoincrement())
-  userId         String
-  entrepriseId   Int
-  age            Int?
-  region         String?
-  jeuPrincipal   String
-  experience     String
-  micro          Boolean           @default(false)
-  disponibilites String?
-  motivation     String
-  message        String?
-  statut         StatutCandidature @default(EN_ATTENTE)
-  createdAt      DateTime          @default(now())
-
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, entrepriseId])
-  @@index([userId])
-  @@index([entrepriseId])
-  @@index([statut])
-}
-
-model UserDlc {
-  id        Int      @id @default(autoincrement())
-  userId    String
-  jeu       String
-  nomDlc    String
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, jeu, nomDlc])
-  @@index([userId])
-  @@index([jeu])
-}
-
-model Finance {
-  id           Int      @id @default(autoincrement())
-  entrepriseId Int
-  chauffeurId  String?
-  pleinId      String?
-  type         String
-  description  String
-  montant      Int
-  createdAt    DateTime @default(now())
-
-  entreprise Entreprise      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  chauffeur  User?           @relation(fields: [chauffeurId], references: [id], onDelete: SetNull)
-  plein      PleinCarburant? @relation(fields: [pleinId], references: [id], onDelete: SetNull)
-
-  @@index([entrepriseId])
-  @@index([chauffeurId])
-  @@index([pleinId])
-  @@index([createdAt])
-  @@index([type])
-}
-
-model Camion {
-  id                   Int          @id @default(autoincrement())
-  entrepriseId         Int?
-  chauffeurAttribueId  String?
-  proprietaireId       String?
-  marque               MarqueCamion
-  modele               String
-  cabine               String?
-  chassis              String?
-  moteur               String?
-  transmission         String?
-  peinture             String?
-  image                String?
-  preuveAchat          String?
-  prixAchat            Int?
-  accessoiresExterieur String?
-  accessoiresInterieur String?
-  kilometrage          Int          @default(0)
-  etat                 Int          @default(100)
-  carburant            Int          @default(100)
-  positionActuelle     String?
-  statut               StatutCamion @default(DISPONIBLE)
-  vidangeRestante      Int          @default(60000)
-  revisionRestante     Int          @default(120000)
-  actif                Boolean      @default(true)
-  createdAt            DateTime     @default(now())
-
-  entreprise        Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  chauffeurAttribue User?       @relation("CamionsAttribues", fields: [chauffeurAttribueId], references: [id], onDelete: SetNull)
-  proprietaire      User?       @relation("CamionsPerso", fields: [proprietaireId], references: [id], onDelete: SetNull)
-  livraisons        Livraison[]
-  pleins            PleinCarburant[]
-
-  @@index([entrepriseId])
-  @@index([chauffeurAttribueId])
-  @@index([proprietaireId])
-  @@index([statut])
-}
-
-model ChauffeurStat {
-  id           Int    @id @default(autoincrement())
-  userId       String
-  entrepriseId Int
-
-  argentGagne Int @default(0)
-  kilometres  Int @default(0)
-  infractions Int @default(0)
-  accidents   Int @default(0)
-  livraisons  Int @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entreprise Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, entrepriseId])
-  @@index([entrepriseId])
-  @@index([userId])
-}
-
-model ClientEvent {
-  id        String   @id @default(cuid())
-  type      String
-  steamId   String?
-  deviceId  String?
-  sessionId String?
-  game      String?
-  payload   Json
-  createdAt DateTime @default(now())
-
-  @@index([steamId])
-  @@index([deviceId])
-  @@index([sessionId])
-  @@index([type])
-  @@index([createdAt])
-}
-
-model Livraison {
-  id           String  @id @default(cuid())
-  jobId        String? @unique
-  steamId      String
-  entrepriseId Int?
-  camionId     Int?
-
-  game      String?
-  sessionId String?
-  deviceId  String?
-
-  truck      String
-  truckBrand String?
-  truckModel String?
-  cargo      String?
-
-  status            String  @default("EN_COURS")
-  validatedByServer Boolean @default(false)
-  cancelReason      String?
-
-  startedAt  DateTime  @default(now())
-  finishedAt DateTime?
-
-  startOdometerKm  Float  @default(0)
-  endOdometerKm    Float?
-  distanceReelleKm Float  @default(0)
-
-  income        Int     @default(0)
-  gainSociete   Int     @default(0)
-  gainChauffeur Int     @default(0)
-  charges       Int     @default(0)
-  argentAjoute  Boolean @default(false)
-
-  sourceCity      String?
-  destinationCity String?
-  kmPrevu         Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user       User        @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
-  entreprise Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
-  camion     Camion?     @relation(fields: [camionId], references: [id], onDelete: SetNull)
-  pleins     PleinCarburant[]
-
-  @@index([steamId])
-  @@index([entrepriseId])
-  @@index([camionId])
-  @@index([status])
-  @@index([startedAt])
-  @@index([finishedAt])
-}
-
-model PleinCarburant {
-  id           String  @id @default(cuid())
-  steamId      String
-  entrepriseId Int?
-  camionId     Int?
-  livraisonId  String?
-
-  game      String?
-  sessionId String?
-  deviceId  String?
-
-  truck         String?
-  fuelBefore    Float
-  fuelAfter     Float
-  litresAjoutes Float
-
-  moteurEteint      Boolean @default(false)
-  litresPrisCuve    Int     @default(0)
-  litresHorsCuve    Int     @default(0)
-  prixLitreHorsCuve Decimal @default(2.30) @db.Decimal(10, 2)
-  montantHorsCuve   Decimal @default(0.00) @db.Decimal(10, 2)
-
-  cuveAvant Int?
-  cuveApres Int?
-
-  detectedAt DateTime @default(now())
-  createdAt  DateTime @default(now())
-
-  user       User            @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
-  entreprise Entreprise?     @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
-  camion     Camion?         @relation(fields: [camionId], references: [id], onDelete: SetNull)
-  livraison  Livraison?      @relation(fields: [livraisonId], references: [id], onDelete: SetNull)
-  mouvements MouvementCuve[]
-  finances   Finance[]
-
-  @@index([steamId])
-  @@index([entrepriseId])
-  @@index([camionId])
-  @@index([livraisonId])
-  @@index([detectedAt])
-}
-
-model MouvementCuve {
-  id           String  @id @default(cuid())
-  entrepriseId Int
-  pleinId      String?
-  chauffeurId  String?
-
-  type        String
-  litres      Int
-  cuveAvant   Int
-  cuveApres   Int
-  description String?
-  createdAt   DateTime @default(now())
-
-  entreprise Entreprise      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  plein      PleinCarburant? @relation(fields: [pleinId], references: [id], onDelete: SetNull)
-  chauffeur  User?           @relation(fields: [chauffeurId], references: [id], onDelete: SetNull)
-
-  @@index([entrepriseId])
-  @@index([pleinId])
-  @@index([chauffeurId])
-  @@index([createdAt])
-  @@index([type])
-}
-
-model TackySession {
-  id         String   @id @default(cuid())
-  userId     String?
-  token      String?  @unique
-  requestId  String   @unique
-  deviceCode String
-  deviceName String?
-  isActive   Boolean  @default(true)
-  isLinked   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  lastSeenAt DateTime @updatedAt
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([token])
-  @@index([deviceCode])
-}
-
 model AvertissementEntreprise {
-  id           Int      @id @default(autoincrement())
+  id           Int              @id @default(autoincrement())
   entrepriseId Int
   membreId     Int
   auteurId     Int
   raison       String
-  createdAt    DateTime @default(now())
+  createdAt    DateTime         @default(now())
 
-  entreprise Entreprise       @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  membre     EntrepriseMembre @relation("AvertissementMembre", fields: [membreId], references: [id], onDelete: Cascade)
-  auteur     EntrepriseMembre @relation("AvertissementAuteur", fields: [auteurId], references: [id], onDelete: Cascade)
+  entreprise   Entreprise       @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  membre       EntrepriseMembre @relation("AvertissementMembre", fields: [membreId], references: [id], onDelete: Cascade)
+  auteur       EntrepriseMembre @relation("AvertissementAuteur", fields: [auteurId], references: [id], onDelete: Cascade)
 
   @@index([entrepriseId])
   @@index([membreId])

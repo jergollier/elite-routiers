@@ -1,13 +1,73 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import Menu from "@/app/components/Menu";
-import DeleteLivraisonButton from "@/app/components/DeleteLivraisonButton";
+import { put } from "@vercel/blob";
+
+type Props = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+const JEUX = [
+  { value: "ETS2", label: "ETS2" },
+  { value: "ATS", label: "ATS" },
+  { value: "LES_DEUX", label: "Les deux" },
+];
+
+const TYPES_TRANSPORT = [
+  { value: "GENERAL", label: "Général" },
+  { value: "CITERNE", label: "Citerne" },
+  { value: "CONVOI_EXCEPTIONNEL", label: "Convoi exceptionnel" },
+  { value: "FRIGO", label: "Frigo" },
+  { value: "BENNE", label: "Benne" },
+  { value: "PLATEAU", label: "Plateau" },
+  { value: "LIVESTOCK", label: "Bétail" },
+];
+
+const ROLES_MODIFIABLES = [
+  { value: "SOUS_DIRECTEUR", label: "Sous-directeur" },
+  { value: "CHEF_EQUIPE", label: "Chef d’équipe" },
+  { value: "CHEF_ATELIER", label: "Chef d’atelier" },
+  { value: "CHAUFFEUR", label: "Chauffeur" },
+];
+
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function normalizeJeu(value: string) {
+  if (value === "Les deux") return "LES_DEUX";
+  return value;
+}
+
+function normalizeTypeTransport(value: string) {
+  if (value === "General") return "GENERAL";
+  if (value === "Convoi exceptionnel") return "CONVOI_EXCEPTIONNEL";
+  if (value === "Frigorifique") return "FRIGO";
+  if (value === "Bois") return "PLATEAU";
+  if (value === "Materiaux") return "BENNE";
+  return value;
+}
 
 function formatJeu(jeu: string) {
-  if (jeu === "LES_DEUX") return "Les deux";
-  return jeu;
+  const normalized = normalizeJeu(jeu);
+  if (normalized === "LES_DEUX") return "Les deux";
+  return normalized;
+}
+
+function formatTypeTransport(type: string) {
+  const normalized = normalizeTypeTransport(type);
+  const found = TYPES_TRANSPORT.find((t) => t.value === normalized);
+  return found ? found.label : type;
+}
+
+function formatExperience(experience: string) {
+  if (experience === "DEBUTANT") return "Débutant";
+  if (experience === "INTERMEDIAIRE") return "Intermédiaire";
+  if (experience === "EXPERIMENTE") return "Expérimenté";
+  return experience;
 }
 
 function formatRole(role: string) {
@@ -25,7 +85,17 @@ function formatRole(role: string) {
   }
 }
 
-export default async function MonEntreprisePage() {
+function slugify(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+export default async function GestionEntreprisePage({ params }: Props) {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
 
@@ -33,120 +103,754 @@ export default async function MonEntreprisePage() {
     redirect("/");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { steamId },
+  const { id } = await params;
+  const entrepriseId = Number(id);
+
+  if (!entrepriseId || Number.isNaN(entrepriseId)) {
+    notFound();
+  }
+
+  const entreprise = await prisma.entreprise.findUnique({
+    where: { id: entrepriseId },
     include: {
-      memberships: {
+      owner: true,
+      membres: {
         include: {
-          entreprise: {
-            include: {
-              membres: {
-                include: {
-                  user: true,
-                },
-                orderBy: {
-                  createdAt: "asc",
-                },
-              },
-            },
-          },
+          user: true,
+          avertissementsRecus: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      candidatures: {
+        where: {
+          statut: "EN_ATTENTE",
+        },
+        include: {
+          user: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      _count: {
+        select: {
+          membres: true,
         },
       },
     },
   });
 
-  if (!user || user.memberships.length === 0) {
+  if (!entreprise) {
+    notFound();
+  }
+
+  const membreActuel = entreprise.membres.find(
+    (membre) => membre.user?.steamId === steamId
+  );
+
+  if (!membreActuel) {
     redirect("/societe");
   }
 
-  const membership = user.memberships[0];
-  const entreprise = membership.entreprise;
-
-  const rolesAutorisesBureau = [
+  const rolesAutorises = [
     "DIRECTEUR",
     "SOUS_DIRECTEUR",
     "CHEF_EQUIPE",
     "CHEF_ATELIER",
   ];
 
-  const peutAccederBureau = rolesAutorisesBureau.includes(membership.role);
+  if (!rolesAutorises.includes(membreActuel.role)) {
+    redirect("/mon-entreprise");
+  }
 
-  const argentSociete = entreprise.argent ?? 0;
-  const cuveMax = entreprise.cuveMax ?? 10000;
-  const cuveActuelle = entreprise.cuveActuelle ?? 0;
+  const peutModifierInfos =
+    membreActuel.role === "DIRECTEUR" ||
+    membreActuel.role === "SOUS_DIRECTEUR";
+
+  const peutGererCuve =
+    membreActuel.role === "DIRECTEUR" ||
+    membreActuel.role === "SOUS_DIRECTEUR" ||
+    membreActuel.role === "CHEF_ATELIER";
+
+  const peutGererCandidatures =
+    membreActuel.role === "DIRECTEUR" ||
+    membreActuel.role === "SOUS_DIRECTEUR" ||
+    membreActuel.role === "CHEF_EQUIPE";
+
+  const peutGererMembres =
+    membreActuel.role === "DIRECTEUR" ||
+    membreActuel.role === "SOUS_DIRECTEUR";
+
+  async function updateEntreprise(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR"].includes(membreActuel.role)
+    ) {
+      return;
+    }
+
+    const nom = String(formData.get("nom") || "").trim();
+    const abreviationBrute = String(formData.get("abreviation") || "").trim();
+    const jeu = normalizeJeu(String(formData.get("jeu") || "").trim());
+    const typeTransport = normalizeTypeTransport(
+      String(formData.get("typeTransport") || "").trim()
+    );
+
+    if (!nom || !abreviationBrute || !jeu || !typeTransport) {
+      return;
+    }
+
+    const abreviation = abreviationBrute.toUpperCase().slice(0, 3);
+
+    if (!JEUX.some((j) => j.value === jeu)) {
+      return;
+    }
+
+    if (!TYPES_TRANSPORT.some((t) => t.value === typeTransport)) {
+      return;
+    }
+
+    let banniereUrl = entreprise.banniere ?? null;
+    const banniereFile = formData.get("banniereFile");
+
+    if (banniereFile instanceof File && banniereFile.size > 0) {
+      if (!ALLOWED_TYPES.includes(banniereFile.type)) {
+        return;
+      }
+
+      if (banniereFile.size > MAX_FILE_SIZE) {
+        return;
+      }
+
+      const extension =
+        banniereFile.type === "image/png"
+          ? "png"
+          : banniereFile.type === "image/webp"
+          ? "webp"
+          : "jpg";
+
+      const safeNom = slugify(nom) || "societe";
+      const fileName = `entreprises/${safeNom}-${entrepriseIdFromForm}-${Date.now()}.${extension}`;
+
+      const blob = await put(fileName, banniereFile, {
+        access: "public",
+      });
+
+      banniereUrl = blob.url;
+    }
+
+    await prisma.entreprise.update({
+      where: { id: entrepriseIdFromForm },
+      data: {
+        nom,
+        abreviation,
+        jeu,
+        typeTransport,
+        banniere: banniereUrl,
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath("/mon-entreprise");
+    revalidatePath("/societe");
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
+  }
+
+  async function updateRecrutement(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+    const recrutementValue = formData.get("recrutement");
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR"].includes(membreActuel.role)
+    ) {
+      return;
+    }
+
+    const recrutement = recrutementValue === "true";
+
+    await prisma.entreprise.update({
+      where: { id: entrepriseIdFromForm },
+      data: {
+        recrutement,
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath("/mon-entreprise");
+    revalidatePath("/societe");
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
+  }
+
+  async function remplirCuve(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+    const mode = String(formData.get("mode") || "");
+    const quantiteDemandee = Number(formData.get("quantite") || 0);
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_ATELIER"].includes(
+        membreActuel.role
+      )
+    ) {
+      return;
+    }
+
+    let nouvelleValeur = entreprise.cuveActuelle;
+
+    if (mode === "plein") {
+      nouvelleValeur = entreprise.cuveMax;
+    } else if (mode === "quantite") {
+      const quantite = Math.max(0, Math.floor(quantiteDemandee));
+      nouvelleValeur = Math.min(
+        entreprise.cuveActuelle + quantite,
+        entreprise.cuveMax
+      );
+    } else {
+      return;
+    }
+
+    await prisma.entreprise.update({
+      where: { id: entrepriseIdFromForm },
+      data: {
+        cuveActuelle: nouvelleValeur,
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath("/mon-entreprise");
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
+  }
+
+  async function acheterExtensionCuve(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_ATELIER"].includes(
+        membreActuel.role
+      )
+    ) {
+      return;
+    }
+
+    if (entreprise.cuveMax >= 50000) return;
+    if (entreprise.argent < 20000) return;
+
+    const nouveauMax = Math.min(entreprise.cuveMax + 5000, 50000);
+
+    await prisma.entreprise.update({
+      where: { id: entrepriseIdFromForm },
+      data: {
+        cuveMax: nouveauMax,
+        argent: entreprise.argent - 20000,
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath("/mon-entreprise");
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
+  }
+
+  async function accepterCandidature(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const candidatureId = Number(formData.get("candidatureId"));
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+
+    if (!candidatureId || Number.isNaN(candidatureId)) return;
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_EQUIPE"].includes(
+        membreActuel.role
+      )
+    ) {
+      return;
+    }
+
+    const candidature = await prisma.entrepriseCandidature.findUnique({
+      where: { id: candidatureId },
+    });
+
+    if (!candidature) return;
+    if (candidature.entrepriseId !== entrepriseIdFromForm) return;
+    if (candidature.statut !== "EN_ATTENTE") return;
+
+    const membreExiste = await prisma.entrepriseMembre.findUnique({
+      where: {
+        userId: candidature.userId,
+      },
+    });
+
+    if (!membreExiste) {
+      await prisma.entrepriseMembre.create({
+        data: {
+          userId: candidature.userId,
+          entrepriseId: entrepriseIdFromForm,
+          role: "CHAUFFEUR",
+        },
+      });
+    }
+
+    await prisma.entrepriseCandidature.update({
+      where: { id: candidatureId },
+      data: {
+        statut: "ACCEPTEE",
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+    revalidatePath("/mon-entreprise");
+    revalidatePath("/societe");
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
+  }
+
+  async function refuserCandidature(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const candidatureId = Number(formData.get("candidatureId"));
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+
+    if (!candidatureId || Number.isNaN(candidatureId)) return;
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !membreActuel ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_EQUIPE"].includes(
+        membreActuel.role
+      )
+    ) {
+      return;
+    }
+
+    const candidature = await prisma.entrepriseCandidature.findUnique({
+      where: { id: candidatureId },
+    });
+
+    if (!candidature) return;
+    if (candidature.entrepriseId !== entrepriseIdFromForm) return;
+    if (candidature.statut !== "EN_ATTENTE") return;
+
+    await prisma.entrepriseCandidature.update({
+      where: { id: candidatureId },
+      data: {
+        statut: "REFUSEE",
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
+  }
+
+  async function changerRoleMembre(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+    if (!steamId) return;
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+    const membreId = Number(formData.get("membreId"));
+    const nouveauRole = String(formData.get("nouveauRole") || "").trim();
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+    if (!membreId || Number.isNaN(membreId)) return;
+
+    if (!ROLES_MODIFIABLES.some((role) => role.value === nouveauRole)) {
+      return;
+    }
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const auteur = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (!auteur || !["DIRECTEUR", "SOUS_DIRECTEUR"].includes(auteur.role)) {
+      return;
+    }
+
+    const cible = entreprise.membres.find((membre) => membre.id === membreId);
+    if (!cible) return;
+
+    if (cible.role === "DIRECTEUR") {
+      return;
+    }
+
+    if (auteur.id === cible.id) {
+      return;
+    }
+
+    await prisma.entrepriseMembre.update({
+      where: { id: membreId },
+      data: {
+        role: nouveauRole as
+          | "SOUS_DIRECTEUR"
+          | "CHEF_EQUIPE"
+          | "CHEF_ATELIER"
+          | "CHAUFFEUR",
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath("/mon-entreprise");
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
+  }
+
+  async function exclureMembre(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+    if (!steamId) return;
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+    const membreId = Number(formData.get("membreId"));
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+    if (!membreId || Number.isNaN(membreId)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const auteur = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (!auteur || !["DIRECTEUR", "SOUS_DIRECTEUR"].includes(auteur.role)) {
+      return;
+    }
+
+    const cible = entreprise.membres.find((membre) => membre.id === membreId);
+    if (!cible || !cible.user) return;
+
+    if (cible.role === "DIRECTEUR") {
+      return;
+    }
+
+    if (auteur.id === cible.id) {
+      return;
+    }
+
+    await prisma.$transaction([
+      prisma.avertissementEntreprise.deleteMany({
+        where: {
+          OR: [{ membreId: cible.id }, { auteurId: cible.id }],
+        },
+      }),
+
+      prisma.livraison.updateMany({
+        where: {
+          steamId: cible.user.steamId,
+          entrepriseId: entrepriseIdFromForm,
+        },
+        data: {
+          entrepriseId: null,
+        },
+      }),
+
+      prisma.pleinCarburant.updateMany({
+        where: {
+          steamId: cible.user.steamId,
+          entrepriseId: entrepriseIdFromForm,
+        },
+        data: {
+          entrepriseId: null,
+        },
+      }),
+
+      prisma.camion.updateMany({
+        where: {
+          entrepriseId: entrepriseIdFromForm,
+          chauffeurAttribueId: cible.userId,
+        },
+        data: {
+          chauffeurAttribueId: null,
+          statut: "DISPONIBLE",
+        },
+      }),
+
+      prisma.chauffeurStat.deleteMany({
+        where: {
+          userId: cible.userId,
+          entrepriseId: entrepriseIdFromForm,
+        },
+      }),
+
+      prisma.entrepriseMembre.delete({
+        where: {
+          id: cible.id,
+        },
+      }),
+    ]);
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    revalidatePath("/mon-entreprise");
+    revalidatePath("/societe");
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
+  }
+
+  async function ajouterAvertissement(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+    if (!steamId) return;
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+    const membreId = Number(formData.get("membreId"));
+    const raison = String(formData.get("raison") || "").trim();
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+    if (!membreId || Number.isNaN(membreId)) return;
+    if (!raison) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const auteur = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (
+      !auteur ||
+      !["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_EQUIPE"].includes(auteur.role)
+    ) {
+      return;
+    }
+
+    const cible = entreprise.membres.find((membre) => membre.id === membreId);
+    if (!cible) return;
+
+    if (auteur.id === cible.id) {
+      return;
+    }
+
+    await prisma.avertissementEntreprise.create({
+      data: {
+        entrepriseId: entrepriseIdFromForm,
+        membreId,
+        auteurId: auteur.id,
+        raison,
+      },
+    });
+
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+    redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
+  }
+
+  const argentSociete = entreprise.argent;
+  const cuveMax = entreprise.cuveMax;
+  const cuveActuelle = entreprise.cuveActuelle;
   const cuvePourcent = Math.max(
     0,
     Math.min(100, (cuveActuelle / cuveMax) * 100)
   );
 
-  const steamIdsSociete = entreprise.membres
-    .map((membre) => membre.user?.steamId)
-    .filter((value): value is string => Boolean(value));
+  const prochaineExtension = cuveMax < 50000 ? cuveMax + 5000 : cuveMax;
+  const extensionDisponible = cuveMax < 50000;
+  const peutAcheterExtension = extensionDisponible && argentSociete >= 20000;
 
-  const livraisonsDb =
-    steamIdsSociete.length > 0
-      ? await prisma.livraison.findMany({
-          where: {
-            steamId: {
-              in: steamIdsSociete,
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-          take: 50,
-        })
-      : [];
-
-  const livraisons = livraisonsDb.map((livraison) => {
-    const chauffeurMembre = entreprise.membres.find(
-      (m) => m.user?.steamId === livraison.steamId
-    );
-
-    const chauffeurNom =
-      chauffeurMembre?.user?.username?.trim() ||
-      livraison.steamId ||
-      "Chauffeur inconnu";
-
-    const trajet =
-      livraison.sourceCity?.trim() && livraison.destinationCity?.trim()
-        ? `${livraison.sourceCity} → ${livraison.destinationCity}`
-        : "Non disponible";
-
-    const truckLabel =
-      livraison.truck?.trim() ||
-      [livraison.truckBrand, livraison.truckModel]
-        .filter(Boolean)
-        .join(" ")
-        .trim() ||
-      "Camion inconnu";
-
-    const statutLabel =
-      livraison.status === "TERMINEE"
-        ? "Terminée"
-        : livraison.status === "ANNULEE"
-        ? "Annulée"
-        : "En cours";
-
-    const income = livraison.income ?? 0;
-
-    const gainSociete = Math.round(income * 0.15);
-    const gainChauffeur = Math.round(income * 0.2);
-    const charges = income - gainSociete - gainChauffeur;
-
-    return {
-      id: livraison.id,
-      chauffeur: chauffeurNom,
-      trajet,
-      gain: `${income.toLocaleString("fr-FR")} €`,
-      statut: statutLabel,
-      cargo: livraison.cargo?.trim() || "Cargo inconnu",
-      truck: truckLabel,
-      gainSociete,
-      gainChauffeur,
-      charges,
-    };
-  });
+  const jeuActuel = normalizeJeu(entreprise.jeu);
+  const typeTransportActuel = normalizeTypeTransport(entreprise.typeTransport);
 
   return (
     <main
@@ -164,7 +868,7 @@ export default async function MonEntreprisePage() {
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.58)",
+          background: "rgba(0, 0, 0, 0.60)",
         }}
       />
 
@@ -179,7 +883,7 @@ export default async function MonEntreprisePage() {
       >
         <header
           style={{
-            minHeight: "80px",
+            height: "80px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -199,14 +903,13 @@ export default async function MonEntreprisePage() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "20px",
-              fontWeight: "bold",
+              gap: "14px",
               flexWrap: "wrap",
-              justifyContent: "flex-end",
             }}
           >
-            <span>Entreprise : {entreprise.nom}</span>
-            <span>Rôle : {formatRole(membership.role)}</span>
+            <span style={{ fontWeight: "bold" }}>
+              Bureau : {entreprise.nom}
+            </span>
 
             <div
               style={{
@@ -217,6 +920,7 @@ export default async function MonEntreprisePage() {
                 padding: "8px 14px",
                 borderRadius: "999px",
                 border: "1px solid rgba(255,255,255,0.12)",
+                fontWeight: "bold",
               }}
             >
               <span
@@ -224,474 +928,505 @@ export default async function MonEntreprisePage() {
                   width: "10px",
                   height: "10px",
                   borderRadius: "50%",
-                  background: "#22c55e",
                   display: "inline-block",
-                  boxShadow: "0 0 8px #22c55e",
+                  background: entreprise.recrutement ? "#22c55e" : "#ef4444",
+                  boxShadow: entreprise.recrutement
+                    ? "0 0 8px #22c55e"
+                    : "0 0 8px #ef4444",
                 }}
               />
-              <span>Connecté</span>
+              <span>
+                {entreprise.recrutement
+                  ? "Recrutement ouvert"
+                  : "Recrutement fermé"}
+              </span>
             </div>
+
+            <Link href="/mon-entreprise" style={headerButtonStyle}>
+              Retour
+            </Link>
           </div>
         </header>
 
         <div
           style={{
             padding: "20px",
-            display: "flex",
-            flexDirection: "column",
+            display: "grid",
+            gridTemplateColumns: "1.2fr 1fr",
             gap: "20px",
             flex: 1,
           }}
         >
           <section
             style={{
-              background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "18px",
-              padding: "20px",
-              backdropFilter: "blur(6px)",
-              boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "20px",
             }}
           >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "260px 1fr 420px",
-                gap: "20px",
-                alignItems: "center",
-              }}
-            >
+            <div style={boxStyle}>
+              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
+                Informations entreprise
+              </h2>
+
+              <form
+                action={updateEntreprise}
+                encType="multipart/form-data"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
+                <input type="hidden" name="entrepriseId" value={entreprise.id} />
+
+                <div
+                  style={{
+                    width: "100%",
+                    minHeight: "210px",
+                    borderRadius: "16px",
+                    overflow: "hidden",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    background: entreprise.banniere
+                      ? `linear-gradient(rgba(0,0,0,0.20), rgba(0,0,0,0.45)), url('${entreprise.banniere}') center/cover no-repeat`
+                      : "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.45)), url('/truck.jpg') center/cover no-repeat",
+                    display: "flex",
+                    alignItems: "flex-end",
+                    padding: "18px",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: "22px", fontWeight: "bold" }}>
+                      {entreprise.nom}
+                    </div>
+                    <div style={{ fontSize: "13px", opacity: 0.9 }}>
+                      [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: "16px",
+                    borderRadius: "14px",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                  }}
+                >
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Taille recommandée : <strong>1400 x 260 px</strong>
+                  </div>
+
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Format : <strong>image horizontale (bannière)</strong>
+                  </div>
+
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Important : <strong>centrer le logo et le texte</strong>
+                  </div>
+
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Évite : <strong>les images carrées ou verticales</strong>
+                  </div>
+
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Formats acceptés : <strong>JPG, PNG, WEBP</strong>
+                  </div>
+
+                  <div style={{ fontSize: "14px", opacity: 0.92 }}>
+                    Poids maximum : <strong>4 Mo</strong>
+                  </div>
+
+                  <input
+                    type="file"
+                    name="banniereFile"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                    style={{
+                      ...inputStyle,
+                      marginTop: "14px",
+                      padding: "10px",
+                    }}
+                    disabled={!peutModifierInfos}
+                  />
+
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      fontSize: "13px",
+                      opacity: 0.8,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Choisis une nouvelle image seulement si tu veux remplacer la
+                    bannière actuelle.
+                  </div>
+                </div>
+
+                <div style={gridTwoStyle}>
+                  <div>
+                    <label style={labelStyle}>Nom</label>
+                    <input
+                      name="nom"
+                      defaultValue={entreprise.nom}
+                      style={inputStyle}
+                      disabled={!peutModifierInfos}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Abréviation</label>
+                    <input
+                      name="abreviation"
+                      defaultValue={entreprise.abreviation}
+                      maxLength={3}
+                      style={inputStyle}
+                      disabled={!peutModifierInfos}
+                    />
+                  </div>
+
+                  <div style={fullWidthStyle}>
+                    <label style={labelStyle}>Jeu</label>
+
+                    <div style={choiceGridStyle}>
+                      {JEUX.map((jeu) => (
+                        <label key={jeu.value} style={choiceCardStyle}>
+                          <input
+                            type="radio"
+                            name="jeu"
+                            value={jeu.value}
+                            defaultChecked={jeuActuel === jeu.value}
+                            disabled={!peutModifierInfos}
+                          />
+                          <span>{jeu.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={fullWidthStyle}>
+                    <label style={labelStyle}>Type de transport</label>
+
+                    <div style={choiceGridStyle}>
+                      {TYPES_TRANSPORT.map((type) => (
+                        <label key={type.value} style={choiceCardStyle}>
+                          <input
+                            type="radio"
+                            name="typeTransport"
+                            value={type.value}
+                            defaultChecked={typeTransportActuel === type.value}
+                            disabled={!peutModifierInfos}
+                          />
+                          <span>{type.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={infoCardStyle}>
+                    <div style={labelStyle}>Directeur</div>
+                    <div style={valueStyle}>
+                      {entreprise.owner?.username || "Utilisateur Steam"}
+                    </div>
+                  </div>
+
+                  <div style={infoCardStyle}>
+                    <div style={labelStyle}>Membres</div>
+                    <div style={valueStyle}>{entreprise._count.membres}</div>
+                  </div>
+
+                  <div style={infoCardStyle}>
+                    <div style={labelStyle}>Jeu actuel</div>
+                    <div style={valueStyle}>{formatJeu(entreprise.jeu)}</div>
+                  </div>
+
+                  <div style={infoCardStyle}>
+                    <div style={labelStyle}>Transport actuel</div>
+                    <div style={valueStyle}>
+                      {formatTypeTransport(entreprise.typeTransport)}
+                    </div>
+                  </div>
+                </div>
+
+                {peutModifierInfos ? (
+                  <button type="submit" style={btnPrimaryLarge}>
+                    💾 Enregistrer les modifications
+                  </button>
+                ) : (
+                  <div style={emptyCardStyle}>
+                    Seuls le directeur et le sous-directeur peuvent modifier ces
+                    informations.
+                  </div>
+                )}
+              </form>
+
+              {membreActuel.role === "DIRECTEUR" && (
+                <button type="button" style={btnDeleteEntreprise}>
+                  ❌ Supprimer l’entreprise
+                </button>
+              )}
+            </div>
+
+            <div style={boxStyle}>
+              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>Membres</h2>
+
               <div
                 style={{
-                  minWidth: 0,
                   display: "flex",
                   flexDirection: "column",
                   gap: "10px",
+                  maxHeight: "560px",
+                  overflowY: "auto",
+                  paddingRight: "4px",
                 }}
               >
-                <div
-                  style={{
-                    fontSize: "34px",
-                    fontWeight: "bold",
-                    lineHeight: 1,
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {entreprise.nom}
-                </div>
+                {entreprise.membres.length > 0 ? (
+                  entreprise.membres.map((membre) => {
+                    const peutCibler =
+                      membre.id !== membreActuel.id &&
+                      membre.role !== "DIRECTEUR" &&
+                      peutGererMembres;
 
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    width: "fit-content",
-                    padding: "6px 10px",
-                    borderRadius: "10px",
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.10)",
-                    fontSize: "18px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  height: "150px",
-                  width: "100%",
-                  borderRadius: "16px",
-                  overflow: "hidden",
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
-                  position: "relative",
-                  background: "rgba(255,255,255,0.05)",
-                }}
-              >
-                <img
-                  src={entreprise.banniere || "/truck.jpg"}
-                  alt="Bannière société"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                      "linear-gradient(90deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.15) 100%)",
-                  }}
-                />
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                  alignItems: "stretch",
-                }}
-              >
-                <div
-                  style={{
-                    minWidth: "220px",
-                    padding: "14px 18px",
-                    borderRadius: "14px",
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.14)",
-                    backdropFilter: "blur(10px)",
-                    boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      opacity: 0.82,
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Argent de la société
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: "28px",
-                      fontWeight: "bold",
-                      lineHeight: 1.05,
-                    }}
-                  >
-                    {argentSociete.toLocaleString("fr-FR")} €
-                  </div>
-                </div>
-
-                {peutAccederBureau && (
-                  <Link
-                    href={`/entreprise/${entreprise.id}/gestion`}
-                    style={{
-                      minWidth: "150px",
-                      padding: "14px 18px",
-                      borderRadius: "14px",
-                      background: "rgba(20, 26, 39, 0.92)",
-                      color: "white",
-                      textDecoration: "none",
-                      fontWeight: "bold",
-                      border: "1px solid rgba(255,255,255,0.14)",
-                      backdropFilter: "blur(10px)",
-                      boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    Bureau
-                  </Link>
-                )}
-
-                <form action="/api/entreprise/demission" method="POST">
-                  <button
-                    type="submit"
-                    style={{
-                      minWidth: "150px",
-                      padding: "14px 18px",
-                      borderRadius: "14px",
-                      background: "rgba(153, 27, 27, 0.96)",
-                      color: "white",
-                      fontWeight: "bold",
-                      border: "1px solid rgba(255,255,255,0.14)",
-                      backdropFilter: "blur(10px)",
-                      boxShadow: "0 8px 25px rgba(0,0,0,0.25)",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Démissionner
-                  </button>
-                </form>
-              </div>
-            </div>
-          </section>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "260px 1fr 320px",
-              gap: "20px",
-              flex: 1,
-            }}
-          >
-            <Menu />
-
-            <section
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "20px",
-              }}
-            >
-              <div
-                style={{
-                  background: "rgba(0, 0, 0, 0.45)",
-                  borderRadius: "16px",
-                  padding: "20px",
-                  backdropFilter: "blur(6px)",
-                  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  minHeight: "620px",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <h2 style={{ marginTop: 0, marginBottom: "18px", flexShrink: 0 }}>
-                  Livraisons des chauffeurs
-                </h2>
-
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px",
-                    height: "330px",
-                    overflowY: "auto",
-                    paddingRight: "8px",
-                    scrollbarWidth: "thin",
-                  }}
-                >
-                  {livraisons.length > 0 ? (
-                    livraisons.map((livraison) => {
-                      const statutStyle =
-                        livraison.statut === "Terminée"
-                          ? {
-                              color: "#22c55e",
-                              textShadow: "0 0 8px rgba(34,197,94,0.45)",
-                            }
-                          : livraison.statut === "Annulée"
-                          ? {
-                              color: "#ef4444",
-                              textShadow: "0 0 8px rgba(239,68,68,0.45)",
-                            }
-                          : {
-                              color: "#f59e0b",
-                              textShadow: "0 0 8px rgba(245,158,11,0.45)",
-                            };
-
-                      return (
-                        <div
-                          key={livraison.id}
-                          style={{
-                            background: "rgba(255,255,255,0.08)",
-                            borderRadius: "12px",
-                            padding: "14px",
-                            border: "1px solid rgba(255,255,255,0.08)",
-                            display: "grid",
-                            gridTemplateColumns: peutAccederBureau
-                              ? "1.1fr 1.3fr 0.8fr 0.8fr 0.9fr"
-                              : "1.1fr 1.3fr 0.8fr 0.8fr",
-                            gap: "12px",
-                            alignItems: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontSize: "13px", opacity: 0.8 }}>
-                              Chauffeur
-                            </div>
-                            <div style={{ fontWeight: "bold" }}>
-                              {livraison.chauffeur}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div style={{ fontSize: "13px", opacity: 0.8 }}>
-                              Trajet
-                            </div>
-                            <div style={{ fontWeight: "bold" }}>
-                              {livraison.trajet}
-                            </div>
-                            <div
-                              style={{
-                                marginTop: "4px",
-                                fontSize: "12px",
-                                opacity: 0.75,
-                              }}
-                            >
-                              {livraison.cargo} • {livraison.truck}
-
-                              <div
-                                style={{
-                                  marginTop: "6px",
-                                  fontSize: "12px",
-                                  opacity: 0.85,
-                                }}
-                              >
-                                💰 {livraison.gain}
-                              </div>
-
-                              <div style={{ fontSize: "11px", opacity: 0.75 }}>
-                                🏢 {livraison.gainSociete.toLocaleString("fr-FR")} € •
-                                👤 {livraison.gainChauffeur.toLocaleString("fr-FR")} € •
-                                🏛️ {livraison.charges.toLocaleString("fr-FR")} €
-                              </div>
-                            </div>
-                          </div>
-
-                          <div>
-                            <div style={{ fontSize: "13px", opacity: 0.8 }}>
-                              Gain
-                            </div>
-                            <div style={{ fontWeight: "bold" }}>
-                              {livraison.gain}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div style={{ fontSize: "13px", opacity: 0.8 }}>
-                              Statut
-                            </div>
-                            <div
-                              style={{
-                                fontWeight: "bold",
-                                ...statutStyle,
-                              }}
-                            >
-                              {livraison.statut}
-                            </div>
-                          </div>
-
-                          {peutAccederBureau && (
-                            <div>
-                              <div style={{ fontSize: "13px", opacity: 0.8 }}>
-                                Action
-                              </div>
-                              <DeleteLivraisonButton livraisonId={livraison.id} />
-                            </div>
-                          )}
-                        </div>
+                    const peutAvertir =
+                      membre.id !== membreActuel.id &&
+                      ["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_EQUIPE"].includes(
+                        membreActuel.role
                       );
-                    })
-                  ) : (
-                    <div
-                      style={{
-                        background: "rgba(255,255,255,0.08)",
-                        borderRadius: "12px",
-                        padding: "14px",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      Aucune vraie livraison enregistrée pour le moment.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
 
-            <aside
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "20px",
-              }}
-            >
-              <div
-                style={{
-                  background: "rgba(0, 0, 0, 0.45)",
-                  borderRadius: "16px",
-                  padding: "20px",
-                  backdropFilter: "blur(6px)",
-                  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
-                  Chauffeurs de la société
-                </h2>
-
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px",
-                    height: "150px",
-                    overflowY: "auto",
-                    paddingRight: "6px",
-                    scrollbarWidth: "thin",
-                  }}
-                >
-                  {entreprise.membres.length > 0 ? (
-                    entreprise.membres.map((membre) => (
+                    return (
                       <div
                         key={membre.id}
                         style={{
-                          background: "rgba(255,255,255,0.08)",
-                          borderRadius: "12px",
-                          padding: "14px",
-                          border: "1px solid rgba(255,255,255,0.08)",
                           display: "flex",
                           alignItems: "center",
+                          justifyContent: "space-between",
                           gap: "12px",
-                          flexShrink: 0,
+                          padding: "12px",
+                          borderRadius: "10px",
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          flexWrap: "wrap",
                         }}
                       >
                         <div
                           style={{
-                            width: "42px",
-                            height: "42px",
-                            borderRadius: "999px",
-                            overflow: "hidden",
-                            background: "rgba(255,255,255,0.08)",
-                            flexShrink: 0,
-                            border: "1px solid rgba(255,255,255,0.12)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            minWidth: "220px",
                           }}
                         >
-                          {membre.user?.avatar ? (
-                            <img
-                              src={membre.user.avatar}
-                              alt="Avatar Steam"
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                                display: "block",
-                              }}
-                            />
-                          ) : (
+                          <div
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "999px",
+                              overflow: "hidden",
+                              background: "rgba(255,255,255,0.08)",
+                              border: "1px solid rgba(255,255,255,0.12)",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {membre.user?.avatar ? (
+                              <img
+                                src={membre.user.avatar}
+                                alt="Avatar Steam"
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  display: "block",
+                                }}
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: "12px",
+                                  opacity: 0.7,
+                                }}
+                              >
+                                ?
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+                              {membre.user?.username || "Utilisateur Steam"}
+                            </div>
+
                             <div
                               style={{
-                                width: "100%",
-                                height: "100%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
                                 fontSize: "12px",
-                                opacity: 0.7,
+                                fontWeight: "bold",
+                                color:
+                                  membre.role === "DIRECTEUR"
+                                    ? "#facc15"
+                                    : membre.role === "SOUS_DIRECTEUR"
+                                    ? "#60a5fa"
+                                    : membre.role === "CHEF_EQUIPE"
+                                    ? "#22c55e"
+                                    : membre.role === "CHEF_ATELIER"
+                                    ? "#f59e0b"
+                                    : "#c084fc",
                               }}
                             >
-                              ?
+                              {formatRole(membre.role)}
                             </div>
-                          )}
+
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                opacity: 0.8,
+                                marginTop: "4px",
+                              }}
+                            >
+                              Avertissements : {membre.avertissementsRecus.length}
+                            </div>
+                          </div>
                         </div>
 
-                        <div>
-                          <div
-                            style={{ fontWeight: "bold", marginBottom: "4px" }}
-                          >
-                            {membre.user?.username || "Utilisateur Steam"}
-                          </div>
-                          <div style={{ opacity: 0.85 }}>
-                            {formatRole(membre.role)}
-                          </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                          }}
+                        >
+                          <form action={ajouterAvertissement}>
+                            <input
+                              type="hidden"
+                              name="entrepriseId"
+                              value={entreprise.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="membreId"
+                              value={membre.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="raison"
+                              value="Avertissement interne"
+                            />
+                            <button
+                              type="submit"
+                              style={{
+                                ...btnWarning,
+                                opacity: peutAvertir ? 1 : 0.5,
+                                cursor: peutAvertir ? "pointer" : "not-allowed",
+                              }}
+                              disabled={!peutAvertir}
+                            >
+                              ⚠️ Avertissement
+                            </button>
+                          </form>
+
+                          <form action={changerRoleMembre}>
+                            <input
+                              type="hidden"
+                              name="entrepriseId"
+                              value={entreprise.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="membreId"
+                              value={membre.id}
+                            />
+
+                            <select
+                              name="nouveauRole"
+                              defaultValue={membre.role}
+                              style={selectStyle}
+                              disabled={!peutCibler}
+                            >
+                              {ROLES_MODIFIABLES.map((role) => (
+                                <option key={role.value} value={role.value}>
+                                  {role.label}
+                                </option>
+                              ))}
+                            </select>
+
+                            <button
+                              type="submit"
+                              style={{
+                                ...btnPrimary,
+                                marginLeft: "8px",
+                                opacity: peutCibler ? 1 : 0.5,
+                                cursor: peutCibler ? "pointer" : "not-allowed",
+                              }}
+                              disabled={!peutCibler}
+                            >
+                              🎖️ Rôle
+                            </button>
+                          </form>
+
+                          <form action={exclureMembre}>
+                            <input
+                              type="hidden"
+                              name="entrepriseId"
+                              value={entreprise.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="membreId"
+                              value={membre.id}
+                            />
+                            <button
+                              type="submit"
+                              style={{
+                                ...btnDanger,
+                                opacity: peutCibler ? 1 : 0.5,
+                                cursor: peutCibler ? "pointer" : "not-allowed",
+                              }}
+                              disabled={!peutCibler}
+                            >
+                              ❌ Exclure
+                            </button>
+                          </form>
                         </div>
                       </div>
-                    ))
-                  ) : (
+                    );
+                  })
+                ) : (
+                  <div style={emptyCardStyle}>Aucun membre dans la société.</div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <aside
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "20px",
+            }}
+          >
+            <div style={boxStyle}>
+              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
+                Candidatures
+              </h2>
+
+              {entreprise.candidatures.length > 0 ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    maxHeight: "420px",
+                    overflowY: "auto",
+                    paddingRight: "4px",
+                  }}
+                >
+                  {entreprise.candidatures.map((candidature) => (
                     <div
+                      key={candidature.id}
                       style={{
                         background: "rgba(255,255,255,0.08)",
                         borderRadius: "12px",
@@ -699,76 +1434,136 @@ export default async function MonEntreprisePage() {
                         border: "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
-                      Aucun chauffeur dans la société.
+                      <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                        {candidature.user?.username || "Utilisateur Steam"}
+                      </div>
+
+                      <div style={miniTextStyle}>
+                        Âge : {candidature.age ?? "Non renseigné"}
+                      </div>
+                      <div style={miniTextStyle}>
+                        Région : {candidature.region || "Non renseignée"}
+                      </div>
+                      <div style={miniTextStyle}>
+                        Jeu : {formatJeu(candidature.jeuPrincipal)}
+                      </div>
+                      <div style={miniTextStyle}>
+                        Expérience : {formatExperience(candidature.experience)}
+                      </div>
+                      <div style={miniTextStyle}>
+                        Micro : {candidature.micro ? "Oui" : "Non"}
+                      </div>
+                      <div style={miniTextStyle}>
+                        Disponibilités :{" "}
+                        {candidature.disponibilites || "Non renseignées"}
+                      </div>
+
+                      <div style={{ marginTop: "10px" }}>
+                        <div style={labelStyle}>Motivation</div>
+                        <div style={textBlockStyle}>{candidature.motivation}</div>
+                      </div>
+
+                      {candidature.message && (
+                        <div style={{ marginTop: "10px" }}>
+                          <div style={labelStyle}>Message</div>
+                          <div style={textBlockStyle}>{candidature.message}</div>
+                        </div>
+                      )}
+
+                      {peutGererCandidatures ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "10px",
+                            marginTop: "14px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <form action={accepterCandidature}>
+                            <input
+                              type="hidden"
+                              name="candidatureId"
+                              value={candidature.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="entrepriseId"
+                              value={entreprise.id}
+                            />
+                            <button type="submit" style={btnAccept}>
+                              ✅ Accepter
+                            </button>
+                          </form>
+
+                          <form action={refuserCandidature}>
+                            <input
+                              type="hidden"
+                              name="candidatureId"
+                              value={candidature.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="entrepriseId"
+                              value={entreprise.id}
+                            />
+                            <button type="submit" style={btnDanger}>
+                              ❌ Refuser
+                            </button>
+                          </form>
+                        </div>
+                      ) : (
+                        <div style={{ ...miniTextStyle, marginTop: "12px" }}>
+                          Tu n’as pas les droits pour gérer les candidatures.
+                        </div>
+                      )}
                     </div>
-                  )}
+                  ))}
+                </div>
+              ) : (
+                <div style={emptyCardStyle}>
+                  Aucune candidature en attente pour le moment.
+                </div>
+              )}
+            </div>
+
+            <div style={boxStyle}>
+              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
+                Cuve de la société
+              </h2>
+
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  borderRadius: "12px",
+                  padding: "14px",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  marginBottom: "14px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "13px",
+                    opacity: 0.8,
+                    marginBottom: "6px",
+                  }}
+                >
+                  Argent de la société
+                </div>
+
+                <div style={{ fontSize: "24px", fontWeight: "bold" }}>
+                  {argentSociete.toLocaleString("fr-FR")} €
                 </div>
               </div>
 
               <div
                 style={{
-                  background: "rgba(0, 0, 0, 0.45)",
-                  borderRadius: "16px",
-                  padding: "20px",
-                  backdropFilter: "blur(6px)",
-                  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
+                  background: "rgba(255,255,255,0.08)",
+                  borderRadius: "12px",
+                  padding: "14px",
                   border: "1px solid rgba(255,255,255,0.08)",
+                  marginBottom: "14px",
                 }}
               >
-                <h2 style={{ marginTop: 0, marginBottom: "10px" }}>
-                  Classement interne
-                </h2>
-
-                <p
-                  style={{
-                    margin: 0,
-                    lineHeight: 1.6,
-                    opacity: 0.9,
-                  }}
-                >
-                  Consulte le classement des chauffeurs de ta société :
-                  argent, kilomètres, infractions, accidents et classement
-                  général.
-                </p>
-
-                <Link
-                  href="/mon-entreprise/classement"
-                  style={{
-                    width: "100%",
-                    maxWidth: "100%",
-                    boxSizing: "border-box",
-                    marginTop: "16px",
-                    padding: "12px 16px",
-                    borderRadius: "10px",
-                    border: "none",
-                    background: "#2563eb",
-                    color: "white",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                    textDecoration: "none",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  Voir le classement
-                </Link>
-              </div>
-
-              <div
-                style={{
-                  background: "rgba(0, 0, 0, 0.45)",
-                  borderRadius: "16px",
-                  padding: "20px",
-                  backdropFilter: "blur(6px)",
-                  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
-                  Cuve de la société
-                </h2>
-
                 <div
                   style={{
                     fontSize: "14px",
@@ -813,10 +1608,418 @@ export default async function MonEntreprisePage() {
                   <span>{cuveMax.toLocaleString("fr-FR")}</span>
                 </div>
               </div>
-            </aside>
-          </div>
+
+              <form
+                action={remplirCuve}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                <input type="hidden" name="entrepriseId" value={entreprise.id} />
+                <input type="hidden" name="mode" value="plein" />
+
+                {peutGererCuve ? (
+                  <button type="submit" style={btnPrimaryLarge}>
+                    Remplir la cuve à fond
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    style={{
+                      ...btnPrimaryLarge,
+                      opacity: 0.5,
+                      cursor: "not-allowed",
+                    }}
+                    disabled
+                  >
+                    Remplir la cuve à fond
+                  </button>
+                )}
+              </form>
+
+              <form
+                action={remplirCuve}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                <input type="hidden" name="entrepriseId" value={entreprise.id} />
+                <input type="hidden" name="mode" value="quantite" />
+
+                <label style={labelStyle}>Ajouter une quantité</label>
+                <input
+                  type="number"
+                  name="quantite"
+                  min={1}
+                  max={cuveMax - cuveActuelle}
+                  placeholder="Exemple : 500"
+                  style={inputStyle}
+                  disabled={!peutGererCuve}
+                />
+
+                {peutGererCuve ? (
+                  <button type="submit" style={btnPrimaryLarge}>
+                    Ajouter la quantité
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    style={{
+                      ...btnPrimaryLarge,
+                      opacity: 0.5,
+                      cursor: "not-allowed",
+                    }}
+                    disabled
+                  >
+                    Ajouter la quantité
+                  </button>
+                )}
+              </form>
+
+              <form
+                action={acheterExtensionCuve}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                }}
+              >
+                <input type="hidden" name="entrepriseId" value={entreprise.id} />
+
+                {peutGererCuve && peutAcheterExtension ? (
+                  <button type="submit" style={btnDarkLarge}>
+                    Acheter extension +5000 L (
+                    {prochaineExtension.toLocaleString("fr-FR")} L) - 20 000 €
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    style={{
+                      ...btnDarkLarge,
+                      opacity: 0.5,
+                      cursor: "not-allowed",
+                    }}
+                    disabled
+                  >
+                    {cuveMax >= 50000
+                      ? "Capacité maximale atteinte"
+                      : argentSociete < 20000
+                      ? "Pas assez d’argent pour l’extension"
+                      : "Extension indisponible"}
+                  </button>
+                )}
+              </form>
+            </div>
+
+            <div style={boxStyle}>
+              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
+                Recrutement
+              </h2>
+
+              <form
+                action={updateRecrutement}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                }}
+              >
+                <input type="hidden" name="entrepriseId" value={entreprise.id} />
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "10px",
+                  }}
+                >
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      background: entreprise.recrutement
+                        ? "rgba(34,197,94,0.18)"
+                        : "rgba(255,255,255,0.08)",
+                      border: entreprise.recrutement
+                        ? "1px solid rgba(34,197,94,0.45)"
+                        : "1px solid rgba(255,255,255,0.10)",
+                      borderRadius: "10px",
+                      padding: "12px",
+                      cursor: peutModifierInfos ? "pointer" : "default",
+                      fontWeight: "bold",
+                      opacity: peutModifierInfos ? 1 : 0.7,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="recrutement"
+                      value="true"
+                      defaultChecked={entreprise.recrutement === true}
+                      disabled={!peutModifierInfos}
+                    />
+                    <span>Ouvert</span>
+                  </label>
+
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      background:
+                        entreprise.recrutement === false
+                          ? "rgba(239,68,68,0.18)"
+                          : "rgba(255,255,255,0.08)",
+                      border:
+                        entreprise.recrutement === false
+                          ? "1px solid rgba(239,68,68,0.45)"
+                          : "1px solid rgba(255,255,255,0.10)",
+                      borderRadius: "10px",
+                      padding: "12px",
+                      cursor: peutModifierInfos ? "pointer" : "default",
+                      fontWeight: "bold",
+                      opacity: peutModifierInfos ? 1 : 0.7,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="recrutement"
+                      value="false"
+                      defaultChecked={entreprise.recrutement === false}
+                      disabled={!peutModifierInfos}
+                    />
+                    <span>Fermé</span>
+                  </label>
+                </div>
+
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    borderRadius: "12px",
+                    padding: "14px",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      opacity: 0.8,
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Statut actuel
+                  </div>
+
+                  <div style={{ fontWeight: "bold", fontSize: "16px" }}>
+                    {entreprise.recrutement
+                      ? "Recrutement ouvert"
+                      : "Recrutement fermé"}
+                  </div>
+                </div>
+
+                {peutModifierInfos ? (
+                  <button type="submit" style={btnPrimaryLarge}>
+                    💾 Enregistrer le recrutement
+                  </button>
+                ) : (
+                  <div style={emptyCardStyle}>
+                    Seuls le directeur et le sous-directeur peuvent modifier le
+                    recrutement.
+                  </div>
+                )}
+              </form>
+            </div>
+          </aside>
         </div>
       </div>
     </main>
   );
 }
+
+const boxStyle = {
+  background: "rgba(0, 0, 0, 0.45)",
+  borderRadius: "16px",
+  padding: "20px",
+  backdropFilter: "blur(6px)",
+  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const gridTwoStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "14px",
+};
+
+const fullWidthStyle = {
+  gridColumn: "1 / -1",
+};
+
+const infoCardStyle = {
+  background: "rgba(255,255,255,0.08)",
+  borderRadius: "12px",
+  padding: "14px",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const labelStyle = {
+  display: "block",
+  fontSize: "13px",
+  opacity: 0.8,
+  marginBottom: "6px",
+};
+
+const valueStyle = {
+  fontWeight: "bold",
+  fontSize: "16px",
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  outline: "none",
+  boxSizing: "border-box" as const,
+};
+
+const selectStyle = {
+  padding: "6px 10px",
+  borderRadius: "6px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontWeight: "bold",
+};
+
+const choiceGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  gap: "10px",
+};
+
+const choiceCardStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  borderRadius: "10px",
+  padding: "12px",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const emptyCardStyle = {
+  background: "rgba(255,255,255,0.08)",
+  borderRadius: "12px",
+  padding: "14px",
+  border: "1px solid rgba(255,255,255,0.08)",
+  lineHeight: 1.6,
+  opacity: 0.9,
+};
+
+const headerButtonStyle = {
+  padding: "10px 16px",
+  background: "#171a21",
+  borderRadius: "10px",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: "bold",
+  border: "1px solid rgba(255,255,255,0.12)",
+};
+
+const btnPrimary = {
+  padding: "6px 10px",
+  borderRadius: "6px",
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const btnWarning = {
+  padding: "6px 10px",
+  borderRadius: "6px",
+  border: "none",
+  background: "#f59e0b",
+  color: "black",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const btnDanger = {
+  padding: "6px 10px",
+  borderRadius: "6px",
+  border: "none",
+  background: "#ef4444",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const btnPrimaryLarge = {
+  padding: "12px 16px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const btnDarkLarge = {
+  padding: "12px 16px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#171a21",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const btnDeleteEntreprise = {
+  marginTop: "20px",
+  padding: "12px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#dc2626",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+  width: "100%",
+};
+
+const btnAccept = {
+  padding: "8px 12px",
+  borderRadius: "8px",
+  border: "none",
+  background: "#22c55e",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const miniTextStyle = {
+  fontSize: "13px",
+  opacity: 0.9,
+  marginBottom: "4px",
+};
+
+const textBlockStyle = {
+  background: "rgba(0,0,0,0.25)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "10px",
+  padding: "10px",
+  lineHeight: 1.5,
+  whiteSpace: "pre-wrap" as const,
+};

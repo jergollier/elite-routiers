@@ -17,7 +17,11 @@ export async function POST() {
     const user = await prisma.user.findUnique({
       where: { steamId },
       include: {
-        memberships: true,
+        memberships: {
+          include: {
+            entreprise: true,
+          },
+        },
       },
     });
 
@@ -26,12 +30,61 @@ export async function POST() {
     }
 
     const membership = user.memberships[0];
+    const entreprise = membership.entreprise;
 
-    await prisma.entrepriseMembre.delete({
-      where: {
-        id: membership.id,
-      },
-    });
+    if (!entreprise) {
+      return NextResponse.redirect(new URL("/societe", baseUrl), 303);
+    }
+
+    if (membership.role === "DIRECTEUR") {
+      return NextResponse.redirect(new URL("/mon-entreprise", baseUrl), 303);
+    }
+
+    await prisma.$transaction([
+      prisma.livraison.updateMany({
+        where: {
+          steamId,
+          entrepriseId: entreprise.id,
+        },
+        data: {
+          entrepriseId: null,
+        },
+      }),
+
+      prisma.pleinCarburant.updateMany({
+        where: {
+          steamId,
+          entrepriseId: entreprise.id,
+        },
+        data: {
+          entrepriseId: null,
+        },
+      }),
+
+      prisma.camion.updateMany({
+        where: {
+          entrepriseId: entreprise.id,
+          chauffeurAttribueId: user.id,
+        },
+        data: {
+          chauffeurAttribueId: null,
+          statut: "DISPONIBLE",
+        },
+      }),
+
+      prisma.chauffeurStat.deleteMany({
+        where: {
+          userId: user.id,
+          entrepriseId: entreprise.id,
+        },
+      }),
+
+      prisma.entrepriseMembre.delete({
+        where: {
+          id: membership.id,
+        },
+      }),
+    ]);
 
     return NextResponse.redirect(new URL("/societe", baseUrl), 303);
   } catch (error) {

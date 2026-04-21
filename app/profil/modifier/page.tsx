@@ -45,38 +45,34 @@ export default async function ModifierProfilPage() {
   }
 
   const user = await prisma.user.findUnique({
-    where: { steamId },
-    include: {
-      dlcs: {
-        orderBy: [{ jeu: "asc" }, { nomDlc: "asc" }],
-      },
-      entreprisesCreees: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
+  where: { steamId },
+  include: {
+    dlcs: {
+      orderBy: [{ jeu: "asc" }, { nomDlc: "asc" }],
     },
-  });
+    entreprisesCreees: true,
+  },
+});
 
-  if (!user) {
-    redirect("/");
-  }
+if (!user) {
+  redirect("/");
+}
 
-  const membershipActif = await prisma.entrepriseMembre.findUnique({
-    where: {
-      userId: user.id,
-    },
-    include: {
-      entreprise: true,
-    },
-  });
+const membershipActif = await prisma.entrepriseMembre.findUnique({
+  where: {
+    userId: user.id,
+  },
+  include: {
+    entreprise: true,
+  },
+});
 
-  const entreprisePossedee = user.entreprisesCreees[0] ?? null;
+const entreprisePossedee = user.entreprisesCreees ?? null;
 
-  const entrepriseActuelle =
-    entreprisePossedee?.nom ??
-    membershipActif?.entreprise?.nom ??
-    "Aucune entreprise";
+const entrepriseActuelle =
+  entreprisePossedee?.nom ??
+  membershipActif?.entreprise?.nom ??
+  "Aucune entreprise";
 
   const dlcsUserETS2 = new Set(
     user.dlcs.filter((dlc) => dlc.jeu === "ETS2").map((dlc) => dlc.nomDlc)

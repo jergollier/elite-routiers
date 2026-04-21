@@ -152,37 +152,41 @@ export default async function MonEntreprisePage() {
     position: "relative",
     borderRadius: "18px",
     overflow: "hidden",
-    height: "180px",
+    height: "220px",
     border: "1px solid rgba(255,255,255,0.08)",
     boxShadow: "0 0 20px rgba(0,0,0,0.35)",
+    background: "rgba(0,0,0,0.55)",
   }}
 >
-  {/* IMAGE */}
   <div
     style={{
       position: "absolute",
       inset: 0,
-      backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      filter: "brightness(0.75)",
+      background:
+        "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.25))",
+      zIndex: 2,
     }}
   />
 
-  {/* OVERLAY */}
-  <div
+  <img
+    src={entreprise.banniere || "/truck.jpg"}
+    alt="Bannière entreprise"
     style={{
       position: "absolute",
       inset: 0,
-      background: "linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.2))",
+      width: "100%",
+      height: "100%",
+      objectFit: "contain",
+      objectPosition: "center",
+      zIndex: 1,
+      background: "#0b0b0b",
     }}
   />
 
-  {/* TEXTE */}
   <div
     style={{
       position: "relative",
-      zIndex: 1,
+      zIndex: 3,
       height: "100%",
       display: "flex",
       alignItems: "flex-end",
@@ -193,8 +197,11 @@ export default async function MonEntreprisePage() {
       <div style={{ fontSize: "28px", fontWeight: "bold" }}>
         {entreprise.nom}
       </div>
-      <div style={{ fontSize: "14px", opacity: 0.9 }}>
+      <div style={{ fontSize: "14px", opacity: 0.92, marginTop: "4px" }}>
         [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
+      </div>
+      <div style={{ fontSize: "13px", opacity: 0.82, marginTop: "6px" }}>
+        Type de transport : {formatTypeTransport(entreprise.typeTransport)}
       </div>
     </div>
   </div>

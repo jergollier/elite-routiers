@@ -199,18 +199,7 @@ export default async function MonEntreprisePage() {
     </div>
   </div>
 </div>
-            <div>
-              <div style={{ fontSize: "28px", fontWeight: "bold" }}>
-                {entreprise.nom}
-              </div>
-              <div style={{ fontSize: "14px", opacity: 0.9, marginTop: "4px" }}>
-                [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
-              </div>
-              <div style={{ fontSize: "13px", opacity: 0.8, marginTop: "6px" }}>
-                Type de transport : {formatTypeTransport(entreprise.typeTransport)}
-              </div>
-            </div>
-          </div>
+            
 
           <div
             style={{

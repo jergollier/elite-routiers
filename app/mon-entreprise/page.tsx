@@ -45,6 +45,12 @@ function formatRole(role: string) {
   }
 }
 
+function formatStatutLivraison(status: string | null | undefined) {
+  if (status === "TERMINEE") return "Terminée";
+  if (status === "EN_COURS") return "En cours";
+  return status || "Inconnue";
+}
+
 export default async function MonEntreprisePage() {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
@@ -69,6 +75,15 @@ export default async function MonEntreprisePage() {
                   createdAt: "asc",
                 },
               },
+              livraisons: {
+                include: {
+                  user: true,
+                },
+                orderBy: {
+                  createdAt: "desc",
+                },
+                take: 12,
+              },
             },
           },
         },
@@ -76,12 +91,12 @@ export default async function MonEntreprisePage() {
     },
   });
 
-if (!user || !user.memberships) {
-  redirect("/societe");
-}
+  if (!user || !user.memberships) {
+    redirect("/societe");
+  }
 
-const membership = user.memberships;
-const entreprise = membership.entreprise;
+  const membership = user.memberships;
+  const entreprise = membership.entreprise;
 
   const rolesAutorisesBureau = [
     "DIRECTEUR",
@@ -138,22 +153,22 @@ const entreprise = membership.entreprise;
                 ? `linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.55)), url('${entreprise.banniere}') center/cover no-repeat`
                 : "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.55)), url('/truck.jpg') center/cover no-repeat",
               borderRadius: "18px",
-              minHeight: "240px",
+              minHeight: "150px",
               border: "1px solid rgba(255,255,255,0.08)",
               boxShadow: "0 0 20px rgba(0,0,0,0.35)",
-              padding: "24px",
+              padding: "20px",
               display: "flex",
               alignItems: "flex-end",
             }}
           >
             <div>
-              <div style={{ fontSize: "32px", fontWeight: "bold" }}>
+              <div style={{ fontSize: "28px", fontWeight: "bold" }}>
                 {entreprise.nom}
               </div>
-              <div style={{ fontSize: "15px", opacity: 0.9, marginTop: "6px" }}>
+              <div style={{ fontSize: "14px", opacity: 0.9, marginTop: "4px" }}>
                 [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
               </div>
-              <div style={{ fontSize: "14px", opacity: 0.8, marginTop: "8px" }}>
+              <div style={{ fontSize: "13px", opacity: 0.8, marginTop: "6px" }}>
                 Type de transport : {formatTypeTransport(entreprise.typeTransport)}
               </div>
             </div>
@@ -162,16 +177,17 @@ const entreprise = membership.entreprise;
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1.2fr 0.8fr",
+              gridTemplateColumns: "260px minmax(0, 1fr) 280px",
               gap: "20px",
+              alignItems: "start",
             }}
           >
             <div style={boxStyle}>
               <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
-                Informations de la société
+                Infos société
               </h2>
 
-              <div style={gridTwoStyle}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 <div style={infoCardStyle}>
                   <div style={labelStyle}>Nom</div>
                   <div style={valueStyle}>{entreprise.nom}</div>
@@ -195,7 +211,7 @@ const entreprise = membership.entreprise;
                 </div>
 
                 <div style={infoCardStyle}>
-                  <div style={labelStyle}>Argent de la société</div>
+                  <div style={labelStyle}>Argent société</div>
                   <div style={valueStyle}>
                     {entreprise.argent.toLocaleString("fr-FR")} €
                   </div>
@@ -205,26 +221,6 @@ const entreprise = membership.entreprise;
                   <div style={labelStyle}>Membres</div>
                   <div style={valueStyle}>{entreprise.membres.length}</div>
                 </div>
-              </div>
-            </div>
-
-            <div style={boxStyle}>
-              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>Accès rapide</h2>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                }}
-              >
-                <Link href="/camions" style={buttonStyle}>
-                  🚛 Voir les camions
-                </Link>
-
-                <Link href="/finance" style={buttonStyle}>
-                  💶 Voir les finances
-                </Link>
 
                 {peutVoirBureau && (
                   <Link
@@ -236,82 +232,196 @@ const entreprise = membership.entreprise;
                 )}
               </div>
             </div>
-          </div>
 
-          <div style={boxStyle}>
-            <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
-              Chauffeurs de la société
-            </h2>
+            <div style={boxStyle}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  marginBottom: "18px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <h2 style={{ margin: 0 }}>Livraisons des chauffeurs</h2>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-              }}
-            >
-              {entreprise.membres.map((membre) => (
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  <Link href="/camions" style={buttonStyle}>
+                    🚛 Camions
+                  </Link>
+
+                  <Link href="/finance" style={buttonStyle}>
+                    💶 Finance
+                  </Link>
+                </div>
+              </div>
+
+              {entreprise.livraisons.length > 0 ? (
                 <div
-                  key={membre.id}
                   style={{
                     display: "flex",
-                    alignItems: "center",
+                    flexDirection: "column",
                     gap: "12px",
-                    padding: "12px",
-                    borderRadius: "12px",
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.08)",
                   }}
                 >
-                  <div
-                    style={{
-                      width: "42px",
-                      height: "42px",
-                      borderRadius: "999px",
-                      overflow: "hidden",
-                      background: "rgba(255,255,255,0.08)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {membre.user?.avatar ? (
-                      <img
-                        src={membre.user.avatar}
-                        alt="Avatar"
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          display: "block",
-                        }}
-                      />
-                    ) : (
+                  {entreprise.livraisons.map((livraison) => (
+                    <div
+                      key={livraison.id}
+                      style={{
+                        background: "rgba(255,255,255,0.06)",
+                        borderRadius: "12px",
+                        padding: "14px",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }}
+                    >
                       <div
                         style={{
-                          width: "100%",
-                          height: "100%",
                           display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "12px",
-                          opacity: 0.7,
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                          marginBottom: "8px",
                         }}
                       >
-                        ?
-                      </div>
-                    )}
-                  </div>
+                        <div style={{ fontWeight: "bold", fontSize: "15px" }}>
+                          {livraison.user?.username || "Chauffeur inconnu"}
+                        </div>
 
-                  <div>
-                    <div style={{ fontWeight: "bold" }}>
-                      {membre.user?.username || "Utilisateur Steam"}
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                            padding: "6px 10px",
+                            borderRadius: "999px",
+                            background:
+                              livraison.status === "TERMINEE"
+                                ? "rgba(34,197,94,0.18)"
+                                : "rgba(245,158,11,0.18)",
+                            border:
+                              livraison.status === "TERMINEE"
+                                ? "1px solid rgba(34,197,94,0.35)"
+                                : "1px solid rgba(245,158,11,0.35)",
+                          }}
+                        >
+                          {formatStatutLivraison(livraison.status)}
+                        </div>
+                      </div>
+
+                      <div style={miniTextStyle}>
+                        Trajet : {livraison.sourceCity || "?"} →{" "}
+                        {livraison.destinationCity || "?"}
+                      </div>
+
+                      <div style={miniTextStyle}>
+                        Cargaison : {livraison.cargo || "Non renseignée"}
+                      </div>
+
+                      <div style={miniTextStyle}>
+                        Gain :{" "}
+                        <strong>
+                          {(livraison.income ?? 0).toLocaleString("fr-FR")} €
+                        </strong>
+                      </div>
                     </div>
-                    <div style={{ fontSize: "13px", opacity: 0.8 }}>
-                      {formatRole(membre.role)}
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div style={emptyCardStyle}>
+                  Aucune livraison affichée pour le moment.
+                </div>
+              )}
+            </div>
+
+            <div style={boxStyle}>
+              <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
+                Chauffeurs
+              </h2>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  maxHeight: "320px",
+                  overflowY: "auto",
+                  paddingRight: "4px",
+                }}
+              >
+                {entreprise.membres.length > 0 ? (
+                  entreprise.membres.map((membre) => (
+                    <div
+                      key={membre.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        padding: "10px",
+                        borderRadius: "12px",
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "42px",
+                          height: "42px",
+                          borderRadius: "999px",
+                          overflow: "hidden",
+                          background: "rgba(255,255,255,0.08)",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {membre.user?.avatar ? (
+                          <img
+                            src={membre.user.avatar}
+                            alt="Avatar"
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              display: "block",
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "12px",
+                              opacity: 0.7,
+                            }}
+                          >
+                            ?
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: "bold",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {membre.user?.username || "Utilisateur Steam"}
+                        </div>
+                        <div style={{ fontSize: "12px", opacity: 0.8 }}>
+                          {formatRole(membre.role)}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={emptyCardStyle}>Aucun chauffeur dans la société.</div>
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -329,33 +439,27 @@ const boxStyle = {
   border: "1px solid rgba(255,255,255,0.08)",
 };
 
-const gridTwoStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "14px",
-};
-
 const infoCardStyle = {
   background: "rgba(255,255,255,0.08)",
   borderRadius: "12px",
-  padding: "14px",
+  padding: "12px",
   border: "1px solid rgba(255,255,255,0.08)",
 };
 
 const labelStyle = {
   display: "block",
-  fontSize: "13px",
+  fontSize: "12px",
   opacity: 0.8,
   marginBottom: "6px",
 };
 
 const valueStyle = {
   fontWeight: "bold",
-  fontSize: "16px",
+  fontSize: "15px",
 };
 
 const buttonStyle = {
-  padding: "12px 14px",
+  padding: "10px 12px",
   borderRadius: "10px",
   background: "rgba(255,255,255,0.08)",
   color: "white",
@@ -375,3 +479,18 @@ const buttonBlueStyle = {
   display: "block",
   textAlign: "center" as const,
 };
+
+const emptyCardStyle = {
+  background: "rgba(255,255,255,0.08)",
+  borderRadius: "12px",
+  padding: "14px",
+  border: "1px solid rgba(255,255,255,0.08)",
+  lineHeight: 1.6,
+  opacity: 0.9,
+};
+
+const miniTextStyle = {
+  fontSize: "13px",
+  opacity: 0.9,
+  marginBottom: "4px",
+};   

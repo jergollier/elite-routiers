@@ -148,19 +148,57 @@ export default async function MonEntreprisePage() {
           }}
         >
           <div
-            style={{
-              background: entreprise.banniere
-                ? `linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.55)), url('${entreprise.banniere}') center/cover no-repeat`
-                : "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.55)), url('/truck.jpg') center/cover no-repeat",
-              borderRadius: "18px",
-              minHeight: "150px",
-              border: "1px solid rgba(255,255,255,0.08)",
-              boxShadow: "0 0 20px rgba(0,0,0,0.35)",
-              padding: "20px",
-              display: "flex",
-              alignItems: "flex-end",
-            }}
-          >
+  style={{
+    position: "relative",
+    borderRadius: "18px",
+    overflow: "hidden",
+    height: "180px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    boxShadow: "0 0 20px rgba(0,0,0,0.35)",
+  }}
+>
+  {/* IMAGE */}
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      filter: "brightness(0.75)",
+    }}
+  />
+
+  {/* OVERLAY */}
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      background: "linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.2))",
+    }}
+  />
+
+  {/* TEXTE */}
+  <div
+    style={{
+      position: "relative",
+      zIndex: 1,
+      height: "100%",
+      display: "flex",
+      alignItems: "flex-end",
+      padding: "20px",
+    }}
+  >
+    <div>
+      <div style={{ fontSize: "28px", fontWeight: "bold" }}>
+        {entreprise.nom}
+      </div>
+      <div style={{ fontSize: "14px", opacity: 0.9 }}>
+        [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
+      </div>
+    </div>
+  </div>
+</div>
             <div>
               <div style={{ fontSize: "28px", fontWeight: "bold" }}>
                 {entreprise.nom}

@@ -169,16 +169,15 @@ export default async function MonEntreprisePage() {
     }}
   />
 
-  <img
+<img
   src={entreprise.banniere || "/truck.jpg"}
   alt="Bannière entreprise"
   style={{
-    position: "absolute",
-    inset: 0,
     width: "100%",
     height: "100%",
-    objectFit: "cover", // 
+    objectFit: "cover",
     objectPosition: "center",
+    display: "block",
   }}
 />
 

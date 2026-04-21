@@ -148,6 +148,7 @@ export default async function MonEntreprisePage() {
           }}
         >
           <div
+
   style={{
     position: "relative",
     borderRadius: "18px",
@@ -185,24 +186,29 @@ export default async function MonEntreprisePage() {
 
   <div
     style={{
-      position: "relative",
-      zIndex: 3,
-      height: "100%",
-      display: "flex",
-      alignItems: "flex-end",
-      padding: "20px",
+      position: "absolute",
+      inset: 0,
+      background: "linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0.10))",
+      pointerEvents: "none",
+    }}
+  />
+
+  <div
+    style={{
+      position: "absolute",
+      left: "20px",
+      bottom: "20px",
+      zIndex: 2,
     }}
   >
-    <div>
-      <div style={{ fontSize: "28px", fontWeight: "bold" }}>
-        {entreprise.nom}
-      </div>
-      <div style={{ fontSize: "14px", opacity: 0.92, marginTop: "4px" }}>
-        [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
-      </div>
-      <div style={{ fontSize: "13px", opacity: 0.82, marginTop: "6px" }}>
-        Type de transport : {formatTypeTransport(entreprise.typeTransport)}
-      </div>
+    <div style={{ fontSize: "28px", fontWeight: "bold" }}>
+      {entreprise.nom}
+    </div>
+    <div style={{ fontSize: "14px", opacity: 0.92, marginTop: "4px" }}>
+      [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
+    </div>
+    <div style={{ fontSize: "13px", opacity: 0.82, marginTop: "6px" }}>
+      Type de transport : {formatTypeTransport(entreprise.typeTransport)}
     </div>
   </div>
 </div>

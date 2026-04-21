@@ -71,7 +71,7 @@ export default async function PostulerPage({ params }: PageProps) {
 
   const societeActuelle = membershipActif?.entreprise ?? null;
   const estDejaDansUneSociete = Boolean(membershipActif);
-  const estProprietaireSociete = user.entreprisesCreees.length > 0;
+  const estProprietaireSociete = !!user.entreprisesCreees;
   const estSaPropreSociete = entreprise.ownerSteamId === steamId;
   const recrutementFerme = !entreprise.recrutement;
   const candidatureDejaEnvoyee = Boolean(candidatureExistante);

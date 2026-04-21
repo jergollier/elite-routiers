@@ -38,13 +38,13 @@ export async function POST(request: Request) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 
-    if (user.entreprisesCreees.length > 0) {
+    if (user.entreprisesCreees) {
       return NextResponse.redirect(
         new URL("/societe?error=deja-proprietaire", request.url)
       );
     }
 
-    if (user.memberships.length > 0) {
+    if (user.memberships) {
       return NextResponse.redirect(
         new URL("/societe?error=deja-dans-une-societe", request.url)
       );

@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
+import Menu from "@/app/components/Menu";
 
 function getStatutConfig(statut: string) {
   switch (statut) {
@@ -30,7 +30,6 @@ function getStatutConfig(statut: string) {
         color: "#9ca3af",
         glow: "0 0 10px rgba(156,163,175,0.85)",
       };
-    }
   }
 }
 
@@ -83,31 +82,32 @@ export default async function CamionsPage() {
 
   const user = await prisma.user.findUnique({
     where: { steamId },
+    include: {
+      memberships: {
+        include: {
+          entreprise: true,
+        },
+      },
+    },
   });
 
   if (!user) {
     redirect("/");
   }
 
-  const monMembership = await prisma.entrepriseMembre.findUnique({
-    where: {
-      userId: user.id,
-    },
-  });
+  const monMembership = user.memberships ?? null;
 
   if (!monMembership) {
     redirect("/societe");
   }
 
-  const entrepriseId = monMembership.entrepriseId;
-
-  const entreprise = await prisma.entreprise.findUnique({
-    where: { id: entrepriseId },
-  });
+  const entreprise = monMembership.entreprise;
 
   if (!entreprise) {
     redirect("/societe");
   }
+
+  const entrepriseId = monMembership.entrepriseId;
 
   const camions = await prisma.camion.findMany({
     where: {
@@ -641,17 +641,6 @@ const secondaryButtonStyle = {
   textDecoration: "none",
   display: "inline-flex",
   alignItems: "center",
-};
-
-const smallSecondaryActionButtonStyle = {
-  padding: "10px 16px",
-  borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(255,255,255,0.08)",
-  color: "white",
-  fontWeight: "bold",
-  cursor: "pointer",
-  minWidth: "90px",
 };
 
 const buyButtonStyle = {

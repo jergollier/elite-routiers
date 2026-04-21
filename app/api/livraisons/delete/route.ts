@@ -31,14 +31,14 @@ export async function POST(request: Request) {
       },
     });
 
-    if (!user || user.memberships.length === 0) {
+    if (!user || !user.memberships) {
       return NextResponse.json(
         { ok: false, message: "Aucune entreprise trouvée" },
         { status: 403 }
       );
     }
 
-    const membership = user.memberships[0];
+    const membership = user.memberships;
 
     const rolesAutorises = [
       "DIRECTEUR",

@@ -19,9 +19,7 @@ export default async function ProfilPage() {
       dlcs: {
         orderBy: [{ jeu: "asc" }, { nomDlc: "asc" }],
       },
-      entreprisesCreees: {
-        orderBy: { createdAt: "desc" },
-      },
+      entreprisesCreees: true,
     },
   });
 
@@ -38,7 +36,7 @@ export default async function ProfilPage() {
     },
   });
 
-  const entreprisePossedee = user.entreprisesCreees[0] ?? null;
+  const entreprisePossedee = user.entreprisesCreees ?? null;
 
   const entrepriseActuelle =
     entreprisePossedee?.nom ??

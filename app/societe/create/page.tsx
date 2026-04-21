@@ -33,10 +33,10 @@ const membershipActif = await prisma.entrepriseMembre.findUnique({
 });
 
 const societeActuelle = membershipActif?.entreprise ?? null;
-const societePossedee = user.entreprisesCreees[0] ?? null;
+const societePossedee = user.entreprisesCreees ?? null;
 
 const estDejaDansUneSociete = !!membershipActif;
-const estDejaProprietaire = user.entreprisesCreees.length > 0;
+const estDejaProprietaire = !!user.entreprisesCreees;
 
   let blocageTitre = "";
   let blocageMessage = "";

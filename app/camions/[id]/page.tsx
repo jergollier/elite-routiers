@@ -69,7 +69,6 @@ function getStatutConfig(statut: string) {
         color: "#9ca3af",
         glow: "0 0 10px rgba(156,163,175,0.85)",
       };
-    }
   }
 }
 
@@ -90,20 +89,20 @@ export default async function VoirCamionPage({ params }: Props) {
 
   const user = await prisma.user.findUnique({
     where: { steamId },
+    include: {
+      memberships: {
+        include: {
+          entreprise: true,
+        },
+      },
+    },
   });
 
   if (!user) {
     redirect("/");
   }
 
-  const monMembership = await prisma.entrepriseMembre.findUnique({
-    where: {
-      userId: user.id,
-    },
-    include: {
-      entreprise: true,
-    },
-  });
+  const monMembership = user.memberships ?? null;
 
   if (!monMembership) {
     redirect("/societe");
@@ -287,6 +286,7 @@ export default async function VoirCamionPage({ params }: Props) {
                             borderRadius: "50%",
                             background: statut.color,
                             boxShadow: statut.glow,
+                            display: "inline-block",
                           }}
                         />
                         {statut.label}
@@ -303,17 +303,23 @@ export default async function VoirCamionPage({ params }: Props) {
 
                       <div style={infoRowStyle}>
                         <span style={labelStyle}>Cabine</span>
-                        <span style={valueStyle}>{camion.cabine || "Non définie"}</span>
+                        <span style={valueStyle}>
+                          {camion.cabine || "Non définie"}
+                        </span>
                       </div>
 
                       <div style={infoRowStyle}>
                         <span style={labelStyle}>Châssis</span>
-                        <span style={valueStyle}>{camion.chassis || "Non défini"}</span>
+                        <span style={valueStyle}>
+                          {camion.chassis || "Non défini"}
+                        </span>
                       </div>
 
                       <div style={infoRowStyle}>
                         <span style={labelStyle}>Moteur</span>
-                        <span style={valueStyle}>{camion.moteur || "Non défini"}</span>
+                        <span style={valueStyle}>
+                          {camion.moteur || "Non défini"}
+                        </span>
                       </div>
 
                       <div style={infoRowStyle}>
@@ -325,7 +331,9 @@ export default async function VoirCamionPage({ params }: Props) {
 
                       <div style={infoRowStyle}>
                         <span style={labelStyle}>Peinture</span>
-                        <span style={valueStyle}>{camion.peinture || "Non définie"}</span>
+                        <span style={valueStyle}>
+                          {camion.peinture || "Non définie"}
+                        </span>
                       </div>
                     </div>
                   </article>
@@ -348,12 +356,38 @@ export default async function VoirCamionPage({ params }: Props) {
                 </div>
               </section>
 
-              <aside style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <aside
+                style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+              >
                 <div style={boxStyle}>
                   <h2>Résumé</h2>
                   <div style={infoRowStyle}>
                     <span style={labelStyle}>Entreprise</span>
                     <span style={valueStyle}>{entreprise.nom}</span>
+                  </div>
+
+                  <div style={infoRowStyle}>
+                    <span style={labelStyle}>Kilométrage</span>
+                    <span style={valueStyle}>
+                      {camion.kilometrage.toLocaleString("fr-FR")} km
+                    </span>
+                  </div>
+
+                  <div style={infoRowStyle}>
+                    <span style={labelStyle}>État</span>
+                    <span style={valueStyle}>{camion.etat}%</span>
+                  </div>
+
+                  <div style={infoRowStyle}>
+                    <span style={labelStyle}>Carburant</span>
+                    <span style={valueStyle}>{camion.carburant}%</span>
+                  </div>
+
+                  <div style={infoRowStyle}>
+                    <span style={labelStyle}>Position</span>
+                    <span style={valueStyle}>
+                      {camion.positionActuelle || "Non définie"}
+                    </span>
                   </div>
                 </div>
               </aside>
@@ -387,6 +421,7 @@ const infoListStyle = {
 const infoRowStyle = {
   display: "flex",
   justifyContent: "space-between",
+  gap: "12px",
 };
 
 const labelStyle = {
@@ -395,12 +430,14 @@ const labelStyle = {
 
 const valueStyle = {
   fontWeight: "bold",
+  textAlign: "right" as const,
 };
 
 const accessoiresBoxStyle = {
   minHeight: "100px",
   padding: "10px",
   background: "rgba(255,255,255,0.05)",
+  borderRadius: "10px",
 };
 
 const secondaryButtonStyle = {

@@ -43,11 +43,6 @@ export default async function PostulerPage({ params }: PageProps) {
         steamId,
       },
       include: {
-        memberships: {
-          include: {
-            entreprise: true,
-          },
-        },
         entreprisesCreees: true,
       },
     }),
@@ -57,6 +52,15 @@ export default async function PostulerPage({ params }: PageProps) {
     notFound();
   }
 
+  const membershipActif = await prisma.entrepriseMembre.findUnique({
+    where: {
+      userId: user.id,
+    },
+    include: {
+      entreprise: true,
+    },
+  });
+
   const candidatureExistante = await prisma.entrepriseCandidature.findFirst({
     where: {
       userId: user.id,
@@ -65,8 +69,8 @@ export default async function PostulerPage({ params }: PageProps) {
     },
   });
 
-  const societeActuelle = user.memberships[0]?.entreprise ?? null;
-  const estDejaDansUneSociete = user.memberships.length > 0;
+  const societeActuelle = membershipActif?.entreprise ?? null;
+  const estDejaDansUneSociete = Boolean(membershipActif);
   const estProprietaireSociete = user.entreprisesCreees.length > 0;
   const estSaPropreSociete = entreprise.ownerSteamId === steamId;
   const recrutementFerme = !entreprise.recrutement;

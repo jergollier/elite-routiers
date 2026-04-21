@@ -13,28 +13,30 @@ export default async function CreerEntreprisePage() {
   }
 
   const user = await prisma.user.findUnique({
-    where: {
-      steamId,
-    },
-    include: {
-      memberships: {
-        include: {
-          entreprise: true,
-        },
-      },
-      entreprisesCreees: true,
-    },
-  });
+  where: { steamId },
+  include: {
+    entreprisesCreees: true,
+  },
+});
 
   if (!user) {
     redirect("/");
   }
 
-  const societeActuelle = user.memberships[0]?.entreprise ?? null;
-  const societePossedee = user.entreprisesCreees[0] ?? null;
+const membershipActif = await prisma.entrepriseMembre.findUnique({
+  where: {
+    userId: user.id,
+  },
+  include: {
+    entreprise: true,
+  },
+});
 
-  const estDejaDansUneSociete = user.memberships.length > 0;
-  const estDejaProprietaire = user.entreprisesCreees.length > 0;
+const societeActuelle = membershipActif?.entreprise ?? null;
+const societePossedee = user.entreprisesCreees[0] ?? null;
+
+const estDejaDansUneSociete = !!membershipActif;
+const estDejaProprietaire = user.entreprisesCreees.length > 0;
 
   let blocageTitre = "";
   let blocageMessage = "";

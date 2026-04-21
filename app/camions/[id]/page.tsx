@@ -69,6 +69,7 @@ function getStatutConfig(statut: string) {
         color: "#9ca3af",
         glow: "0 0 10px rgba(156,163,175,0.85)",
       };
+    }
   }
 }
 
@@ -89,28 +90,26 @@ export default async function VoirCamionPage({ params }: Props) {
 
   const user = await prisma.user.findUnique({
     where: { steamId },
-    include: {
-      memberships: {
-        include: {
-          entreprise: true,
-        },
-      },
-    },
   });
 
   if (!user) {
     redirect("/");
   }
 
-  const monMembership = user.memberships[0];
+  const monMembership = await prisma.entrepriseMembre.findUnique({
+    where: {
+      userId: user.id,
+    },
+    include: {
+      entreprise: true,
+    },
+  });
 
   if (!monMembership) {
     redirect("/societe");
   }
 
-  const entreprise = await prisma.entreprise.findUnique({
-    where: { id: monMembership.entrepriseId },
-  });
+  const entreprise = monMembership.entreprise;
 
   if (!entreprise) {
     redirect("/societe");
@@ -123,8 +122,8 @@ export default async function VoirCamionPage({ params }: Props) {
       actif: true,
     },
     include: {
-  chauffeurAttribue: true,
-},
+      chauffeurAttribue: true,
+    },
   });
 
   if (!camion) {

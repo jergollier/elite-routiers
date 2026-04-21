@@ -53,28 +53,26 @@ export default async function ModifierCamionPage({ params }: Props) {
 
   const user = await prisma.user.findUnique({
     where: { steamId },
-    include: {
-      memberships: {
-        include: {
-          entreprise: true,
-        },
-      },
-    },
   });
 
   if (!user) {
     redirect("/");
   }
 
-  const monMembership = user.memberships[0];
+  const monMembership = await prisma.entrepriseMembre.findUnique({
+    where: {
+      userId: user.id,
+    },
+    include: {
+      entreprise: true,
+    },
+  });
 
   if (!monMembership) {
     redirect("/societe");
   }
 
-  const entreprise = await prisma.entreprise.findUnique({
-    where: { id: monMembership.entrepriseId },
-  });
+  const entreprise = monMembership.entreprise;
 
   if (!entreprise) {
     redirect("/societe");
@@ -115,16 +113,17 @@ export default async function ModifierCamionPage({ params }: Props) {
 
     const user = await prisma.user.findUnique({
       where: { steamId },
-      include: {
-        memberships: true,
-      },
     });
 
     if (!user) {
       redirect("/");
     }
 
-    const membership = user.memberships[0];
+    const membership = await prisma.entrepriseMembre.findUnique({
+      where: {
+        userId: user.id,
+      },
+    });
 
     if (!membership) {
       redirect("/societe");

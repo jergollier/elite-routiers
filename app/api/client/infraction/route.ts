@@ -42,37 +42,33 @@ export async function POST(request: Request) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { steamId },
-      include: {
-        memberships: {
-          include: {
-            entreprise: true,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-          take: 1,
-        },
-      },
-    });
+  where: { steamId },
+});
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "chauffeur introuvable" },
-        { status: 404 }
-      );
-    }
+if (!user) {
+  return NextResponse.json(
+    { error: "chauffeur introuvable" },
+    { status: 404 }
+  );
+}
 
-    const membership = user.memberships[0];
+const membership = await prisma.entrepriseMembre.findUnique({
+  where: {
+    userId: user.id,
+  },
+  include: {
+    entreprise: true,
+  },
+});
 
-    if (!membership) {
-      return NextResponse.json(
-        { error: "aucune entreprise trouvée pour ce chauffeur" },
-        { status: 404 }
-      );
-    }
+if (!membership) {
+  return NextResponse.json(
+    { error: "aucune entreprise trouvée pour ce chauffeur" },
+    { status: 404 }
+  );
+}
 
-    const entreprise = membership.entreprise;
+const entreprise = membership.entreprise;
 
     const chauffeurNom = user.username || "Chauffeur";
 

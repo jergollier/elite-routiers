@@ -19,10 +19,6 @@ export default async function ProfilPage() {
       dlcs: {
         orderBy: [{ jeu: "asc" }, { nomDlc: "asc" }],
       },
-      memberships: {
-        include: { entreprise: true },
-        orderBy: { createdAt: "desc" },
-      },
       entreprisesCreees: {
         orderBy: { createdAt: "desc" },
       },
@@ -33,8 +29,16 @@ export default async function ProfilPage() {
     redirect("/");
   }
 
+  const membershipActif = await prisma.entrepriseMembre.findUnique({
+    where: {
+      userId: user.id,
+    },
+    include: {
+      entreprise: true,
+    },
+  });
+
   const entreprisePossedee = user.entreprisesCreees[0] ?? null;
-  const membershipActif = user.memberships[0] ?? null;
 
   const entrepriseActuelle =
     entreprisePossedee?.nom ??

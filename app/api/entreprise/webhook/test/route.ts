@@ -53,26 +53,30 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { steamId },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Utilisateur introuvable." },
+        { status: 404 }
+      );
+    }
+
+    const membership = await prisma.entrepriseMembre.findUnique({
+      where: {
+        userId: user.id,
+      },
       include: {
-        memberships: {
-          include: {
-            entreprise: true,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-        },
+        entreprise: true,
       },
     });
 
-    if (!user || user.memberships.length === 0) {
+    if (!membership) {
       return NextResponse.json(
         { success: false, error: "Aucune entreprise trouvée." },
         { status: 404 }
       );
     }
-
-    const membership = user.memberships[0];
 
     if (!ROLES_AUTORISES.includes(membership.role)) {
       return NextResponse.json(

@@ -15,14 +15,6 @@ export default async function ChauffeurPage() {
   const user = await prisma.user.findUnique({
     where: { steamId },
     include: {
-      memberships: {
-        include: {
-          entreprise: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
       chauffeurStats: {
         orderBy: {
           createdAt: "desc",
@@ -41,7 +33,15 @@ export default async function ChauffeurPage() {
     redirect("/");
   }
 
-  const membershipActif = user.memberships[0] ?? null;
+  const membershipActif = await prisma.entrepriseMembre.findUnique({
+    where: {
+      userId: user.id,
+    },
+    include: {
+      entreprise: true,
+    },
+  });
+
   const entrepriseActuelle = membershipActif?.entreprise ?? null;
 
   const totalArgentGagne = user.chauffeurStats.reduce(
@@ -193,18 +193,18 @@ export default async function ChauffeurPage() {
             </h2>
 
             {user.livraisons.length === 0 ? (
-         <EmptyText>Aucune livraison enregistrée.</EmptyText>
-         ) : (
-            <div
-    style={{
-      display: "grid",
-      gap: "12px",
-      maxHeight: "470px",
-      overflowY: "auto",
-      paddingRight: "8px",
-      scrollbarWidth: "thin",
-    }}
-  >
+              <EmptyText>Aucune livraison enregistrée.</EmptyText>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gap: "12px",
+                  maxHeight: "470px",
+                  overflowY: "auto",
+                  paddingRight: "8px",
+                  scrollbarWidth: "thin",
+                }}
+              >
                 {user.livraisons.map((livraison) => {
                   const statutLabel =
                     livraison.status === "TERMINEE"
@@ -249,7 +249,7 @@ export default async function ChauffeurPage() {
                           </div>
                           <div style={{ opacity: 0.8, fontSize: "14px" }}>
                             {livraison.cargo || "Cargo inconnu"} •{" "}
-                            {livraison.truck || "Camions inconnu"}
+                            {livraison.truck || "Camion inconnu"}
                           </div>
                         </div>
 
@@ -307,28 +307,28 @@ export default async function ChauffeurPage() {
           </section>
 
           <div
-  style={{
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-  }}
->
-  <Link href="/profil" style={btn}>
-    Retour au profil
-  </Link>
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <Link href="/profil" style={btn}>
+              Retour au profil
+            </Link>
 
-  <Link href="/societe" style={btnBlue}>
-    Retour société
-  </Link>
+            <Link href="/societe" style={btnBlue}>
+              Retour société
+            </Link>
 
-  <Link href="/camions/acheter" style={btnBlue}>
-    Achat camion
-  </Link>
+            <Link href="/camions/acheter" style={btnBlue}>
+              Achat camion
+            </Link>
 
-  <Link href="/camions/parking" style={btnBlue}>
-    Parking
-  </Link>
-</div>
+            <Link href="/camions/parking" style={btnBlue}>
+              Parking
+            </Link>
+          </div>
         </div>
       </div>
     </main>

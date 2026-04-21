@@ -62,16 +62,6 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { steamId },
-      include: {
-        memberships: {
-          include: {
-            entreprise: true,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-        },
-      },
     });
 
     if (!user) {
@@ -81,14 +71,18 @@ export async function POST(request: Request) {
       );
     }
 
-    if (user.memberships.length === 0) {
+    const membership = await prisma.entrepriseMembre.findUnique({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    if (!membership) {
       return NextResponse.json(
         { success: false, error: "Aucune entreprise trouvée." },
         { status: 404 }
       );
     }
-
-    const membership = user.memberships[0];
 
     if (
       membership.role !== "DIRECTEUR" &&

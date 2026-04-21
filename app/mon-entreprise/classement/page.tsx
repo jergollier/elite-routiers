@@ -49,23 +49,17 @@ export default async function ClassementInternePage() {
 
   const user = await prisma.user.findUnique({
     where: { steamId },
-    include: {
-      memberships: {
-        include: {
-          entreprise: true,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-      },
-    },
   });
 
   if (!user) {
     redirect("/");
   }
 
-  const membership = user.memberships[0];
+  const membership = await prisma.entrepriseMembre.findUnique({
+    where: {
+      userId: user.id,
+    },
+  });
 
   if (!membership) {
     redirect("/societe");

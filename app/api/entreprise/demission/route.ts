@@ -16,20 +16,25 @@ export async function POST() {
 
     const user = await prisma.user.findUnique({
       where: { steamId },
-      include: {
-        memberships: {
-          include: {
-            entreprise: true,
-          },
-        },
-      },
     });
 
-    if (!user || user.memberships.length === 0) {
+    if (!user) {
       return NextResponse.redirect(new URL("/societe", baseUrl), 303);
     }
 
-    const membership = user.memberships[0];
+    const membership = await prisma.entrepriseMembre.findUnique({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        entreprise: true,
+      },
+    });
+
+    if (!membership) {
+      return NextResponse.redirect(new URL("/societe", baseUrl), 303);
+    }
+
     const entreprise = membership.entreprise;
 
     if (!entreprise) {

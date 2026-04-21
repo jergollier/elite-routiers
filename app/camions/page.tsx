@@ -32,7 +32,7 @@ function getStatutConfig(statut: string) {
       };
     }
   }
-
+}
 
 function getBarColor(value: number) {
   if (value > 60) return "#22c55e";
@@ -83,20 +83,17 @@ export default async function CamionsPage() {
 
   const user = await prisma.user.findUnique({
     where: { steamId },
-    include: {
-      memberships: {
-        include: {
-          entreprise: true,
-        },
-      },
-    },
   });
 
   if (!user) {
     redirect("/");
   }
 
-  const monMembership = user.memberships[0];
+  const monMembership = await prisma.entrepriseMembre.findUnique({
+    where: {
+      userId: user.id,
+    },
+  });
 
   if (!monMembership) {
     redirect("/societe");
@@ -426,11 +423,11 @@ export default async function CamionsPage() {
                             </Link>
 
                             <Link
-  href={`/camions/${camion.id}/attribuer`}
-  style={smallSecondaryButtonLinkStyle}
->
-  Attribuer
-</Link>
+                              href={`/camions/${camion.id}/attribuer`}
+                              style={smallSecondaryButtonLinkStyle}
+                            >
+                              Attribuer
+                            </Link>
                           </div>
                         </article>
                       );

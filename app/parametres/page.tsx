@@ -16,29 +16,34 @@ export default async function ParametresPage() {
 
   const user = await prisma.user.findUnique({
     where: { steamId },
-    include: {
-      memberships: {
-        include: {
-          entreprise: true,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-      },
-    },
   });
 
-  if (!user || user.memberships.length === 0) {
+  if (!user) {
     redirect("/societe");
   }
 
-  const membership = user.memberships[0];
+  const membership = await prisma.entrepriseMembre.findUnique({
+    where: {
+      userId: user.id,
+    },
+    include: {
+      entreprise: true,
+    },
+  });
+
+  if (!membership) {
+    redirect("/societe");
+  }
 
   if (!ROLES_AUTORISES.includes(membership.role)) {
     redirect("/monentreprise");
   }
 
   const entreprise = membership.entreprise;
+
+  if (!entreprise) {
+    redirect("/societe");
+  }
 
   return (
     <div

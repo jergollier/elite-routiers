@@ -25,8 +25,6 @@ const MARQUES_ATS = [
   { value: MarqueCamion.WESTERN_STAR, label: "Western Star" },
 ];
 
-const TOUTES_MARQUES = [...MARQUES_ETS2, ...MARQUES_ATS];
-
 function toNumber(value: FormDataEntryValue | null, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -42,28 +40,26 @@ export default async function AcheterCamionPage() {
 
   const user = await prisma.user.findUnique({
     where: { steamId },
-    include: {
-      memberships: {
-        include: {
-          entreprise: true,
-        },
-      },
-    },
   });
 
   if (!user) {
     redirect("/");
   }
 
-  const monMembership = user.memberships[0];
+  const monMembership = await prisma.entrepriseMembre.findUnique({
+    where: {
+      userId: user.id,
+    },
+    include: {
+      entreprise: true,
+    },
+  });
 
   if (!monMembership) {
     redirect("/societe");
   }
 
-  const entreprise = await prisma.entreprise.findUnique({
-    where: { id: monMembership.entrepriseId },
-  });
+  const entreprise = monMembership.entreprise;
 
   if (!entreprise) {
     redirect("/societe");
@@ -85,16 +81,17 @@ export default async function AcheterCamionPage() {
 
     const user = await prisma.user.findUnique({
       where: { steamId },
-      include: {
-        memberships: true,
-      },
     });
 
     if (!user) {
       redirect("/");
     }
 
-    const membership = user.memberships[0];
+    const membership = await prisma.entrepriseMembre.findUnique({
+      where: {
+        userId: user.id,
+      },
+    });
 
     if (!membership) {
       redirect("/societe");

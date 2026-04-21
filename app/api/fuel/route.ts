@@ -71,16 +71,6 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { steamId },
-      include: {
-        memberships: {
-          include: {
-            entreprise: true,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-        },
-      },
     });
 
     if (!user) {
@@ -90,14 +80,22 @@ export async function POST(req: Request) {
       );
     }
 
-    if (user.memberships.length === 0) {
+    const membership = await prisma.entrepriseMembre.findUnique({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        entreprise: true,
+      },
+    });
+
+    if (!membership) {
       return NextResponse.json(
         { success: false, error: "chauffeur sans entreprise" },
         { status: 404 }
       );
     }
 
-    const membership = user.memberships[0];
     const entreprise = membership.entreprise;
 
     if (!entreprise) {

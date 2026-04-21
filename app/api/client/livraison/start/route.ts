@@ -60,16 +60,6 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { steamId },
-      include: {
-        memberships: {
-          include: {
-            entreprise: true,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-        },
-      },
     });
 
     if (!user) {
@@ -79,7 +69,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const membership = user.memberships[0] ?? null;
+    const membership = await prisma.entrepriseMembre.findUnique({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        entreprise: true,
+      },
+    });
+
     const entreprise = membership?.entreprise ?? null;
 
     if (!entreprise) {
@@ -110,9 +108,6 @@ export async function POST(request: Request) {
         { status: 403 }
       );
     }
-
-    // ✅ Vérification camion désactivée temporairement pour le test
-    // On garde seulement le camion attribué côté serveur pour rattacher la livraison.
 
     if (requestedCamionId && requestedCamionId !== camionAttribue.id) {
       return NextResponse.json(

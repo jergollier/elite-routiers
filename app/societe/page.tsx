@@ -3,7 +3,20 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
+function maskDbHost(url?: string) {
+  if (!url) return "ABSENT";
+  try {
+    const parsed = new URL(url);
+    return parsed.host;
+  } catch {
+    return "INVALIDE";
+  }
+}
+
 export default async function SocietePage() {
+  const databaseHost = maskDbHost(process.env.DATABASE_URL);
+  const directHost = maskDbHost(process.env.DIRECT_URL);
+
   let entreprises: any[] = [];
   let erreurChargement = "";
 
@@ -207,20 +220,28 @@ export default async function SocietePage() {
                   flexWrap: "wrap",
                 }}
               >
-                <Link
-                  href="/societe/classement"
-                  style={buttonBlue}
-                >
+                <Link href="/societe/classement" style={buttonBlue}>
                   Classement
                 </Link>
 
-                <Link
-                  href="/societe/create"
-                  style={buttonDark}
-                >
+                <Link href="/societe/create" style={buttonDark}>
                   + Créer une entreprise
                 </Link>
               </div>
+            </div>
+
+            <div
+              style={{
+                marginBottom: "14px",
+                padding: "12px",
+                borderRadius: "10px",
+                background: "rgba(255,255,255,0.06)",
+                fontSize: "13px",
+                lineHeight: 1.6,
+              }}
+            >
+              <div>DATABASE_URL host : {databaseHost}</div>
+              <div>DIRECT_URL host : {directHost}</div>
             </div>
 
             {erreurChargement ? (

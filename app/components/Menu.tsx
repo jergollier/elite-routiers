@@ -9,11 +9,22 @@ export default async function Menu() {
   let hasEntreprise = false;
 
   if (steamId) {
-    const membership = await prisma.entrepriseMembre.findFirst({
-      where: { user: { steamId } },
-    });
+    try {
+      const user = await prisma.user.findUnique({
+        where: { steamId },
+        include: {
+          memberships: true,
+          entreprisesCreees: true,
+        },
+      });
 
-    hasEntreprise = !!membership;
+      hasEntreprise =
+        !!user &&
+        (user.memberships.length > 0 || user.entreprisesCreees.length > 0);
+    } catch (error) {
+      console.error("Erreur Menu :", error);
+      hasEntreprise = false;
+    }
   }
 
   return (
@@ -69,19 +80,14 @@ export default async function Menu() {
           Classement
         </Link>
 
-        {/* ✅ TACKY (1 seul bouton) */}
         <a
-  href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/tacky/Elite%20Routier%20Tacky%20Setup%201.0.3.exe"
-  style={downloadStyle}
->
-  ⬇ Télécharger le Tacky
-</a>
-
-        {/* ✅ PLUGIN (corrigé) */}
-        <a
-          href="/downloads/Plugin-Elite-Routiers.zip"
-          style={pluginStyle}
+          href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/tacky/Elite%20Routier%20Tacky%20Setup%201.0.3.exe"
+          style={downloadStyle}
         >
+          ⬇ Télécharger le Tacky
+        </a>
+
+        <a href="/downloads/Plugin-Elite-Routiers.zip" style={pluginStyle}>
           🔌 Télécharger le Plugin
         </a>
 

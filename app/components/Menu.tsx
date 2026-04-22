@@ -1,42 +1,6 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { prisma } from "@/lib/prisma";
 
 export default async function Menu() {
-  const cookieStore = await cookies();
-  const steamId = cookieStore.get("steamId")?.value;
-
-  let hasEntreprise = false;
-
-  if (steamId) {
-    try {
-      const user = await prisma.user.findUnique({
-        where: { steamId },
-        include: {
-          memberships: true,
-          entreprisesCreees: true,
-        },
-      });
-
-      const membershipsCount = Array.isArray(user?.memberships)
-        ? user.memberships.length
-        : user?.memberships
-        ? 1
-        : 0;
-
-      const entreprisesCount = Array.isArray(user?.entreprisesCreees)
-        ? user.entreprisesCreees.length
-        : user?.entreprisesCreees
-        ? 1
-        : 0;
-
-      hasEntreprise = membershipsCount > 0 || entreprisesCount > 0;
-    } catch (error) {
-      console.error("Erreur Menu :", error);
-      hasEntreprise = false;
-    }
-  }
-
   return (
     <aside
       style={{
@@ -65,26 +29,6 @@ export default async function Menu() {
         <Link href="/profil" style={menuLinkStyle}>
           Mon profil
         </Link>
-
-        {hasEntreprise && (
-          <>
-            <Link href="/mon-entreprise" style={menuLinkStyle}>
-              Mon entreprise
-            </Link>
-
-            <Link href="/finance" style={menuLinkStyle}>
-              Finance
-            </Link>
-
-            <Link href="/camions" style={menuLinkStyle}>
-              Camions
-            </Link>
-
-            <Link href="/parametres" style={menuLinkStyle}>
-              Paramètres
-            </Link>
-          </>
-        )}
 
         <Link href="/societe/classement" style={menuLinkStyle}>
           Classement
@@ -128,7 +72,6 @@ const downloadStyle = {
   textDecoration: "none",
   display: "block",
   textAlign: "center" as const,
-  boxShadow: "0 0 10px rgba(34,197,94,0.5)",
 };
 
 const pluginStyle = {
@@ -140,7 +83,6 @@ const pluginStyle = {
   textDecoration: "none",
   display: "block",
   textAlign: "center" as const,
-  boxShadow: "0 0 10px rgba(59,130,246,0.5)",
 };
 
 const logoutStyle = {

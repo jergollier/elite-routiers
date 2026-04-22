@@ -7,53 +7,54 @@ datasource db {
 }
 
 model User {
-  id                   String                  @id @default(cuid())
-  steamId              String                  @unique
-  username             String?
-  avatar               String?
-  age                  Int?
-  region               String?
-  email                String?                 @unique
-  password             String?
-  jeuPrincipal         String?
-  typeTransportPrefere String?
-  descriptionChauffeur String?
-  styleConduite        String?
-  micro                Boolean                 @default(false)
-  createdAt            DateTime                @default(now())
-  argent               Int                     @default(0)
-  argentPerso          Int                     @default(0)
-  parkingPlaces        Int                     @default(0)
-  camionsAttribues     Camion[]                @relation("CamionsAttribues")
-  camionsPerso         Camion[]                @relation("CamionsPerso")
-  chauffeurStats       ChauffeurStat[]
-  entreprisesCreees    Entreprise?             @relation("EntrepriseOwner")
-  candidatures         EntrepriseCandidature[]
-  memberships          EntrepriseMembre?
-  finances             Finance[]
-  livraisons           Livraison[]
-  mouvementsCuve       MouvementCuve[]
-  pleinsCarburant      PleinCarburant[]
-  tackySessions        TackySession[]
-  dlcs                 UserDlc[]
+  id                      String                   @id @default(cuid())
+  steamId                 String                   @unique
+  username                String?
+  avatar                  String?
+  age                     Int?
+  region                  String?
+  email                   String?                  @unique
+  password                String?
+  jeuPrincipal            String?
+  typeTransportPrefere    String?
+  descriptionChauffeur    String?
+  styleConduite           String?
+  micro                   Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  argent                  Int                      @default(0)
+  argentPerso             Int                      @default(0)
+  parkingPlaces           Int                      @default(0)
+  camionsAttribues        Camion[]                 @relation("CamionsAttribues")
+  camionsPerso            Camion[]                 @relation("CamionsPerso")
+  chauffeurStats          ChauffeurStat[]
+  entreprisesCreees       Entreprise?              @relation("EntrepriseOwner")
+  candidatures            EntrepriseCandidature[]
+  memberships             EntrepriseMembre?
+  finances                Finance[]
+  livraisons              Livraison[]
+  mouvementsCuve          MouvementCuve[]
+  pleinsCarburant         PleinCarburant[]
+  tackySessions           TackySession[]
+  dlcs                    UserDlc[]
+  livraisonsCarburantSite LivraisonCarburantSite[]
 }
 
 model Entreprise {
-  id                        Int                     @id @default(autoincrement())
+  id                        Int                       @id @default(autoincrement())
   nom                       String
-  abreviation               String                  @db.VarChar(3)
+  abreviation               String                    @db.VarChar(3)
   villeETS2                 String?
   villeATS                  String?
   jeu                       String
   typeTransport             String
   description               String
-  recrutement               Boolean                 @default(true)
+  recrutement               Boolean                   @default(true)
   banniere                  String?
-  ownerSteamId              String                  @unique
-  createdAt                 DateTime                @default(now())
-  argent                    Int                     @default(500000)
-  cuveActuelle              Int                     @default(6200)
-  cuveMax                   Int                     @default(10000)
+  ownerSteamId              String                    @unique
+  createdAt                 DateTime                  @default(now())
+  argent                    Int                       @default(500000)
+  cuveActuelle              Int                       @default(6200)
+  cuveMax                   Int                       @default(10000)
   entrepriseId              String?
   discordUrl                String?
   discordWebhookAchatCamion String?
@@ -62,11 +63,11 @@ model Entreprise {
   discordWebhookMaintenance String?
   discordWebhookRecrutement String?
   discordWebhookVenteCamion String?
-  prixLitreCuve             Decimal                 @default(1.35) @db.Decimal(10, 2)
-  prixLitreHorsCuve         Decimal                 @default(2.30) @db.Decimal(10, 2)
+  prixLitreCuve             Decimal                   @default(1.35) @db.Decimal(10, 2)
+  prixLitreHorsCuve         Decimal                   @default(2.30) @db.Decimal(10, 2)
   camions                   Camion[]
   chauffeurStats            ChauffeurStat[]
-  owner                     User                    @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
+  owner                     User                      @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
   candidatures              EntrepriseCandidature[]
   membres                   EntrepriseMembre[]
   finances                  Finance[]
@@ -74,21 +75,23 @@ model Entreprise {
   mouvementsCuve            MouvementCuve[]
   pleinsCarburant           PleinCarburant[]
   avertissements            AvertissementEntreprise[]
+  livraisonsCarburantSite   LivraisonCarburantSite[]
+  achatsCarburantSite       AchatCarburantSite[]
 
   @@index([nom])
   @@index([jeu])
 }
 
 model EntrepriseMembre {
-  id           Int            @id @default(autoincrement())
-  userId       String         @unique
-  entrepriseId Int
-  role         RoleEntreprise @default(CHAUFFEUR)
-  createdAt    DateTime       @default(now())
-  entreprise   Entreprise     @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  avertissementsRecus       AvertissementEntreprise[] @relation("AvertissementMembre")
-  avertissementsDonnes      AvertissementEntreprise[] @relation("AvertissementAuteur")
+  id                   Int                       @id @default(autoincrement())
+  userId               String                    @unique
+  entrepriseId         Int
+  role                 RoleEntreprise            @default(CHAUFFEUR)
+  createdAt            DateTime                  @default(now())
+  entreprise           Entreprise                @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  user                 User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avertissementsRecus  AvertissementEntreprise[] @relation("AvertissementMembre")
+  avertissementsDonnes AvertissementEntreprise[] @relation("AvertissementAuteur")
 
   @@index([entrepriseId])
 }
@@ -224,40 +227,41 @@ model ClientEvent {
 }
 
 model Livraison {
-  id                String           @id @default(cuid())
-  jobId             String?          @unique
-  truck             String
-  sourceCity        String?
-  destinationCity   String?
-  income            Int              @default(0)
-  startedAt         DateTime         @default(now())
-  finishedAt        DateTime?
-  status            String           @default("EN_COURS")
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  steamId           String
-  entrepriseId      Int?
-  argentAjoute      Boolean          @default(false)
-  distanceReelleKm  Float            @default(0)
-  endOdometerKm     Float?
-  kmPrevu           Int?
-  startOdometerKm   Float            @default(0)
-  cargo             String?
-  camionId          Int?
-  cancelReason      String?
-  deviceId          String?
-  game              String?
-  sessionId         String?
-  truckBrand        String?
-  truckModel        String?
-  validatedByServer Boolean          @default(false)
-  charges           Int              @default(0)
-  gainChauffeur     Int              @default(0)
-  gainSociete       Int              @default(0)
-  camion            Camion?          @relation(fields: [camionId], references: [id])
-  entreprise        Entreprise?      @relation(fields: [entrepriseId], references: [id])
-  user              User             @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
-  pleins            PleinCarburant[]
+  id                     String                  @id @default(cuid())
+  jobId                  String?                 @unique
+  truck                  String
+  sourceCity             String?
+  destinationCity        String?
+  income                 Int                     @default(0)
+  startedAt              DateTime                @default(now())
+  finishedAt             DateTime?
+  status                 String                  @default("EN_COURS")
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  steamId                String
+  entrepriseId           Int?
+  argentAjoute           Boolean                 @default(false)
+  distanceReelleKm       Float                   @default(0)
+  endOdometerKm          Float?
+  kmPrevu                Int?
+  startOdometerKm        Float                   @default(0)
+  cargo                  String?
+  camionId               Int?
+  cancelReason           String?
+  deviceId               String?
+  game                   String?
+  sessionId              String?
+  truckBrand             String?
+  truckModel             String?
+  validatedByServer      Boolean                 @default(false)
+  charges                Int                     @default(0)
+  gainChauffeur          Int                     @default(0)
+  gainSociete            Int                     @default(0)
+  camion                 Camion?                 @relation(fields: [camionId], references: [id])
+  entreprise             Entreprise?             @relation(fields: [entrepriseId], references: [id])
+  user                   User                    @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
+  pleins                 PleinCarburant[]
+  livraisonCarburantSite LivraisonCarburantSite?
 
   @@index([steamId])
   @@index([entrepriseId])
@@ -343,6 +347,106 @@ model TackySession {
   @@index([deviceCode])
 }
 
+model CuveSite {
+  id                  Int                      @id @default(1)
+  stockActuel         Int                      @default(0)
+  capaciteMax         Int                      @default(300000)
+  prixActuelLitre     Decimal                  @default(1.95) @db.Decimal(10, 2)
+  updatedAt           DateTime                 @updatedAt
+  createdAt           DateTime                 @default(now())
+  mouvements          MouvementCuveSite[]
+  livraisonsCarburant LivraisonCarburantSite[]
+  achatsCarburantSite AchatCarburantSite[]
+}
+
+model LivraisonCarburantSite {
+  id            String   @id @default(cuid())
+  cuveSiteId    Int      @default(1)
+  livraisonId   String   @unique
+  steamId       String
+  entrepriseId  Int?
+  cargo         String
+  litresAjoutes Int      @default(15000)
+  stockAvant    Int
+  stockApres    Int
+  prixAuMoment  Decimal  @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+
+  cuveSite   CuveSite           @relation(fields: [cuveSiteId], references: [id], onDelete: Cascade)
+  livraison  Livraison          @relation(fields: [livraisonId], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
+  entreprise Entreprise?        @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+  mouvement  MouvementCuveSite?
+
+  @@index([cuveSiteId])
+  @@index([livraisonId])
+  @@index([steamId])
+  @@index([entrepriseId])
+  @@index([createdAt])
+}
+
+model MouvementCuveSite {
+  id                       String   @id @default(cuid())
+  cuveSiteId               Int      @default(1)
+  type                     String
+  litres                   Int
+  stockAvant               Int
+  stockApres               Int
+  prixLitreAuMoment        Decimal  @db.Decimal(10, 2)
+  description              String?
+  livraisonCarburantSiteId String?  @unique
+  achatCarburantSiteId     String?  @unique
+  createdAt                DateTime @default(now())
+
+  cuveSite           CuveSite                @relation(fields: [cuveSiteId], references: [id], onDelete: Cascade)
+  livraisonCarburant LivraisonCarburantSite? @relation(fields: [livraisonCarburantSiteId], references: [id], onDelete: SetNull)
+  achatCarburant     AchatCarburantSite?     @relation(fields: [achatCarburantSiteId], references: [id], onDelete: SetNull)
+
+  @@index([cuveSiteId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model AchatCarburantSite {
+  id                  String   @id @default(cuid())
+  cuveSiteId          Int      @default(1)
+  entrepriseId        Int
+  litresAchetes       Int
+  prixLitre           Decimal  @db.Decimal(10, 2)
+  montantTotal        Decimal  @db.Decimal(10, 2)
+  stockSiteAvant      Int
+  stockSiteApres      Int
+  cuveEntrepriseAvant Int
+  cuveEntrepriseApres Int
+  createdAt           DateTime @default(now())
+
+  cuveSite   CuveSite           @relation(fields: [cuveSiteId], references: [id], onDelete: Cascade)
+  entreprise Entreprise         @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  mouvement  MouvementCuveSite?
+
+  @@index([cuveSiteId])
+  @@index([entrepriseId])
+  @@index([createdAt])
+}
+
+model AvertissementEntreprise {
+  id           Int      @id @default(autoincrement())
+  entrepriseId Int
+  membreId     Int
+  auteurId     Int
+  raison       String
+  createdAt    DateTime @default(now())
+
+  entreprise Entreprise       @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  membre     EntrepriseMembre @relation("AvertissementMembre", fields: [membreId], references: [id], onDelete: Cascade)
+  auteur     EntrepriseMembre @relation("AvertissementAuteur", fields: [auteurId], references: [id], onDelete: Cascade)
+
+  @@index([entrepriseId])
+  @@index([membreId])
+  @@index([auteurId])
+  @@index([createdAt])
+}
+
 enum RoleEntreprise {
   DIRECTEUR
   SOUS_DIRECTEUR
@@ -377,22 +481,4 @@ enum MarqueCamion {
   INTERNATIONAL
   MACK
   WESTERN_STAR
-}
-
-model AvertissementEntreprise {
-  id           Int              @id @default(autoincrement())
-  entrepriseId Int
-  membreId     Int
-  auteurId     Int
-  raison       String
-  createdAt    DateTime         @default(now())
-
-  entreprise   Entreprise       @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
-  membre       EntrepriseMembre @relation("AvertissementMembre", fields: [membreId], references: [id], onDelete: Cascade)
-  auteur       EntrepriseMembre @relation("AvertissementAuteur", fields: [auteurId], references: [id], onDelete: Cascade)
-
-  @@index([entrepriseId])
-  @@index([membreId])
-  @@index([auteurId])
-  @@index([createdAt])
 }

@@ -2,11 +2,19 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getOrCreateCuveSite, recalculerPrixCuveSite } from "@/lib/fuel-market";
 
 export default async function SocietePage() {
   let entreprises: any[] = [];
   let chauffeurs: any[] = [];
   let erreurChargement = "";
+
+  let cuveSite = {
+    stockActuel: 0,
+    capaciteMax: 300000,
+    prixActuelLitre: 1.95,
+    pourcentage: 0,
+  };
 
   try {
     const [entreprisesData, chauffeursData] = await Promise.all([
@@ -37,10 +45,34 @@ export default async function SocietePage() {
 
     entreprises = entreprisesData;
     chauffeurs = chauffeursData;
+
+    await getOrCreateCuveSite();
+    const cuveSiteData = await recalculerPrixCuveSite();
+
+    cuveSite = {
+      stockActuel: cuveSiteData.stockActuel,
+      capaciteMax: cuveSiteData.capaciteMax,
+      prixActuelLitre: Number(cuveSiteData.prixActuelLitre),
+      pourcentage:
+        cuveSiteData.capaciteMax > 0
+          ? Math.round((cuveSiteData.stockActuel / cuveSiteData.capaciteMax) * 100)
+          : 0,
+    };
   } catch (error) {
     console.error("Erreur chargement /societe :", error);
     erreurChargement = "Impossible de charger les sociétés depuis la base.";
   }
+
+  const couleurCuveSite =
+    cuveSite.pourcentage <= 20
+      ? "#ef4444"
+      : cuveSite.pourcentage <= 40
+      ? "#f97316"
+      : cuveSite.pourcentage <= 60
+      ? "#f59e0b"
+      : cuveSite.pourcentage <= 80
+      ? "#22c55e"
+      : "#16a34a";
 
   return (
     <main
@@ -223,6 +255,132 @@ export default async function SocietePage() {
                 <Link href="/societe/create" style={buttonDark}>
                   + Créer une entreprise
                 </Link>
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginBottom: "20px",
+                background: "linear-gradient(135deg, rgba(24,24,27,0.95), rgba(10,10,10,0.88))",
+                borderRadius: "16px",
+                padding: "18px",
+                border: "1px solid rgba(255,255,255,0.08)",
+                boxShadow: "0 0 20px rgba(0,0,0,0.25)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                  marginBottom: "14px",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: "22px",
+                      fontWeight: "bold",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Cuve Elite Routiers
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      opacity: 0.82,
+                    }}
+                  >
+                    Réserve centrale du site pour alimenter les sociétés
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "12px",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    fontWeight: "bold",
+                    fontSize: "15px",
+                  }}
+                >
+                  Tarif actuel :{" "}
+                  <span style={{ color: "#22c55e" }}>
+                    {cuveSite.prixActuelLitre.toFixed(2)} €/L
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: "12px",
+                  marginBottom: "14px",
+                }}
+              >
+                <div style={fuelInfoCard}>
+                  <div style={fuelInfoLabel}>Stock actuel</div>
+                  <div style={fuelInfoValue}>
+                    {cuveSite.stockActuel.toLocaleString("fr-FR")} L
+                  </div>
+                </div>
+
+                <div style={fuelInfoCard}>
+                  <div style={fuelInfoLabel}>Capacité max</div>
+                  <div style={fuelInfoValue}>
+                    {cuveSite.capaciteMax.toLocaleString("fr-FR")} L
+                  </div>
+                </div>
+
+                <div style={fuelInfoCard}>
+                  <div style={fuelInfoLabel}>Remplissage</div>
+                  <div style={fuelInfoValue}>{cuveSite.pourcentage}%</div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  width: "100%",
+                  height: "16px",
+                  borderRadius: "999px",
+                  background: "rgba(255,255,255,0.08)",
+                  overflow: "hidden",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${cuveSite.pourcentage}%`,
+                    height: "100%",
+                    background: `linear-gradient(90deg, ${couleurCuveSite}, ${couleurCuveSite})`,
+                    boxShadow: `0 0 12px ${couleurCuveSite}`,
+                    transition: "width 0.3s ease",
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  marginTop: "10px",
+                  fontSize: "13px",
+                  opacity: 0.85,
+                }}
+              >
+                {cuveSite.pourcentage <= 20
+                  ? "Stock critique : le prix du litre est au plus haut."
+                  : cuveSite.pourcentage <= 40
+                  ? "Stock bas : le carburant reste cher."
+                  : cuveSite.pourcentage <= 60
+                  ? "Stock moyen : tarif équilibré."
+                  : cuveSite.pourcentage <= 80
+                  ? "Bon niveau de stock : tarif avantageux."
+                  : "Cuve presque pleine : tarif au plus bas."}
               </div>
             </div>
 
@@ -569,5 +727,23 @@ const buttonDark = {
   borderRadius: "10px",
   color: "white",
   textDecoration: "none",
+  fontWeight: "bold",
+};
+
+const fuelInfoCard = {
+  background: "rgba(255,255,255,0.05)",
+  borderRadius: "12px",
+  padding: "14px",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const fuelInfoLabel = {
+  fontSize: "12px",
+  opacity: 0.75,
+  marginBottom: "6px",
+};
+
+const fuelInfoValue = {
+  fontSize: "20px",
   fontWeight: "bold",
 };

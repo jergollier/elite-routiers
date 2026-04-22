@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  calculerPrixLitreCuveSite,
+  cargoEstCarburant,
+} from "@/lib/fuel-market";
 
 type LivraisonEndBody = {
   steamId?: string;
@@ -207,6 +211,8 @@ export async function POST(request: Request) {
           alreadyProcessed: true,
           status: freshLivraison.status,
           livraison: freshLivraison,
+          carburantAjoute: 0,
+          stockCuveSite: null as number | null,
         };
       }
 
@@ -329,10 +335,81 @@ export async function POST(request: Request) {
         }
       }
 
+      let carburantAjoute = 0;
+      let stockCuveSite: number | null = null;
+
+      const estLivraisonCarburant =
+        !isCancelled && cargoEstCarburant(freshLivraison.cargo);
+
+      if (estLivraisonCarburant) {
+        let cuveSite = await tx.cuveSite.findUnique({
+          where: { id: 1 },
+        });
+
+        if (!cuveSite) {
+          cuveSite = await tx.cuveSite.create({
+            data: {
+              id: 1,
+              stockActuel: 0,
+              capaciteMax: 300000,
+              prixActuelLitre: 1.95,
+            },
+          });
+        }
+
+        const stockAvant = cuveSite.stockActuel;
+        const stockApres = Math.min(cuveSite.capaciteMax, stockAvant + 15000);
+        carburantAjoute = stockApres - stockAvant;
+
+        const nouveauPrix = calculerPrixLitreCuveSite(
+          stockApres,
+          cuveSite.capaciteMax
+        );
+
+        await tx.cuveSite.update({
+          where: { id: cuveSite.id },
+          data: {
+            stockActuel: stockApres,
+            prixActuelLitre: nouveauPrix,
+          },
+        });
+
+        stockCuveSite = stockApres;
+
+        const livraisonCarburantSite = await tx.livraisonCarburantSite.create({
+          data: {
+            cuveSiteId: cuveSite.id,
+            livraisonId: freshLivraison.id,
+            steamId: freshLivraison.steamId,
+            entrepriseId: freshLivraison.entrepriseId,
+            cargo: freshLivraison.cargo || "Carburant",
+            litresAjoutes: carburantAjoute,
+            stockAvant,
+            stockApres,
+            prixAuMoment: nouveauPrix,
+          },
+        });
+
+        await tx.mouvementCuveSite.create({
+          data: {
+            cuveSiteId: cuveSite.id,
+            type: "LIVRAISON_CARBURANT",
+            litres: carburantAjoute,
+            stockAvant,
+            stockApres,
+            prixLitreAuMoment: nouveauPrix,
+            description: `Livraison carburant ${freshLivraison.cargo || "Carburant"} par ${user.username || steamId}`,
+            livraisonCarburantSiteId: livraisonCarburantSite.id,
+          },
+        });
+      }
+
       return {
         alreadyProcessed: false,
         status: finalStatus,
         livraison: livraisonUpdated,
+        carburantAjoute,
+        stockCuveSite,
       };
     });
 
@@ -384,6 +461,10 @@ export async function POST(request: Request) {
       gainSociete,
       gainChauffeur,
       charges,
+      carburantAjouteCuveSite: transactionResult.carburantAjoute,
+      stockCuveSite: transactionResult.stockCuveSite,
+      livraisonCarburantDetectee:
+        !isCancelled && cargoEstCarburant(livraison.cargo),
     });
   } catch (error) {
     console.error("Erreur API livraison end :", error);

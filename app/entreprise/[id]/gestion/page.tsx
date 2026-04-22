@@ -563,6 +563,51 @@ export default async function GestionEntreprisePage({ params }: Props) {
     redirect(`/entreprise/${entrepriseIdFromForm}/gestion`);
   }
 
+  async function supprimerEntreprise(formData: FormData) {
+    "use server";
+
+    const cookieStore = await cookies();
+    const steamId = cookieStore.get("steamId")?.value;
+
+    if (!steamId) return;
+
+    const entrepriseIdFromForm = Number(formData.get("entrepriseId"));
+
+    if (!entrepriseIdFromForm || Number.isNaN(entrepriseIdFromForm)) return;
+
+    const entreprise = await prisma.entreprise.findUnique({
+      where: { id: entrepriseIdFromForm },
+      include: {
+        membres: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!entreprise) return;
+
+    const membreActuel = entreprise.membres.find(
+      (membre) => membre.user?.steamId === steamId
+    );
+
+    if (!membreActuel || membreActuel.role !== "DIRECTEUR") {
+      return;
+    }
+
+    await prisma.entreprise.delete({
+      where: { id: entrepriseIdFromForm },
+    });
+
+    revalidatePath("/societe");
+    revalidatePath("/mon-entreprise");
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}`);
+    revalidatePath(`/entreprise/${entrepriseIdFromForm}/gestion`);
+
+    redirect("/societe");
+  }
+
   async function accepterCandidature(formData: FormData) {
     "use server";
 
@@ -1027,9 +1072,48 @@ export default async function GestionEntreprisePage({ params }: Props) {
               </form>
 
               {membreActuel.role === "DIRECTEUR" && (
-                <button type="button" style={btnDeleteEntreprise}>
-                  ❌ Supprimer l’entreprise
-                </button>
+                <details style={deleteDetailsStyle}>
+                  <summary style={btnDeleteEntreprise}>
+                    ❌ Supprimer l’entreprise
+                  </summary>
+
+                  <div style={deleteConfirmBoxStyle}>
+                    <div style={deleteConfirmTitleStyle}>
+                      ⚠️ Attention
+                    </div>
+
+                    <div style={deleteConfirmTextStyle}>
+                      Cette action est <strong>irréversible</strong>.
+                      <br />
+                      L’entreprise sera supprimée définitivement.
+                    </div>
+
+                    <div style={deleteConfirmTextStyle}>
+                      Les membres seront renvoyés sur l’accueil et toutes les
+                      données liées à l’entreprise seront supprimées.
+                    </div>
+
+                    <div style={deleteActionsStyle}>
+                      <Link
+                        href={`/entreprise/${entreprise.id}/gestion`}
+                        style={btnCancelDelete}
+                      >
+                        Non, annuler
+                      </Link>
+
+                      <form action={supprimerEntreprise}>
+                        <input
+                          type="hidden"
+                          name="entrepriseId"
+                          value={entreprise.id}
+                        />
+                        <button type="submit" style={btnDeleteConfirm}>
+                          Oui, supprimer définitivement
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </details>
               )}
             </div>
 
@@ -1742,7 +1826,7 @@ const btnDarkLarge = {
 
 const btnDeleteEntreprise = {
   marginTop: "20px",
-  padding: "12px",
+  padding: "12px 16px",
   borderRadius: "10px",
   border: "none",
   background: "#dc2626",
@@ -1750,6 +1834,62 @@ const btnDeleteEntreprise = {
   fontWeight: "bold",
   cursor: "pointer",
   width: "100%",
+  display: "block",
+  listStyle: "none",
+  textAlign: "center" as const,
+};
+
+const deleteDetailsStyle = {
+  marginTop: "20px",
+};
+
+const deleteConfirmBoxStyle = {
+  marginTop: "12px",
+  background: "rgba(220,38,38,0.12)",
+  border: "1px solid rgba(239,68,68,0.35)",
+  borderRadius: "12px",
+  padding: "16px",
+};
+
+const deleteConfirmTitleStyle = {
+  fontSize: "18px",
+  fontWeight: "bold",
+  color: "#fecaca",
+  marginBottom: "10px",
+};
+
+const deleteConfirmTextStyle = {
+  fontSize: "14px",
+  lineHeight: 1.6,
+  color: "rgba(255,255,255,0.92)",
+  marginBottom: "10px",
+};
+
+const deleteActionsStyle = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap" as const,
+  marginTop: "12px",
+};
+
+const btnCancelDelete = {
+  padding: "10px 14px",
+  borderRadius: "10px",
+  background: "rgba(255,255,255,0.10)",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: "bold",
+  border: "1px solid rgba(255,255,255,0.12)",
+};
+
+const btnDeleteConfirm = {
+  padding: "10px 14px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#b91c1c",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const btnAccept = {

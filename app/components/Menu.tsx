@@ -71,11 +71,11 @@ export default async function Menu() {
 
         {/* ✅ TACKY (1 seul bouton) */}
         <a
-          href="/downloads/Elite%20Routier%20Tacky%201.0.3.exe"
-          style={downloadStyle}
-        >
-          ⬇ Télécharger le Tacky
-        </a>
+  href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/tacky/Elite%20Routier%20Tacky%20Setup%201.0.3.exe"
+  style={downloadStyle}
+>
+  ⬇ Télécharger le Tacky
+</a>
 
         {/* ✅ PLUGIN (corrigé) */}
         <a

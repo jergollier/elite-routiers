@@ -48,6 +48,7 @@ function formatRole(role: string) {
 function formatStatutLivraison(status: string | null | undefined) {
   if (status === "TERMINEE") return "Terminée";
   if (status === "EN_COURS") return "En cours";
+  if (status === "ANNULEE") return "Annulée";
   return status || "Inconnue";
 }
 
@@ -91,7 +92,7 @@ export default async function MonEntreprisePage() {
     },
   });
 
-  if (!user || !user.memberships) {
+  if (!user || !user.memberships || !user.memberships.entreprise) {
     redirect("/societe");
   }
 
@@ -148,68 +149,67 @@ export default async function MonEntreprisePage() {
           }}
         >
           <div
+            style={{
+              position: "relative",
+              borderRadius: "18px",
+              overflow: "hidden",
+              height: "220px",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 0 20px rgba(0,0,0,0.35)",
+              background: "rgba(0,0,0,0.55)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.25))",
+                zIndex: 2,
+              }}
+            />
 
-  style={{
-    position: "relative",
-    borderRadius: "18px",
-    overflow: "hidden",
-    height: "220px",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 0 20px rgba(0,0,0,0.35)",
-    background: "rgba(0,0,0,0.55)",
-  }}
->
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      background:
-        "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.25))",
-      zIndex: 2,
-    }}
-  />
+            <img
+              src={entreprise.banniere || "/truck.jpg"}
+              alt="Bannière entreprise"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
+                display: "block",
+              }}
+            />
 
-<img
-  src={entreprise.banniere || "/truck.jpg"}
-  alt="Bannière entreprise"
-  style={{
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    objectPosition: "center",
-    display: "block",
-  }}
-/>
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0.10))",
+                pointerEvents: "none",
+              }}
+            />
 
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      background: "linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0.10))",
-      pointerEvents: "none",
-    }}
-  />
-
-  <div
-    style={{
-      position: "absolute",
-      left: "20px",
-      bottom: "20px",
-      zIndex: 2,
-    }}
-  >
-    <div style={{ fontSize: "28px", fontWeight: "bold" }}>
-      {entreprise.nom}
-    </div>
-    <div style={{ fontSize: "14px", opacity: 0.92, marginTop: "4px" }}>
-      [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
-    </div>
-    <div style={{ fontSize: "13px", opacity: 0.82, marginTop: "6px" }}>
-      Type de transport : {formatTypeTransport(entreprise.typeTransport)}
-    </div>
-  </div>
-</div>
-            
+            <div
+              style={{
+                position: "absolute",
+                left: "20px",
+                bottom: "20px",
+                zIndex: 2,
+              }}
+            >
+              <div style={{ fontSize: "28px", fontWeight: "bold" }}>
+                {entreprise.nom}
+              </div>
+              <div style={{ fontSize: "14px", opacity: 0.92, marginTop: "4px" }}>
+                [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)}
+              </div>
+              <div style={{ fontSize: "13px", opacity: 0.82, marginTop: "6px" }}>
+                Type de transport : {formatTypeTransport(entreprise.typeTransport)}
+              </div>
+            </div>
+          </div>
 
           <div
             style={{
@@ -334,10 +334,14 @@ export default async function MonEntreprisePage() {
                             background:
                               livraison.status === "TERMINEE"
                                 ? "rgba(34,197,94,0.18)"
+                                : livraison.status === "ANNULEE"
+                                ? "rgba(239,68,68,0.18)"
                                 : "rgba(245,158,11,0.18)",
                             border:
                               livraison.status === "TERMINEE"
                                 ? "1px solid rgba(34,197,94,0.35)"
+                                : livraison.status === "ANNULEE"
+                                ? "1px solid rgba(239,68,68,0.35)"
                                 : "1px solid rgba(245,158,11,0.35)",
                           }}
                         >
@@ -530,4 +534,4 @@ const miniTextStyle = {
   fontSize: "13px",
   opacity: 0.9,
   marginBottom: "4px",
-};   
+};

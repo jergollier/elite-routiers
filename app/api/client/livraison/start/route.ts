@@ -121,8 +121,15 @@ export async function POST(request: Request) {
     }
 
     if (jobId) {
-      const existingByJobId = await prisma.livraison.findUnique({
-        where: { jobId },
+      const existingByJobId = await prisma.livraison.findFirst({
+        where: {
+          steamId,
+          jobId,
+          status: "EN_COURS",
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
       });
 
       if (existingByJobId) {
@@ -181,7 +188,7 @@ export async function POST(request: Request) {
       where: { id: camionAttribue.id },
       data: {
         statut: "EN_MISSION",
-        positionActuelle: sourceCity ?? undefined,
+        positionActuelle: sourceCity ?? null,
       },
     });
 

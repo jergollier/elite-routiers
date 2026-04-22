@@ -116,10 +116,19 @@ export async function POST(request: Request) {
         where: { id: livraisonId },
       });
     } else if (jobId) {
-      livraison = await prisma.livraison.findUnique({
-        where: { jobId },
+      livraison = await prisma.livraison.findFirst({
+        where: {
+          steamId,
+          jobId,
+          status: "EN_COURS",
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
       });
-    } else {
+    }
+
+    if (!livraison) {
       livraison = await prisma.livraison.findFirst({
         where: {
           steamId,
@@ -213,6 +222,7 @@ export async function POST(request: Request) {
           gainChauffeur,
           charges,
           argentAjoute: true,
+          cancelReason: isCancelled ? endReason : null,
         },
       });
 
@@ -288,12 +298,35 @@ export async function POST(request: Request) {
       }
 
       if (freshLivraison.camionId) {
-        await tx.camion.update({
+        const camion = await tx.camion.findUnique({
           where: { id: freshLivraison.camionId },
-          data: {
-            statut: "DISPONIBLE",
+          select: {
+            id: true,
+            kilometrage: true,
+            vidangeRestante: true,
+            revisionRestante: true,
           },
         });
+
+        if (camion) {
+          await tx.camion.update({
+            where: { id: camion.id },
+            data: {
+              statut: "DISPONIBLE",
+              kilometrage: {
+                increment: distanceReelle,
+              },
+              vidangeRestante: Math.max(
+                0,
+                camion.vidangeRestante - distanceReelle
+              ),
+              revisionRestante: Math.max(
+                0,
+                camion.revisionRestante - distanceReelle
+              ),
+            },
+          });
+        }
       }
 
       return {

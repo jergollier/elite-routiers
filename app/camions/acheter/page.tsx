@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
+import { put } from "@vercel/blob";
 import { MarqueCamion, RoleEntreprise, StatutCamion } from "@prisma/client";
 
 const MARQUES_ETS2 = [
@@ -112,8 +113,8 @@ export default async function AcheterCamionPage() {
     const moteur = String(formData.get("moteur") || "").trim();
     const transmission = String(formData.get("transmission") || "").trim();
     const peinture = String(formData.get("peinture") || "").trim();
-    const image = String(formData.get("image") || "").trim();
-    const preuveAchat = String(formData.get("preuveAchat") || "").trim();
+    const imageFile = formData.get("image") as File | null;
+    const preuveAchatFile = formData.get("preuveAchat") as File | null;
     const accessoiresExterieur = String(
       formData.get("accessoiresExterieur") || ""
     ).trim();
@@ -121,6 +122,9 @@ export default async function AcheterCamionPage() {
       formData.get("accessoiresInterieur") || ""
     ).trim();
     const prixAchat = toNumber(formData.get("prixAchat"), 0);
+
+    let imageUrl = "/truck.jpg";
+    let preuveAchatUrl: string | null = null;
 
     if (!marqueValue || !modele || prixAchat <= 0) {
       redirect("/camions/acheter");
@@ -136,6 +140,62 @@ export default async function AcheterCamionPage() {
       redirect("/camions/acheter");
     }
 
+    if (imageFile instanceof File && imageFile.size > 0) {
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+      if (!allowedTypes.includes(imageFile.type)) {
+        redirect("/camions/acheter");
+      }
+
+      const extension =
+        imageFile.type === "image/png"
+          ? "png"
+          : imageFile.type === "image/webp"
+          ? "webp"
+          : "jpg";
+
+      const safeModele = modele
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+      const fileName = `camions/${membership.entrepriseId}-${safeModele}-${Date.now()}.${extension}`;
+
+      const blob = await put(fileName, imageFile, {
+        access: "public",
+      });
+
+      imageUrl = blob.url;
+    }
+
+    if (preuveAchatFile instanceof File && preuveAchatFile.size > 0) {
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+      if (!allowedTypes.includes(preuveAchatFile.type)) {
+        redirect("/camions/acheter");
+      }
+
+      const extension =
+        preuveAchatFile.type === "image/png"
+          ? "png"
+          : preuveAchatFile.type === "image/webp"
+          ? "webp"
+          : "jpg";
+
+      const safeModele = modele
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+      const fileName = `camions/preuves/${membership.entrepriseId}-${safeModele}-${Date.now()}.${extension}`;
+
+      const blob = await put(fileName, preuveAchatFile, {
+        access: "public",
+      });
+
+      preuveAchatUrl = blob.url;
+    }
+
     const entrepriseActuelle = await prisma.entreprise.findUnique({
       where: { id: membership.entrepriseId },
     });
@@ -148,6 +208,11 @@ export default async function AcheterCamionPage() {
       redirect("/camions/acheter");
     }
 
+    const positionInitiale =
+      entrepriseActuelle.villeETS2 ||
+      entrepriseActuelle.villeATS ||
+      "Maison mère";
+
     await prisma.$transaction([
       prisma.camion.create({
         data: {
@@ -159,15 +224,15 @@ export default async function AcheterCamionPage() {
           moteur: moteur || null,
           transmission: transmission || null,
           peinture: peinture || null,
-          image: image || "/truck.jpg",
-          preuveAchat: preuveAchat || null,
+          image: imageUrl,
+          preuveAchat: preuveAchatUrl,
           prixAchat,
           accessoiresExterieur: accessoiresExterieur || null,
           accessoiresInterieur: accessoiresInterieur || null,
           kilometrage: 0,
           etat: 100,
           carburant: 100,
-          positionActuelle: null,
+          positionActuelle: positionInitiale,
           statut: StatutCamion.DISPONIBLE,
           vidangeRestante: 60000,
           revisionRestante: 120000,
@@ -414,23 +479,21 @@ export default async function AcheterCamionPage() {
                       </div>
 
                       <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Photo du camion (URL)</label>
+                        <label style={labelInputStyle}>Photo du camion</label>
                         <input
                           name="image"
-                          type="text"
-                          placeholder="https://..."
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
                           style={inputStyle}
                         />
                       </div>
 
                       <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>
-                          Preuve d’achat (URL image)
-                        </label>
+                        <label style={labelInputStyle}>Preuve d’achat</label>
                         <input
                           name="preuveAchat"
-                          type="text"
-                          placeholder="https://..."
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
                           style={inputStyle}
                         />
                       </div>

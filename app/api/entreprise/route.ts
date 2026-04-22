@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { RoleEntreprise } from "@prisma/client";
 import { put } from "@vercel/blob";
 
-const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 Mo max pour rester sous la limite Vercel
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function slugify(value: string) {
@@ -17,13 +17,17 @@ function slugify(value: string) {
     .slice(0, 60);
 }
 
+function redirect303(path: string, request: Request) {
+  return NextResponse.redirect(new URL(path, request.url), 303);
+}
+
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
     const steamId = cookieStore.get("steamId")?.value;
 
     if (!steamId) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return redirect303("/", request);
     }
 
     const user = await prisma.user.findUnique({
@@ -35,19 +39,15 @@ export async function POST(request: Request) {
     });
 
     if (!user) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return redirect303("/", request);
     }
 
     if (user.entreprisesCreees) {
-      return NextResponse.redirect(
-        new URL("/societe?error=deja-proprietaire", request.url)
-      );
+      return redirect303("/societe?error=deja-proprietaire", request);
     }
 
     if (user.memberships) {
-      return NextResponse.redirect(
-        new URL("/societe?error=deja-dans-une-societe", request.url)
-      );
+      return redirect303("/societe?error=deja-dans-une-societe", request);
     }
 
     const formData = await request.formData();
@@ -68,21 +68,15 @@ export async function POST(request: Request) {
     const recrutement = recrutementValue === "ouvert";
 
     if (!nom || !abreviation || !jeu || !typeTransport || !description) {
-      return NextResponse.redirect(
-        new URL("/entreprise/creer?error=champs-obligatoires", request.url)
-      );
+      return redirect303("/entreprise/creer?error=champs-obligatoires", request);
     }
 
     if (abreviation.length !== 3) {
-      return NextResponse.redirect(
-        new URL("/entreprise/creer?error=abreviation", request.url)
-      );
+      return redirect303("/entreprise/creer?error=abreviation", request);
     }
 
     if (!villeETS2 && !villeATS) {
-      return NextResponse.redirect(
-        new URL("/entreprise/creer?error=ville", request.url)
-      );
+      return redirect303("/entreprise/creer?error=ville", request);
     }
 
     let banniereUrl: string | null = null;
@@ -91,15 +85,11 @@ export async function POST(request: Request) {
 
     if (banniereFile && banniereFile instanceof File && banniereFile.size > 0) {
       if (!ALLOWED_TYPES.includes(banniereFile.type)) {
-        return NextResponse.redirect(
-          new URL("/entreprise/creer?error=format-banniere", request.url)
-        );
+        return redirect303("/entreprise/creer?error=format-banniere", request);
       }
 
       if (banniereFile.size > MAX_FILE_SIZE) {
-        return NextResponse.redirect(
-          new URL("/entreprise/creer?error=taille-banniere", request.url)
-        );
+        return redirect303("/entreprise/creer?error=taille-banniere", request);
       }
 
       const extension =
@@ -142,12 +132,9 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/monentreprise", request.url));
+    return redirect303("/monentreprise", request);
   } catch (error) {
-    console.error("POST /api/entreprises error:", error);
-
-    return NextResponse.redirect(
-      new URL("/entreprise/creer?error=server", request.url)
-    );
+    console.error("POST /api/entreprise error:", error);
+    return redirect303("/entreprise/creer?error=server", request);
   }
 }

@@ -51,7 +51,7 @@ model Entreprise {
   banniere                  String?
   ownerSteamId              String                  @unique
   createdAt                 DateTime                @default(now())
-  argent                    Int                     @default(125000)
+  argent                    Int                     @default(500000)
   cuveActuelle              Int                     @default(6200)
   cuveMax                   Int                     @default(10000)
   entrepriseId              String?

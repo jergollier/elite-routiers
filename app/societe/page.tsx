@@ -1,9 +1,27 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
-export default function SocietePage() {
-  const entreprises: any[] = [];
+export default async function SocietePage() {
+  let entreprises: any[] = [];
+
+  try {
+    entreprises = await prisma.entreprise.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        _count: {
+          select: {
+            membres: true,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Erreur chargement entreprises /societe :", error);
+  }
 
   return (
     <main
@@ -283,12 +301,39 @@ export default function SocietePage() {
 
                     <div
                       style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        fontSize: "13px",
+                        fontWeight: "bold",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "10px",
+                          height: "10px",
+                          borderRadius: "50%",
+                          display: "inline-block",
+                          background: entreprise.recrutement ? "#22c55e" : "#ef4444",
+                          boxShadow: entreprise.recrutement
+                            ? "0 0 8px #22c55e"
+                            : "0 0 8px #ef4444",
+                        }}
+                      />
+                      <span>
+                        Recrutement : {entreprise.recrutement ? "Ouvert" : "Fermé"}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
                         fontSize: "13px",
                         opacity: 0.9,
                         marginBottom: "14px",
                       }}
                     >
-                      🚛 Chauffeurs : {entreprise.membresCount ?? 0}
+                      🚛 Chauffeurs : {entreprise._count?.membres ?? 0}
                     </div>
 
                     <div
@@ -315,6 +360,41 @@ export default function SocietePage() {
                       >
                         Voir
                       </Link>
+
+                      {entreprise.recrutement ? (
+                        <Link
+                          href={`/entreprise/${entreprise.id}/postuler`}
+                          style={{
+                            display: "block",
+                            textAlign: "center",
+                            padding: "9px",
+                            background: "#2563eb",
+                            borderRadius: "8px",
+                            color: "white",
+                            textDecoration: "none",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                          }}
+                        >
+                          Postuler
+                        </Link>
+                      ) : (
+                        <div
+                          style={{
+                            display: "block",
+                            textAlign: "center",
+                            padding: "9px",
+                            background: "rgba(255,255,255,0.12)",
+                            borderRadius: "8px",
+                            color: "rgba(255,255,255,0.7)",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                            cursor: "not-allowed",
+                          }}
+                        >
+                          Recrutement fermé
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

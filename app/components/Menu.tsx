@@ -1,37 +1,6 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { prisma } from "@/lib/prisma";
 
-export default async function Menu() {
-  const cookieStore = await cookies();
-  const steamId = cookieStore.get("steamId")?.value;
-
-  let hasEntreprise = false;
-
-  if (steamId) {
-    const membership = await prisma.entrepriseMembre.findFirst({
-      where: {
-        user: {
-          steamId,
-        },
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    const ownedEntreprise = await prisma.entreprise.findFirst({
-      where: {
-        ownerSteamId: steamId,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    hasEntreprise = !!membership || !!ownedEntreprise;
-  }
-
+export default function Menu() {
   return (
     <aside
       style={{
@@ -61,40 +30,9 @@ export default async function Menu() {
           Mon profil
         </Link>
 
-        {hasEntreprise && (
-          <>
-            <Link href="/mon-entreprise" style={menuLinkStyle}>
-              Mon entreprise
-            </Link>
-
-            <Link href="/finance" style={menuLinkStyle}>
-              Finance
-            </Link>
-
-            <Link href="/camions" style={menuLinkStyle}>
-              Camions
-            </Link>
-
-            <Link href="/parametres" style={menuLinkStyle}>
-              Paramètres
-            </Link>
-          </>
-        )}
-
         <Link href="/societe/classement" style={menuLinkStyle}>
           Classement
         </Link>
-
-        <a
-          href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/tacky/Elite%20Routier%20Tacky%20Setup%201.0.3.exe"
-          style={downloadStyle}
-        >
-          ⬇ Télécharger le Tacky
-        </a>
-
-        <a href="/downloads/Plugin-Elite-Routiers.zip" style={pluginStyle}>
-          🔌 Télécharger le Plugin
-        </a>
 
         <a href="/api/logout" style={logoutStyle}>
           Déconnexion
@@ -112,30 +50,6 @@ const menuLinkStyle = {
   fontWeight: "bold",
   textDecoration: "none",
   display: "block",
-};
-
-const downloadStyle = {
-  padding: "12px 14px",
-  borderRadius: "10px",
-  background: "linear-gradient(135deg, #22c55e, #16a34a)",
-  color: "white",
-  fontWeight: "bold",
-  textDecoration: "none",
-  display: "block",
-  textAlign: "center" as const,
-  boxShadow: "0 0 10px rgba(34,197,94,0.5)",
-};
-
-const pluginStyle = {
-  padding: "12px 14px",
-  borderRadius: "10px",
-  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-  color: "white",
-  fontWeight: "bold",
-  textDecoration: "none",
-  display: "block",
-  textAlign: "center" as const,
-  boxShadow: "0 0 10px rgba(59,130,246,0.5)",
 };
 
 const logoutStyle = {

@@ -394,7 +394,7 @@ export default async function PostulerPage({ params }: PageProps) {
                     </p>
 
                     <form
-                      action={`/api/entreprises/${entreprise.id}/postuler`}
+                      action={`/api/entreprise/${entreprise.id}/postuler`}
                       method="POST"
                       style={{
                         display: "flex",

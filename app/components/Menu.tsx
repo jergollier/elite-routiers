@@ -18,9 +18,19 @@ export default async function Menu() {
         },
       });
 
-      hasEntreprise =
-        !!user &&
-        (user.memberships.length > 0 || user.entreprisesCreees.length > 0);
+      const membershipsCount = Array.isArray(user?.memberships)
+        ? user.memberships.length
+        : user?.memberships
+        ? 1
+        : 0;
+
+      const entreprisesCount = Array.isArray(user?.entreprisesCreees)
+        ? user.entreprisesCreees.length
+        : user?.entreprisesCreees
+        ? 1
+        : 0;
+
+      hasEntreprise = membershipsCount > 0 || entreprisesCount > 0;
     } catch (error) {
       console.error("Erreur Menu :", error);
       hasEntreprise = false;

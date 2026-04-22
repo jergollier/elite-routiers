@@ -14,17 +14,17 @@ export default async function SocietePage() {
   }
 
   const entreprises = await prisma.entreprise.findMany({
-  orderBy: {
-    createdAt: "desc",
-  },
-  include: {
-    _count: {
-      select: {
-        membres: true,
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      _count: {
+        select: {
+          membres: true,
+        },
       },
     },
-  },
-});
+  });
 
   return (
     <main

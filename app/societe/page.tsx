@@ -3,20 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
-function maskDbHost(url?: string) {
-  if (!url) return "ABSENT";
-  try {
-    const parsed = new URL(url);
-    return parsed.host;
-  } catch {
-    return "INVALIDE";
-  }
-}
-
 export default async function SocietePage() {
-  const databaseHost = maskDbHost(process.env.DATABASE_URL);
-  const directHost = maskDbHost(process.env.DIRECT_URL);
-
   let entreprises: any[] = [];
   let erreurChargement = "";
 
@@ -152,26 +139,17 @@ export default async function SocietePage() {
               <Link href="/societe" style={menuLinkStyle}>
                 Accueil
               </Link>
+
               <Link href="/profil" style={menuLinkStyle}>
                 Mon profil
               </Link>
+
               <Link href="/mon-entreprise" style={menuLinkStyle}>
                 Mon entreprise
               </Link>
-              <Link href="/finance" style={menuLinkStyle}>
-                Finance
-              </Link>
-              <Link href="/camions" style={menuLinkStyle}>
-                Camions
-              </Link>
+
               <Link href="/parametres" style={menuLinkStyle}>
                 Paramètres
-              </Link>
-              <Link href="/societe/classement" style={menuLinkStyle}>
-                Classement
-              </Link>
-              <Link href="/societe/create" style={menuLinkStyle}>
-                Créer une entreprise
               </Link>
 
               <a
@@ -228,20 +206,6 @@ export default async function SocietePage() {
                   + Créer une entreprise
                 </Link>
               </div>
-            </div>
-
-            <div
-              style={{
-                marginBottom: "14px",
-                padding: "12px",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.06)",
-                fontSize: "13px",
-                lineHeight: 1.6,
-              }}
-            >
-              <div>DATABASE_URL host : {databaseHost}</div>
-              <div>DIRECT_URL host : {directHost}</div>
             </div>
 
             {erreurChargement ? (
@@ -317,6 +281,33 @@ export default async function SocietePage() {
 
                       <div
                         style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          fontSize: "13px",
+                          fontWeight: "bold",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "10px",
+                            height: "10px",
+                            borderRadius: "50%",
+                            display: "inline-block",
+                            background: entreprise.recrutement ? "#22c55e" : "#ef4444",
+                            boxShadow: entreprise.recrutement
+                              ? "0 0 8px #22c55e"
+                              : "0 0 8px #ef4444",
+                          }}
+                        />
+                        <span>
+                          Recrutement : {entreprise.recrutement ? "Ouvert" : "Fermé"}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
                           fontSize: "13px",
                           opacity: 0.9,
                           marginBottom: "14px",
@@ -349,6 +340,41 @@ export default async function SocietePage() {
                         >
                           Voir
                         </Link>
+
+                        {entreprise.recrutement ? (
+                          <Link
+                            href={`/entreprise/${entreprise.id}/postuler`}
+                            style={{
+                              display: "block",
+                              textAlign: "center",
+                              padding: "9px",
+                              background: "#2563eb",
+                              borderRadius: "8px",
+                              color: "white",
+                              textDecoration: "none",
+                              fontWeight: "bold",
+                              fontSize: "13px",
+                            }}
+                          >
+                            Postuler
+                          </Link>
+                        ) : (
+                          <div
+                            style={{
+                              display: "block",
+                              textAlign: "center",
+                              padding: "9px",
+                              background: "rgba(255,255,255,0.12)",
+                              borderRadius: "8px",
+                              color: "rgba(255,255,255,0.7)",
+                              fontWeight: "bold",
+                              fontSize: "13px",
+                              cursor: "not-allowed",
+                            }}
+                          >
+                            Recrutement fermé
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

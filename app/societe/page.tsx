@@ -5,23 +5,40 @@ import { prisma } from "@/lib/prisma";
 
 export default async function SocietePage() {
   let entreprises: any[] = [];
+  let chauffeurs: any[] = [];
   let erreurChargement = "";
 
   try {
-    entreprises = await prisma.entreprise.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        _count: {
-          select: {
-            membres: true,
+    const [entreprisesData, chauffeursData] = await Promise.all([
+      prisma.entreprise.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          _count: {
+            select: {
+              membres: true,
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.user.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: {
+          id: true,
+          username: true,
+          avatar: true,
+        },
+        take: 12,
+      }),
+    ]);
+
+    entreprises = entreprisesData;
+    chauffeurs = chauffeursData;
   } catch (error) {
-    console.error("Erreur chargement entreprises /societe :", error);
+    console.error("Erreur chargement /societe :", error);
     erreurChargement = "Impossible de charger les sociétés depuis la base.";
   }
 
@@ -80,6 +97,7 @@ export default async function SocietePage() {
             }}
           >
             <div>Entreprises : {entreprises.length}</div>
+            <div>Chauffeurs : {chauffeurs.length}</div>
 
             <div
               style={{
@@ -413,13 +431,76 @@ export default async function SocietePage() {
 
             <div
               style={{
-                textAlign: "center",
-                padding: "14px",
-                background: "rgba(255,255,255,0.05)",
-                borderRadius: "10px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
               }}
             >
-              Liste des chauffeurs à remettre juste après.
+              {chauffeurs.map((chauffeur) => {
+                const nomAffiche =
+                  chauffeur.username?.trim() || "Chauffeur sans pseudo";
+
+                return (
+                  <div
+                    key={chauffeur.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "12px",
+                      borderRadius: "10px",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <img
+                      src={chauffeur.avatar || "/truck.jpg"}
+                      alt={nomAffiche}
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        flexShrink: 0,
+                      }}
+                    />
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        minWidth: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: "bold",
+                          fontSize: "14px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {nomAffiche}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {chauffeurs.length === 0 && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "14px",
+                    background: "rgba(255,255,255,0.05)",
+                    borderRadius: "10px",
+                  }}
+                >
+                  Aucun chauffeur inscrit pour le moment.
+                </div>
+              )}
             </div>
           </aside>
         </div>

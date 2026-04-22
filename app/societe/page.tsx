@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export default async function SocietePage() {
   let entreprises: any[] = [];
+  let erreurChargement = "";
 
   try {
     entreprises = await prisma.entreprise.findMany({
@@ -21,6 +22,7 @@ export default async function SocietePage() {
     });
   } catch (error) {
     console.error("Erreur chargement entreprises /societe :", error);
+    erreurChargement = "Impossible de charger les sociétés depuis la base.";
   }
 
   return (
@@ -137,31 +139,24 @@ export default async function SocietePage() {
               <Link href="/societe" style={menuLinkStyle}>
                 Accueil
               </Link>
-
               <Link href="/profil" style={menuLinkStyle}>
                 Mon profil
               </Link>
-
               <Link href="/mon-entreprise" style={menuLinkStyle}>
                 Mon entreprise
               </Link>
-
               <Link href="/finance" style={menuLinkStyle}>
                 Finance
               </Link>
-
               <Link href="/camions" style={menuLinkStyle}>
                 Camions
               </Link>
-
               <Link href="/parametres" style={menuLinkStyle}>
                 Paramètres
               </Link>
-
               <Link href="/societe/classement" style={menuLinkStyle}>
                 Classement
               </Link>
-
               <Link href="/societe/create" style={menuLinkStyle}>
                 Créer une entreprise
               </Link>
@@ -214,161 +209,116 @@ export default async function SocietePage() {
               >
                 <Link
                   href="/societe/classement"
-                  style={{
-                    padding: "10px 16px",
-                    background: "#2563eb",
-                    borderRadius: "10px",
-                    color: "white",
-                    textDecoration: "none",
-                    fontWeight: "bold",
-                  }}
+                  style={buttonBlue}
                 >
                   Classement
                 </Link>
 
                 <Link
                   href="/societe/create"
-                  style={{
-                    padding: "10px 16px",
-                    background: "#171a21",
-                    borderRadius: "10px",
-                    color: "white",
-                    textDecoration: "none",
-                    fontWeight: "bold",
-                  }}
+                  style={buttonDark}
                 >
                   + Créer une entreprise
                 </Link>
               </div>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                gap: "16px",
-              }}
-            >
-              {entreprises.map((entreprise) => (
-                <div
-                  key={entreprise.id}
-                  style={{
-                    background: "rgba(15,15,15,0.78)",
-                    borderRadius: "14px",
-                    overflow: "hidden",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: "255px",
-                  }}
-                >
+            {erreurChargement ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "20px",
+                  background: "rgba(239,68,68,0.15)",
+                  border: "1px solid rgba(239,68,68,0.35)",
+                  borderRadius: "12px",
+                  color: "#fecaca",
+                }}
+              >
+                {erreurChargement}
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                  gap: "16px",
+                }}
+              >
+                {entreprises.map((entreprise) => (
                   <div
+                    key={entreprise.id}
                     style={{
-                      height: "95px",
-                      backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      padding: "12px",
+                      background: "rgba(15,15,15,0.78)",
+                      borderRadius: "14px",
+                      overflow: "hidden",
+                      border: "1px solid rgba(255,255,255,0.08)",
                       display: "flex",
                       flexDirection: "column",
-                      flex: 1,
+                      minHeight: "255px",
                     }}
                   >
                     <div
                       style={{
-                        fontWeight: "bold",
-                        fontSize: "17px",
-                        marginBottom: "4px",
+                        height: "95px",
+                        backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
                       }}
-                    >
-                      {entreprise.nom}
-                    </div>
+                    />
 
                     <div
                       style={{
-                        fontSize: "12px",
-                        opacity: 0.85,
-                        marginBottom: "10px",
-                      }}
-                    >
-                      [{entreprise.abreviation}]
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        fontSize: "13px",
-                        fontWeight: "bold",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: "10px",
-                          height: "10px",
-                          borderRadius: "50%",
-                          display: "inline-block",
-                          background: entreprise.recrutement ? "#22c55e" : "#ef4444",
-                          boxShadow: entreprise.recrutement
-                            ? "0 0 8px #22c55e"
-                            : "0 0 8px #ef4444",
-                        }}
-                      />
-                      <span>
-                        Recrutement : {entreprise.recrutement ? "Ouvert" : "Fermé"}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        opacity: 0.9,
-                        marginBottom: "14px",
-                      }}
-                    >
-                      🚛 Chauffeurs : {entreprise._count?.membres ?? 0}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: "auto",
+                        padding: "12px",
                         display: "flex",
                         flexDirection: "column",
-                        gap: "8px",
+                        flex: 1,
                       }}
                     >
-                      <Link
-                        href={`/entreprise/${entreprise.id}`}
+                      <div
                         style={{
-                          display: "block",
-                          textAlign: "center",
-                          padding: "9px",
-                          background: "#171a21",
-                          borderRadius: "8px",
-                          color: "white",
-                          textDecoration: "none",
                           fontWeight: "bold",
-                          fontSize: "13px",
+                          fontSize: "17px",
+                          marginBottom: "4px",
                         }}
                       >
-                        Voir
-                      </Link>
+                        {entreprise.nom}
+                      </div>
 
-                      {entreprise.recrutement ? (
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          opacity: 0.85,
+                          marginBottom: "10px",
+                        }}
+                      >
+                        [{entreprise.abreviation}]
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: "13px",
+                          opacity: 0.9,
+                          marginBottom: "14px",
+                        }}
+                      >
+                        🚛 Chauffeurs : {entreprise._count?.membres ?? 0}
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: "auto",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "8px",
+                        }}
+                      >
                         <Link
-                          href={`/entreprise/${entreprise.id}/postuler`}
+                          href={`/entreprise/${entreprise.id}`}
                           style={{
                             display: "block",
                             textAlign: "center",
                             padding: "9px",
-                            background: "#2563eb",
+                            background: "#171a21",
                             borderRadius: "8px",
                             color: "white",
                             textDecoration: "none",
@@ -376,44 +326,28 @@ export default async function SocietePage() {
                             fontSize: "13px",
                           }}
                         >
-                          Postuler
+                          Voir
                         </Link>
-                      ) : (
-                        <div
-                          style={{
-                            display: "block",
-                            textAlign: "center",
-                            padding: "9px",
-                            background: "rgba(255,255,255,0.12)",
-                            borderRadius: "8px",
-                            color: "rgba(255,255,255,0.7)",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                            cursor: "not-allowed",
-                          }}
-                        >
-                          Recrutement fermé
-                        </div>
-                      )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
-              {entreprises.length === 0 && (
-                <div
-                  style={{
-                    gridColumn: "1 / -1",
-                    textAlign: "center",
-                    padding: "20px",
-                    background: "rgba(255,255,255,0.05)",
-                    borderRadius: "12px",
-                  }}
-                >
-                  Aucune entreprise pour le moment.
-                </div>
-              )}
-            </div>
+                {entreprises.length === 0 && (
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      textAlign: "center",
+                      padding: "20px",
+                      background: "rgba(255,255,255,0.05)",
+                      borderRadius: "12px",
+                    }}
+                  >
+                    Aucune entreprise pour le moment.
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           <aside
@@ -490,4 +424,22 @@ const logoutStyle = {
   textDecoration: "none",
   display: "block",
   marginTop: "10px",
+};
+
+const buttonBlue = {
+  padding: "10px 16px",
+  background: "#2563eb",
+  borderRadius: "10px",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: "bold",
+};
+
+const buttonDark = {
+  padding: "10px 16px",
+  background: "#171a21",
+  borderRadius: "10px",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: "bold",
 };

@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 
 export default function SocietePage() {
+  const entreprises: any[] = [];
+
   return (
     <main
       style={{
@@ -57,7 +59,7 @@ export default function SocietePage() {
               flexWrap: "wrap",
             }}
           >
-            <div>Entreprises : 0</div>
+            <div>Entreprises : {entreprises.length}</div>
 
             <div
               style={{
@@ -224,13 +226,113 @@ export default function SocietePage() {
 
             <div
               style={{
-                textAlign: "center",
-                padding: "40px",
-                background: "rgba(255,255,255,0.05)",
-                borderRadius: "12px",
+                display: "grid",
+                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gap: "16px",
               }}
             >
-              Liste des entreprises à remettre juste après.
+              {entreprises.map((entreprise) => (
+                <div
+                  key={entreprise.id}
+                  style={{
+                    background: "rgba(15,15,15,0.78)",
+                    borderRadius: "14px",
+                    overflow: "hidden",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: "255px",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "95px",
+                      backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      padding: "12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      flex: 1,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: "17px",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {entreprise.nom}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        opacity: 0.85,
+                        marginBottom: "10px",
+                      }}
+                    >
+                      [{entreprise.abreviation}]
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        opacity: 0.9,
+                        marginBottom: "14px",
+                      }}
+                    >
+                      🚛 Chauffeurs : {entreprise.membresCount ?? 0}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: "auto",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                      }}
+                    >
+                      <Link
+                        href={`/entreprise/${entreprise.id}`}
+                        style={{
+                          display: "block",
+                          textAlign: "center",
+                          padding: "9px",
+                          background: "#171a21",
+                          borderRadius: "8px",
+                          color: "white",
+                          textDecoration: "none",
+                          fontWeight: "bold",
+                          fontSize: "13px",
+                        }}
+                      >
+                        Voir
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {entreprises.length === 0 && (
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    textAlign: "center",
+                    padding: "20px",
+                    background: "rgba(255,255,255,0.05)",
+                    borderRadius: "12px",
+                  }}
+                >
+                  Aucune entreprise pour le moment.
+                </div>
+              )}
             </div>
           </section>
 

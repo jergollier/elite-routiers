@@ -17,9 +17,19 @@ CREATE INDEX IF NOT EXISTS "Finance_type_idx" ON "Finance"("type");
 CREATE INDEX IF NOT EXISTS "Entreprise_nom_idx" ON "Entreprise"("nom");
 CREATE INDEX IF NOT EXISTS "Entreprise_jeu_idx" ON "Entreprise"("jeu");
 CREATE INDEX IF NOT EXISTS "MouvementCuve_type_idx" ON "MouvementCuve"("type");
-CREATE INDEX IF NOT EXISTS "TackySession_userId_idx" ON "TackySession"("userId");
-CREATE INDEX IF NOT EXISTS "TackySession_token_idx" ON "TackySession"("token");
-CREATE INDEX IF NOT EXISTS "TackySession_deviceCode_idx" ON "TackySession"("deviceCode");
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name = 'TackySession'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS "TackySession_userId_idx" ON "TackySession"("userId");
+    CREATE INDEX IF NOT EXISTS "TackySession_token_idx" ON "TackySession"("token");
+    CREATE INDEX IF NOT EXISTS "TackySession_deviceCode_idx" ON "TackySession"("deviceCode");
+  END IF;
+END $$;
 
 DO $$
 BEGIN

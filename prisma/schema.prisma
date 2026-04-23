@@ -183,6 +183,10 @@ model Camion {
   proprietaire         User?            @relation("CamionsPerso", fields: [proprietaireId], references: [id])
   livraisons           Livraison[]
   pleins               PleinCarburant[]
+  degatsMoteur         Int @default(0)
+  degatsCarrosserie    Int @default(0)
+  degatsChassis        Int @default(0)
+  degatsRoues          Int @default(0)
 
   @@index([entrepriseId])
   @@index([chauffeurAttribueId])

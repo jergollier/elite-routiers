@@ -288,6 +288,10 @@ export default async function MonEntreprisePage() {
                     🚛 Camions
                   </Link>
 
+                  <Link href="/atelier" style={buttonStyle}>
+                    🔧 Atelier
+                  </Link>
+
                   <Link href="/finance" style={buttonStyle}>
                     💶 Finance
                   </Link>

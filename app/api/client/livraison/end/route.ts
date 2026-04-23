@@ -304,36 +304,51 @@ export async function POST(request: Request) {
       }
 
       if (freshLivraison.camionId) {
-        const camion = await tx.camion.findUnique({
-          where: { id: freshLivraison.camionId },
-          select: {
-            id: true,
-            kilometrage: true,
-            vidangeRestante: true,
-            revisionRestante: true,
-          },
-        });
+  const camion = await tx.camion.findUnique({
+    where: { id: freshLivraison.camionId },
+    select: {
+      id: true,
+      kilometrage: true,
+      vidangeRestante: true,
+      revisionRestante: true,
+      pneusRestantsKm: true,
+      freinsRestantsKm: true,
+      batterieRestanteKm: true,
+    },
+  });
 
-        if (camion) {
-          await tx.camion.update({
-            where: { id: camion.id },
-            data: {
-              statut: "DISPONIBLE",
-              kilometrage: {
-                increment: distanceReelle,
-              },
-              vidangeRestante: Math.max(
-                0,
-                camion.vidangeRestante - distanceReelle
-              ),
-              revisionRestante: Math.max(
-                0,
-                camion.revisionRestante - distanceReelle
-              ),
-            },
-          });
-        }
-      }
+  if (camion) {
+    await tx.camion.update({
+      where: { id: camion.id },
+      data: {
+        statut: "DISPONIBLE",
+        kilometrage: {
+          increment: distanceReelle,
+        },
+        vidangeRestante: Math.max(
+          0,
+          (camion.vidangeRestante ?? 0) - distanceReelle
+        ),
+        revisionRestante: Math.max(
+          0,
+          (camion.revisionRestante ?? 0) - distanceReelle
+        ),
+        pneusRestantsKm: Math.max(
+          0,
+          (camion.pneusRestantsKm ?? 0) - distanceReelle
+        ),
+        freinsRestantsKm: Math.max(
+          0,
+          (camion.freinsRestantsKm ?? 0) - distanceReelle
+        ),
+        batterieRestanteKm: Math.max(
+          0,
+          (camion.batterieRestanteKm ?? 0) - distanceReelle
+        ),
+      },
+    });
+  }
+}
 
       let carburantAjoute = 0;
       let stockCuveSite: number | null = null;

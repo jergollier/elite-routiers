@@ -37,6 +37,8 @@ model User {
   tackySessions           TackySession[]
   dlcs                    UserDlc[]
   livraisonsCarburantSite LivraisonCarburantSite[]
+  entretiensEffectues     CamionEntretien[]
+  infractionsRecues       Infraction[]
 }
 
 model Entreprise {
@@ -65,6 +67,13 @@ model Entreprise {
   discordWebhookVenteCamion String?
   prixLitreCuve             Decimal                   @default(1.35) @db.Decimal(10, 2)
   prixLitreHorsCuve         Decimal                   @default(2.30) @db.Decimal(10, 2)
+
+  telepeageActif            Boolean                   @default(false)
+  telepeageCamionsMax       Int                       @default(0)
+  telepeagePrix             Int                       @default(0)
+  telepeageDateDebut        DateTime?
+  telepeageDateFin          DateTime?
+
   camions                   Camion[]
   chauffeurStats            ChauffeurStat[]
   owner                     User                      @relation("EntrepriseOwner", fields: [ownerSteamId], references: [steamId], onDelete: Cascade)
@@ -77,6 +86,9 @@ model Entreprise {
   avertissements            AvertissementEntreprise[]
   livraisonsCarburantSite   LivraisonCarburantSite[]
   achatsCarburantSite       AchatCarburantSite[]
+  entretiens                CamionEntretien[]
+  infractionsRecues         Infraction[]
+  contratsTelepeage         TelepeageContrat[]
 
   @@index([nom])
   @@index([jeu])
@@ -178,15 +190,23 @@ model Camion {
   prixAchat            Int?
   chauffeurAttribueId  String?
   proprietaireId       String?
+
+  degatsMoteur         Int              @default(0)
+  degatsCarrosserie    Int              @default(0)
+  degatsChassis        Int              @default(0)
+  degatsRoues          Int              @default(0)
+
+  pneusRestantsKm      Int              @default(100000)
+  freinsRestantsKm     Int              @default(60000)
+  batterieRestanteKm   Int              @default(150000)
+
   chauffeurAttribue    User?            @relation("CamionsAttribues", fields: [chauffeurAttribueId], references: [id])
   entreprise           Entreprise?      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
   proprietaire         User?            @relation("CamionsPerso", fields: [proprietaireId], references: [id])
   livraisons           Livraison[]
   pleins               PleinCarburant[]
-  degatsMoteur         Int @default(0)
-  degatsCarrosserie    Int @default(0)
-  degatsChassis        Int @default(0)
-  degatsRoues          Int @default(0)
+  entretiens           CamionEntretien[]
+  infractionsLiees     Infraction[]
 
   @@index([entrepriseId])
   @@index([chauffeurAttribueId])
@@ -261,6 +281,13 @@ model Livraison {
   charges                Int                     @default(0)
   gainChauffeur          Int                     @default(0)
   gainSociete            Int                     @default(0)
+
+  trailerDamageChassis   Float                   @default(0)
+  trailerDamageWheels    Float                   @default(0)
+  trailerDamageBody      Float                   @default(0)
+  trailerCargoDamage     Float                   @default(0)
+  pourcentagePerteRemorque Int                   @default(0)
+
   camion                 Camion?                 @relation(fields: [camionId], references: [id])
   entreprise             Entreprise?             @relation(fields: [entrepriseId], references: [id])
   user                   User                    @relation(fields: [steamId], references: [steamId], onDelete: Cascade)
@@ -451,6 +478,71 @@ model AvertissementEntreprise {
   @@index([createdAt])
 }
 
+model CamionEntretien {
+  id            Int           @id @default(autoincrement())
+  camionId       Int
+  entrepriseId   Int
+  userId         String?
+  type           TypeEntretien
+  prix           Int           @default(0)
+  kilometrageKm  Int           @default(0)
+  commentaire    String?
+  createdAt      DateTime      @default(now())
+
+  camion         Camion        @relation(fields: [camionId], references: [id], onDelete: Cascade)
+  entreprise     Entreprise    @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([camionId])
+  @@index([entrepriseId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model Infraction {
+  id               Int         @id @default(autoincrement())
+  entrepriseId     Int?
+  userId           String?
+  camionId         Int?
+  steamId          String?
+  type             String?
+  raison           String?
+  montant          Int         @default(0)
+  sourceCity       String?
+  destinationCity  String?
+  cargo            String?
+  livraisonId      String?
+  createdAt        DateTime    @default(now())
+
+  entreprise       Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+  user             User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  camion           Camion?     @relation(fields: [camionId], references: [id], onDelete: SetNull)
+
+  @@index([entrepriseId])
+  @@index([userId])
+  @@index([camionId])
+  @@index([steamId])
+  @@index([createdAt])
+}
+
+model TelepeageContrat {
+  id            Int        @id @default(autoincrement())
+  entrepriseId  Int
+  camionsMax    Int
+  prix          Int
+  dateDebut     DateTime   @default(now())
+  dateFin       DateTime
+  actif         Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+
+  entreprise    Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+
+  @@index([entrepriseId])
+  @@index([actif])
+  @@index([dateFin])
+}
+
 enum RoleEntreprise {
   DIRECTEUR
   SOUS_DIRECTEUR
@@ -485,4 +577,13 @@ enum MarqueCamion {
   INTERNATIONAL
   MACK
   WESTERN_STAR
+}
+
+enum TypeEntretien {
+  VIDANGE
+  REVISION
+  PNEUS
+  FREINS
+  BATTERIE
+  REPARATION_GENERALE
 }

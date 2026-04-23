@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import Link from "next/link";
 import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 
@@ -9,9 +9,6 @@ const ROLES_AUTORISES_ATELIER = [
   "SOUS_DIRECTEUR",
   "CHEF_ATELIER",
 ] as const;
-
-const PRIX_REPARATION_PAR_POINT = 1000;
-const PRIX_PNEUS = 8000;
 
 function getDamageConfig(value?: number | null) {
   const safeValue = value ?? 0;
@@ -153,198 +150,6 @@ function getStatutCamionConfig(statut?: string | null) {
   }
 }
 
-async function getAtelierContext() {
-  const cookieStore = await cookies();
-  const steamId = cookieStore.get("steamId")?.value;
-
-  if (!steamId) {
-    return null;
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { steamId },
-    include: {
-      memberships: {
-        include: {
-          entreprise: true,
-        },
-      },
-    },
-  });
-
-  if (!user || !user.memberships?.entreprise) {
-    return null;
-  }
-
-  return {
-    user,
-    membership: user.memberships,
-    entreprise: user.memberships.entreprise,
-  };
-}
-
-async function reparerDegats(formData: FormData) {
-  "use server";
-
-  const camionId = Number(formData.get("camionId"));
-  if (!camionId || Number.isNaN(camionId)) {
-    return;
-  }
-
-  const context = await getAtelierContext();
-  if (!context) {
-    return;
-  }
-
-  const { user, membership, entreprise } = context;
-
-  if (!ROLES_AUTORISES_ATELIER.includes(membership.role as (typeof ROLES_AUTORISES_ATELIER)[number])) {
-    return;
-  }
-
-  const camion = await prisma.camion.findFirst({
-    where: {
-      id: camionId,
-      entrepriseId: entreprise.id,
-    },
-    select: {
-      id: true,
-      kilometrage: true,
-      degatsMoteur: true,
-      degatsCarrosserie: true,
-      degatsChassis: true,
-      degatsRoues: true,
-    },
-  });
-
-  if (!camion) {
-    return;
-  }
-
-  const totalDegats =
-    (camion.degatsMoteur ?? 0) +
-    (camion.degatsCarrosserie ?? 0) +
-    (camion.degatsChassis ?? 0) +
-    (camion.degatsRoues ?? 0);
-
-  if (totalDegats <= 0) {
-    return;
-  }
-
-  const prix = totalDegats * PRIX_REPARATION_PAR_POINT;
-
-  if ((entreprise.argent ?? 0) < prix) {
-    return;
-  }
-
-  await prisma.$transaction([
-    prisma.camion.update({
-      where: { id: camion.id },
-      data: {
-        degatsMoteur: 0,
-        degatsCarrosserie: 0,
-        degatsChassis: 0,
-        degatsRoues: 0,
-      },
-    }),
-    prisma.entreprise.update({
-      where: { id: entreprise.id },
-      data: {
-        argent: {
-          decrement: prix,
-        },
-      },
-    }),
-    prisma.camionEntretien.create({
-      data: {
-        camionId: camion.id,
-        entrepriseId: entreprise.id,
-        userId: user.id,
-        type: "REPARATION_GENERALE",
-        prix,
-        kilometrageKm: camion.kilometrage ?? 0,
-        commentaire: `Réparation des dégâts camion (${totalDegats}% cumulés)`,
-      },
-    }),
-  ]);
-
-  revalidatePath("/atelier");
-  revalidatePath("/mon-entreprise");
-  revalidatePath("/camions");
-}
-
-async function changerPneus(formData: FormData) {
-  "use server";
-
-  const camionId = Number(formData.get("camionId"));
-  if (!camionId || Number.isNaN(camionId)) {
-    return;
-  }
-
-  const context = await getAtelierContext();
-  if (!context) {
-    return;
-  }
-
-  const { user, membership, entreprise } = context;
-
-  if (!ROLES_AUTORISES_ATELIER.includes(membership.role as (typeof ROLES_AUTORISES_ATELIER)[number])) {
-    return;
-  }
-
-  const camion = await prisma.camion.findFirst({
-    where: {
-      id: camionId,
-      entrepriseId: entreprise.id,
-    },
-    select: {
-      id: true,
-      kilometrage: true,
-      pneusRestantsKm: true,
-    },
-  });
-
-  if (!camion) {
-    return;
-  }
-
-  if ((entreprise.argent ?? 0) < PRIX_PNEUS) {
-    return;
-  }
-
-  await prisma.$transaction([
-    prisma.camion.update({
-      where: { id: camion.id },
-      data: {
-        pneusRestantsKm: 100000,
-      },
-    }),
-    prisma.entreprise.update({
-      where: { id: entreprise.id },
-      data: {
-        argent: {
-          decrement: PRIX_PNEUS,
-        },
-      },
-    }),
-    prisma.camionEntretien.create({
-      data: {
-        camionId: camion.id,
-        entrepriseId: entreprise.id,
-        userId: user.id,
-        type: "PNEUS",
-        prix: PRIX_PNEUS,
-        kilometrageKm: camion.kilometrage ?? 0,
-        commentaire: "Remplacement complet des pneus camion",
-      },
-    }),
-  ]);
-
-  revalidatePath("/atelier");
-  revalidatePath("/mon-entreprise");
-  revalidatePath("/camions");
-}
-
 export default async function AtelierPage() {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
@@ -439,7 +244,7 @@ export default async function AtelierPage() {
           flex: 1,
           minHeight: "100vh",
           backgroundImage:
-            "linear-gradient(rgba(5,8,15,0.88), rgba(5,8,15,0.92)), url('/atelier.jpg')",
+            "linear-gradient(rgba(5,8,15,0.62), rgba(5,8,15,0.72)), url('/atelier.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundAttachment: "fixed",
@@ -450,7 +255,7 @@ export default async function AtelierPage() {
             minHeight: "100vh",
             padding: "32px",
             background:
-              "linear-gradient(180deg, rgba(8,11,16,0.28) 0%, rgba(8,11,16,0.58) 100%)",
+              "linear-gradient(180deg, rgba(8,11,16,0.12) 0%, rgba(8,11,16,0.28) 100%)",
           }}
         >
           <div
@@ -497,7 +302,7 @@ export default async function AtelierPage() {
                     fontSize: "15px",
                   }}
                 >
-                  Suivi des entretiens, pneus et réparations de la flotte de{" "}
+                  Vue générale de l&apos;atelier de{" "}
                   <strong style={{ color: "#ffffff" }}>{entreprise.nom}</strong>
                 </p>
               </div>
@@ -625,21 +430,19 @@ export default async function AtelierPage() {
                 const pneusRestantsKm = camion.pneusRestantsKm ?? 0;
 
                 const vidangeConfig = getKmConfig(vidangeRestante, 60000, 5000);
-                const revisionConfig = getKmConfig(revisionRestante, 120000, 10000);
+                const revisionConfig = getKmConfig(
+                  revisionRestante,
+                  120000,
+                  10000
+                );
                 const pneusConfig = getPneusConfig(pneusRestantsKm);
 
                 const moteurConfig = getDamageConfig(camion.degatsMoteur);
-                const carrosserieConfig = getDamageConfig(camion.degatsCarrosserie);
+                const carrosserieConfig = getDamageConfig(
+                  camion.degatsCarrosserie
+                );
                 const chassisConfig = getDamageConfig(camion.degatsChassis);
                 const rouesConfig = getDamageConfig(camion.degatsRoues);
-
-                const totalDegats =
-                  (camion.degatsMoteur ?? 0) +
-                  (camion.degatsCarrosserie ?? 0) +
-                  (camion.degatsChassis ?? 0) +
-                  (camion.degatsRoues ?? 0);
-
-                const prixReparation = totalDegats * PRIX_REPARATION_PAR_POINT;
 
                 const etatGeneral = getEtatGeneral(camion);
                 const statutConfig = getStatutCamionConfig(camion.statut);
@@ -651,7 +454,7 @@ export default async function AtelierPage() {
                       background:
                         "linear-gradient(180deg, rgba(18,18,18,0.84), rgba(10,10,10,0.7))",
                       borderRadius: "22px",
-                      padding: "22px",
+                      padding: "20px",
                       backdropFilter: "blur(8px)",
                       border: "1px solid rgba(255,255,255,0.06)",
                       boxShadow:
@@ -738,20 +541,34 @@ export default async function AtelierPage() {
 
                     <div
                       style={{
-                        display: "inline-flex",
+                        display: "flex",
                         alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 12px",
-                        borderRadius: "999px",
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        color: etatGeneral.color,
-                        fontWeight: 800,
+                        justifyContent: "space-between",
+                        gap: "12px",
                         marginBottom: "18px",
-                        textShadow: etatGeneral.glow,
+                        flexWrap: "wrap",
                       }}
                     >
-                      État général : {etatGeneral.label}
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "8px 12px",
+                          borderRadius: "999px",
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          color: etatGeneral.color,
+                          fontWeight: 800,
+                          textShadow: etatGeneral.glow,
+                        }}
+                      >
+                        État général : {etatGeneral.label}
+                      </div>
+
+                      <Link href={`/atelier/${camion.id}`} style={atelierLinkStyle}>
+                        🔧 Atelier
+                      </Link>
                     </div>
 
                     <div style={sectionStyle}>
@@ -896,59 +713,6 @@ export default async function AtelierPage() {
                         </div>
                       </div>
                     </div>
-
-                    {peutAgirAtelier && (
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr",
-                          gap: "10px",
-                        }}
-                      >
-                        <button type="button" style={actionButtonStyle}>
-                          🔧 Faire la vidange
-                        </button>
-
-                        <button type="button" style={actionButtonStyle}>
-                          🔩 Faire la révision
-                        </button>
-
-                        <form action={changerPneus}>
-                          <input type="hidden" name="camionId" value={camion.id} />
-                          <button
-                            type="submit"
-                            style={{
-                              ...actionPneusButtonStyle,
-                              opacity: pneusRestantsKm < 100000 ? 1 : 0.72,
-                              cursor:
-                                pneusRestantsKm < 100000 ? "pointer" : "not-allowed",
-                            }}
-                            disabled={pneusRestantsKm >= 100000}
-                          >
-                            🛞 Changer les pneus •{" "}
-                            {PRIX_PNEUS.toLocaleString("fr-FR")} €
-                          </button>
-                        </form>
-
-                        <form action={reparerDegats}>
-                          <input type="hidden" name="camionId" value={camion.id} />
-                          <button
-                            type="submit"
-                            style={{
-                              ...actionDangerButtonStyle,
-                              opacity: totalDegats > 0 ? 1 : 0.6,
-                              cursor: totalDegats > 0 ? "pointer" : "not-allowed",
-                            }}
-                            disabled={totalDegats <= 0}
-                          >
-                            💥 Réparer les dégâts
-                            {totalDegats > 0
-                              ? ` • ${prixReparation.toLocaleString("fr-FR")} €`
-                              : " • Aucun dégât"}
-                          </button>
-                        </form>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -961,8 +725,8 @@ export default async function AtelierPage() {
 }
 
 const sectionStyle = {
-  marginBottom: "18px",
-  padding: "14px",
+  marginBottom: "16px",
+  padding: "12px",
   borderRadius: "16px",
   background: "rgba(255,255,255,0.03)",
   border: "1px solid rgba(255,255,255,0.06)",
@@ -997,36 +761,18 @@ const barFillBaseStyle = {
   borderRadius: "999px",
 };
 
-const actionButtonStyle = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.10)",
-  background: "rgba(255,255,255,0.08)",
-  color: "white",
-  fontWeight: "bold",
-  cursor: "pointer",
-  boxShadow: "0 0 14px rgba(255,255,255,0.04)",
-};
-
-const actionPneusButtonStyle = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  border: "1px solid rgba(59,130,246,0.24)",
-  background: "rgba(59,130,246,0.14)",
-  color: "#bfdbfe",
-  fontWeight: "bold",
-  boxShadow: "0 0 14px rgba(59,130,246,0.08)",
-};
-
-const actionDangerButtonStyle = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  border: "1px solid rgba(239,68,68,0.22)",
-  background: "rgba(239,68,68,0.14)",
-  color: "#fecaca",
-  fontWeight: "bold",
-  boxShadow: "0 0 14px rgba(239,68,68,0.08)",
+const atelierLinkStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "8px 14px",
+  borderRadius: "999px",
+  background: "rgba(37,99,235,0.18)",
+  border: "1px solid rgba(37,99,235,0.35)",
+  color: "#93c5fd",
+  fontWeight: 700,
+  fontSize: "13px",
+  textDecoration: "none",
+  boxShadow: "0 0 12px rgba(37,99,235,0.22)",
+  whiteSpace: "nowrap" as const,
 };

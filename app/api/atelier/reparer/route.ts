@@ -4,16 +4,21 @@ import { prisma } from "@/lib/prisma";
 
 const ROLES_AUTORISES = ["DIRECTEUR", "SOUS_DIRECTEUR", "CHEF_ATELIER"];
 
+function normaliserVille(value?: string | null) {
+  return (value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
     const steamId = cookieStore.get("steamId")?.value;
 
     if (!steamId) {
-      return NextResponse.json(
-        { error: "Non authentifié" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
     const body = (await request.json()) as {
@@ -23,10 +28,7 @@ export async function POST(request: Request) {
     const camionId = Number(body.camionId);
 
     if (!camionId || Number.isNaN(camionId)) {
-      return NextResponse.json(
-        { error: "Camion invalide" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Camion invalide" }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
@@ -64,6 +66,7 @@ export async function POST(request: Request) {
       },
       select: {
         id: true,
+        positionActuelle: true,
         degatsMoteur: true,
         degatsCarrosserie: true,
         degatsChassis: true,
@@ -72,22 +75,14 @@ export async function POST(request: Request) {
     });
 
     if (!camion) {
-      return NextResponse.json(
-        { error: "Camion introuvable" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Camion introuvable" }, { status: 404 });
     }
 
-    const degatsMoteur = camion.degatsMoteur ?? 0;
-    const degatsCarrosserie = camion.degatsCarrosserie ?? 0;
-    const degatsChassis = camion.degatsChassis ?? 0;
-    const degatsRoues = camion.degatsRoues ?? 0;
-
     const totalDegats =
-      degatsMoteur +
-      degatsCarrosserie +
-      degatsChassis +
-      degatsRoues;
+      (camion.degatsMoteur ?? 0) +
+      (camion.degatsCarrosserie ?? 0) +
+      (camion.degatsChassis ?? 0) +
+      (camion.degatsRoues ?? 0);
 
     if (totalDegats <= 0) {
       return NextResponse.json(
@@ -96,9 +91,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const prix = totalDegats * 1000;
+    const villeCamion = normaliserVille(camion.positionActuelle);
+    const villeMaisonETS2 = normaliserVille(entreprise.villeETS2);
+    const villeMaisonATS = normaliserVille(entreprise.villeATS);
 
-    if ((entreprise.argent ?? 0) < prix) {
+    const estMaisonMere =
+      villeCamion &&
+      (villeCamion === villeMaisonETS2 || villeCamion === villeMaisonATS);
+
+    const prixBase = totalDegats * 1000;
+    const majoration = estMaisonMere ? 0 : Math.round(prixBase * 0.2);
+    const prixFinal = prixBase + majoration;
+
+    if ((entreprise.argent ?? 0) < prixFinal) {
       return NextResponse.json(
         { error: "Pas assez d'argent dans la société" },
         { status: 400 }
@@ -115,11 +120,12 @@ export async function POST(request: Request) {
           degatsRoues: 0,
         },
       }),
+
       prisma.entreprise.update({
         where: { id: entreprise.id },
         data: {
           argent: {
-            decrement: prix,
+            decrement: prixFinal,
           },
         },
       }),
@@ -127,15 +133,17 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Dégâts réparés avec succès",
-      prix,
+      message: estMaisonMere
+        ? "Dégâts réparés à la maison mère"
+        : "Dégâts réparés hors maison mère avec majoration de 20%",
+      prixBase,
+      majoration,
+      prix: prixFinal,
+      estMaisonMere,
     });
   } catch (error) {
     console.error("Erreur réparation dégâts atelier :", error);
 
-    return NextResponse.json(
-      { error: "Erreur serveur" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

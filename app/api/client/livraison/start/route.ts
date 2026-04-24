@@ -18,6 +18,8 @@ type LivraisonStartBody = {
   startOdometerKm?: number;
 };
 
+const AMENDE_VIDANGE_RETARD = 2500;
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as LivraisonStartBody;
@@ -34,10 +36,12 @@ export async function POST(request: Request) {
     const cargo = body.cargo?.trim() || null;
     const sourceCity = body.sourceCity?.trim() || null;
     const destinationCity = body.destinationCity?.trim() || null;
+
     const kmPrevu =
       typeof body.kmPrevu === "number" && Number.isFinite(body.kmPrevu)
         ? Math.round(body.kmPrevu)
         : null;
+
     const startOdometerKm =
       typeof body.startOdometerKm === "number" &&
       Number.isFinite(body.startOdometerKm)
@@ -120,6 +124,80 @@ export async function POST(request: Request) {
       );
     }
 
+    const blocages: string[] = [];
+    const avertissements: string[] = [];
+
+    if ((camionAttribue.revisionRestante ?? 0) <= 0) {
+      blocages.push("Révision obligatoire non effectuée");
+    }
+
+    if ((camionAttribue.pneusRestantsKm ?? 0) <= 0) {
+      blocages.push("Pneus à remplacer");
+    }
+
+    if ((camionAttribue.freinsRestantsKm ?? 0) <= 0) {
+      blocages.push("Freins à remplacer");
+    }
+
+    if ((camionAttribue.batterieRestanteKm ?? 0) <= 0) {
+      blocages.push("Batterie à remplacer");
+    }
+
+    const vidangeEnRetard = (camionAttribue.vidangeRestante ?? 0) <= 0;
+
+    if (vidangeEnRetard) {
+      avertissements.push(
+        `Vidange en retard : amende de ${AMENDE_VIDANGE_RETARD.toLocaleString(
+          "fr-FR"
+        )} € appliquée`
+      );
+    }
+
+    if (blocages.length > 0) {
+      await prisma.$transaction([
+        prisma.camion.update({
+          where: { id: camionAttribue.id },
+          data: {
+            statut: "EN_MAINTENANCE",
+          },
+        }),
+
+        prisma.clientEvent.create({
+          data: {
+            type: "LIVRAISON_START_BLOQUEE_ATELIER",
+            steamId,
+            deviceId,
+            sessionId,
+            game,
+            payload: {
+              camionId: camionAttribue.id,
+              truck,
+              truckBrand,
+              truckModel,
+              blocages,
+              avertissements,
+              sourceCity,
+              destinationCity,
+              kmPrevu,
+              startOdometerKm,
+            },
+          },
+        }),
+      ]);
+
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "CAMION_BLOQUE_ATELIER",
+          message: "Camion bloqué : entretien obligatoire non effectué.",
+          blocages,
+          avertissements,
+          camionId: camionAttribue.id,
+        },
+        { status: 403 }
+      );
+    }
+
     if (jobId) {
       const existingByJobId = await prisma.livraison.findFirst({
         where: {
@@ -161,65 +239,101 @@ export async function POST(request: Request) {
       });
     }
 
-    const livraison = await prisma.livraison.create({
-      data: {
-        jobId,
-        steamId,
-        entrepriseId: entreprise.id,
-        camionId: camionAttribue.id,
-        game,
-        sessionId,
-        deviceId,
-        truck,
-        truckBrand,
-        truckModel,
-        cargo,
-        status: "EN_COURS",
-        startedAt: new Date(),
-        startOdometerKm,
-        sourceCity,
-        destinationCity,
-        kmPrevu,
-        validatedByServer: true,
-      },
-    });
+    const livraison = await prisma.$transaction(async (tx) => {
+      if (vidangeEnRetard) {
+        await tx.entreprise.update({
+          where: { id: entreprise.id },
+          data: {
+            argent: {
+              decrement: AMENDE_VIDANGE_RETARD,
+            },
+          },
+        });
 
-    await prisma.camion.update({
-      where: { id: camionAttribue.id },
-      data: {
-        statut: "EN_MISSION",
-        positionActuelle: sourceCity ?? null,
-      },
-    });
+        await tx.clientEvent.create({
+          data: {
+            type: "AMENDE_VIDANGE_RETARD",
+            steamId,
+            deviceId,
+            sessionId,
+            game,
+            payload: {
+              camionId: camionAttribue.id,
+              montant: AMENDE_VIDANGE_RETARD,
+              vidangeRestante: camionAttribue.vidangeRestante ?? 0,
+              message: "Vidange en retard au départ de livraison.",
+            },
+          },
+        });
+      }
 
-    await prisma.clientEvent.create({
-      data: {
-        type: "LIVRAISON_START",
-        steamId,
-        deviceId,
-        sessionId,
-        game,
-        payload: {
-          livraisonId: livraison.id,
+      const createdLivraison = await tx.livraison.create({
+        data: {
           jobId,
+          steamId,
+          entrepriseId: entreprise.id,
           camionId: camionAttribue.id,
+          game,
+          sessionId,
+          deviceId,
           truck,
           truckBrand,
           truckModel,
           cargo,
+          status: "EN_COURS",
+          startedAt: new Date(),
+          startOdometerKm,
           sourceCity,
           destinationCity,
           kmPrevu,
-          startOdometerKm,
+          validatedByServer: true,
         },
-      },
+      });
+
+      await tx.camion.update({
+        where: { id: camionAttribue.id },
+        data: {
+          statut: "EN_MISSION",
+          positionActuelle: sourceCity ?? null,
+        },
+      });
+
+      await tx.clientEvent.create({
+        data: {
+          type: "LIVRAISON_START",
+          steamId,
+          deviceId,
+          sessionId,
+          game,
+          payload: {
+            livraisonId: createdLivraison.id,
+            jobId,
+            camionId: camionAttribue.id,
+            truck,
+            truckBrand,
+            truckModel,
+            cargo,
+            sourceCity,
+            destinationCity,
+            kmPrevu,
+            startOdometerKm,
+            avertissements,
+          },
+        },
+      });
+
+      return createdLivraison;
     });
 
     return NextResponse.json({
       ok: true,
-      message: "Livraison démarrée avec succès.",
+      message: vidangeEnRetard
+        ? "Livraison démarrée avec avertissement atelier."
+        : "Livraison démarrée avec succès.",
       livraisonId: livraison.id,
       camionId: camionAttribue.id,
+      avertissements,
+      amendeVidange: vidangeEnRetard ? AMENDE_VIDANGE_RETARD : 0,
     });
   } catch (error) {
     console.error("Erreur API /api/client/livraison/start :", error);

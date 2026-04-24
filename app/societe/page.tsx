@@ -194,6 +194,17 @@ export default async function SocietePage() {
                 Mon profil
               </Link>
 
+              <Link
+                href="/marche-occasion"
+                style={{
+                  ...menuLinkStyle,
+                  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
+                  boxShadow: "0 0 10px rgba(245,158,11,0.6)",
+                }}
+              >
+                🚛 Marché occasion
+              </Link>
+
               <Link href="/mon-entreprise" style={menuLinkStyle}>
                 Mon entreprise
               </Link>
@@ -261,7 +272,8 @@ export default async function SocietePage() {
             <div
               style={{
                 marginBottom: "20px",
-                background: "linear-gradient(135deg, rgba(24,24,27,0.95), rgba(10,10,10,0.88))",
+                background:
+                  "linear-gradient(135deg, rgba(24,24,27,0.95), rgba(10,10,10,0.88))",
                 borderRadius: "16px",
                 padding: "18px",
                 border: "1px solid rgba(255,255,255,0.08)",
@@ -471,14 +483,17 @@ export default async function SocietePage() {
                             height: "10px",
                             borderRadius: "50%",
                             display: "inline-block",
-                            background: entreprise.recrutement ? "#22c55e" : "#ef4444",
+                            background: entreprise.recrutement
+                              ? "#22c55e"
+                              : "#ef4444",
                             boxShadow: entreprise.recrutement
                               ? "0 0 8px #22c55e"
                               : "0 0 8px #ef4444",
                           }}
                         />
                         <span>
-                          Recrutement : {entreprise.recrutement ? "Ouvert" : "Fermé"}
+                          Recrutement :{" "}
+                          {entreprise.recrutement ? "Ouvert" : "Fermé"}
                         </span>
                       </div>
 

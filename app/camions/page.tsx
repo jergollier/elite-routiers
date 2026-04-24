@@ -4,32 +4,18 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Menu from "@/app/components/Menu";
 
+const ROLES_VENTE = ["DIRECTEUR", "SOUS_DIRECTEUR"];
+
 function getStatutConfig(statut: string) {
   switch (statut) {
     case "DISPONIBLE":
-      return {
-        label: "Disponible",
-        color: "#22c55e",
-        glow: "0 0 10px rgba(34,197,94,0.85)",
-      };
+      return { label: "Disponible", color: "#22c55e", glow: "0 0 10px rgba(34,197,94,0.85)" };
     case "EN_MISSION":
-      return {
-        label: "En mission",
-        color: "#f59e0b",
-        glow: "0 0 10px rgba(245,158,11,0.85)",
-      };
+      return { label: "En mission", color: "#f59e0b", glow: "0 0 10px rgba(245,158,11,0.85)" };
     case "EN_MAINTENANCE":
-      return {
-        label: "En maintenance",
-        color: "#ef4444",
-        glow: "0 0 10px rgba(239,68,68,0.85)",
-      };
+      return { label: "En maintenance", color: "#ef4444", glow: "0 0 10px rgba(239,68,68,0.85)" };
     default:
-      return {
-        label: "Inconnu",
-        color: "#9ca3af",
-        glow: "0 0 10px rgba(156,163,175,0.85)",
-      };
+      return { label: "Inconnu", color: "#9ca3af", glow: "0 0 10px rgba(156,163,175,0.85)" };
   }
 }
 
@@ -41,44 +27,41 @@ function getBarColor(value: number) {
 
 function formatMarque(marque: string) {
   switch (marque) {
-    case "RENAULT":
-      return "Renault";
-    case "SCANIA":
-      return "Scania";
-    case "VOLVO":
-      return "Volvo";
-    case "MAN":
-      return "MAN";
-    case "DAF":
-      return "DAF";
-    case "MERCEDES":
-      return "Mercedes-Benz";
-    case "IVECO":
-      return "Iveco";
-    case "KENWORTH":
-      return "Kenworth";
-    case "PETERBILT":
-      return "Peterbilt";
-    case "FREIGHTLINER":
-      return "Freightliner";
-    case "INTERNATIONAL":
-      return "International";
-    case "MACK":
-      return "Mack";
-    case "WESTERN_STAR":
-      return "Western Star";
-    default:
-      return marque;
+    case "RENAULT": return "Renault";
+    case "SCANIA": return "Scania";
+    case "VOLVO": return "Volvo";
+    case "MAN": return "MAN";
+    case "DAF": return "DAF";
+    case "MERCEDES": return "Mercedes-Benz";
+    case "IVECO": return "Iveco";
+    case "KENWORTH": return "Kenworth";
+    case "PETERBILT": return "Peterbilt";
+    case "FREIGHTLINER": return "Freightliner";
+    case "INTERNATIONAL": return "International";
+    case "MACK": return "Mack";
+    case "WESTERN_STAR": return "Western Star";
+    default: return marque;
   }
+}
+
+function estimerPrixOccasion(prixAchat?: number | null, kilometrage?: number | null) {
+  const base = prixAchat ?? 150000;
+  const km = kilometrage ?? 0;
+
+  let coefficient = 0.85;
+  if (km > 100000) coefficient = 0.7;
+  if (km > 250000) coefficient = 0.55;
+  if (km > 400000) coefficient = 0.4;
+  if (km > 600000) coefficient = 0.25;
+
+  return Math.max(15000, Math.round(base * coefficient));
 }
 
 export default async function CamionsPage() {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
 
-  if (!steamId) {
-    redirect("/");
-  }
+  if (!steamId) redirect("/");
 
   const user = await prisma.user.findUnique({
     where: { steamId },
@@ -91,27 +74,19 @@ export default async function CamionsPage() {
     },
   });
 
-  if (!user) {
-    redirect("/");
-  }
+  if (!user) redirect("/");
 
   const monMembership = user.memberships ?? null;
-
-  if (!monMembership) {
-    redirect("/societe");
-  }
+  if (!monMembership) redirect("/societe");
 
   const entreprise = monMembership.entreprise;
+  if (!entreprise) redirect("/societe");
 
-  if (!entreprise) {
-    redirect("/societe");
-  }
-
-  const entrepriseId = monMembership.entrepriseId;
+  const peutVendre = ROLES_VENTE.includes(monMembership.role);
 
   const camions = await prisma.camion.findMany({
     where: {
-      entrepriseId,
+      entrepriseId: monMembership.entrepriseId,
       actif: true,
     },
     include: {
@@ -122,17 +97,9 @@ export default async function CamionsPage() {
     },
   });
 
-  const totalDisponibles = camions.filter(
-    (camion) => camion.statut === "DISPONIBLE"
-  ).length;
-
-  const totalMission = camions.filter(
-    (camion) => camion.statut === "EN_MISSION"
-  ).length;
-
-  const totalMaintenance = camions.filter(
-    (camion) => camion.statut === "EN_MAINTENANCE"
-  ).length;
+  const totalDisponibles = camions.filter((camion) => camion.statut === "DISPONIBLE").length;
+  const totalMission = camions.filter((camion) => camion.statut === "EN_MISSION").length;
+  const totalMaintenance = camions.filter((camion) => camion.statut === "EN_MAINTENANCE").length;
 
   return (
     <main
@@ -146,31 +113,12 @@ export default async function CamionsPage() {
         color: "white",
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.68)",
-        }}
-      />
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0, 0, 0, 0.68)" }} />
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          minHeight: "100vh",
-          display: "flex",
-        }}
-      >
+      <div style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex" }}>
         <Menu />
 
-        <div
-          style={{
-            flex: 1,
-            padding: "24px",
-            minWidth: 0,
-          }}
-        >
+        <div style={{ flex: 1, padding: "24px", minWidth: 0 }}>
           <section
             style={{
               background: "rgba(0, 0, 0, 0.45)",
@@ -194,14 +142,7 @@ export default async function CamionsPage() {
             >
               <div>
                 <h1 style={{ margin: 0, fontSize: "34px" }}>Gestion des camions</h1>
-                <p
-                  style={{
-                    marginTop: "8px",
-                    marginBottom: 0,
-                    opacity: 0.88,
-                    lineHeight: 1.5,
-                  }}
-                >
+                <p style={{ marginTop: "8px", marginBottom: 0, opacity: 0.88, lineHeight: 1.5 }}>
                   Parc camion de l’entreprise {entreprise.nom}
                 </p>
               </div>
@@ -225,8 +166,7 @@ export default async function CamionsPage() {
                   <div style={boxStyle}>
                     <h2 style={{ marginTop: 0 }}>Aucun camion</h2>
                     <p style={smallTextStyle}>
-                      Ton entreprise n’a encore aucun camion. Tu peux en ajouter
-                      avec le bouton à droite.
+                      Ton entreprise n’a encore aucun camion. Tu peux en ajouter avec le bouton à droite.
                     </p>
                   </div>
                 ) : (
@@ -239,10 +179,13 @@ export default async function CamionsPage() {
                   >
                     {camions.map((camion) => {
                       const statut = getStatutConfig(camion.statut);
+                      const prixEstime = estimerPrixOccasion(camion.prixAchat, camion.kilometrage);
+
                       const vidangePourcent = Math.max(
                         0,
                         Math.min(100, (camion.vidangeRestante / 60000) * 100)
                       );
+
                       const revisionPourcent = Math.max(
                         0,
                         Math.min(100, (camion.revisionRestante / 120000) * 100)
@@ -250,6 +193,12 @@ export default async function CamionsPage() {
 
                       return (
                         <article key={camion.id} style={truckCardStyle}>
+                          {camion.aVendre && (
+                            <div style={saleBadgeStyle}>
+                              EN VENTE
+                            </div>
+                          )}
+
                           <div
                             style={{
                               height: "170px",
@@ -281,22 +230,10 @@ export default async function CamionsPage() {
                             }}
                           >
                             <div>
-                              <h2
-                                style={{
-                                  margin: 0,
-                                  fontSize: "20px",
-                                  lineHeight: 1.2,
-                                }}
-                              >
+                              <h2 style={{ margin: 0, fontSize: "20px", lineHeight: 1.2 }}>
                                 {formatMarque(camion.marque)}
                               </h2>
-                              <div
-                                style={{
-                                  marginTop: "4px",
-                                  opacity: 0.82,
-                                  fontSize: "14px",
-                                }}
-                              >
+                              <div style={{ marginTop: "4px", opacity: 0.82, fontSize: "14px" }}>
                                 {camion.modele}
                               </div>
                             </div>
@@ -403,29 +340,33 @@ export default async function CamionsPage() {
                           <div
                             style={{
                               display: "flex",
+                              flexDirection: "column",
                               gap: "10px",
                               marginTop: "18px",
-                              flexWrap: "wrap",
                             }}
                           >
-                            <Link
-                              href={`/camions/${camion.id}`}
-                              style={smallMainButtonLinkStyle}
-                            >
-                              Voir
-                            </Link>
+                            <div style={{ display: "flex", gap: "10px" }}>
+                              <Link href={`/camions/${camion.id}`} style={smallMainButtonLinkStyle}>
+                                Voir
+                              </Link>
 
-                            <Link
-                              href={`/camions/${camion.id}/modifier`}
-                              style={smallSecondaryButtonLinkStyle}
-                            >
-                              Modifier
-                            </Link>
+                              <Link href={`/camions/${camion.id}/modifier`} style={smallSecondaryButtonLinkStyle}>
+                                Modifier
+                              </Link>
+                            </div>
 
-                            <Link
-                              href={`/camions/${camion.id}/attribuer`}
-                              style={smallSecondaryButtonLinkStyle}
-                            >
+                            {peutVendre && !camion.aVendre && (
+                              <form action="/api/camions/mettre-en-vente" method="POST">
+                                <input type="hidden" name="camionId" value={camion.id} />
+                                <input type="hidden" name="prix" value={prixEstime} />
+
+                                <button type="submit" style={sellButtonStyle}>
+                                  Mettre en vente
+                                </button>
+                              </form>
+                            )}
+
+                            <Link href={`/camions/${camion.id}/attribuer`} style={attribuerButtonStyle}>
                               Attribuer
                             </Link>
                           </div>
@@ -436,31 +377,19 @@ export default async function CamionsPage() {
                 )}
               </section>
 
-              <aside
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                }}
-              >
+              <aside style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "10px" }}>
-                    Acheter un camion
-                  </h2>
-
+                  <h2 style={{ marginTop: 0, marginBottom: "10px" }}>Acheter un camion</h2>
                   <p style={smallTextStyle}>
                     Ajoute un nouveau camion à ton entreprise pour agrandir ton parc.
                   </p>
-
                   <Link href="/camions/acheter" style={buyButtonStyle}>
                     Acheter un camion
                   </Link>
                 </div>
 
                 <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                    Résumé du parc
-                  </h2>
+                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>Résumé du parc</h2>
 
                   <div style={infoRowStyle}>
                     <span style={labelStyle}>Total camions</span>
@@ -484,40 +413,20 @@ export default async function CamionsPage() {
                 </div>
 
                 <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                    Voyants
-                  </h2>
+                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>Voyants</h2>
 
                   <div style={legendRowStyle}>
-                    <span
-                      style={{
-                        ...legendDotStyle,
-                        background: "#22c55e",
-                        boxShadow: "0 0 10px rgba(34,197,94,0.85)",
-                      }}
-                    />
+                    <span style={{ ...legendDotStyle, background: "#22c55e", boxShadow: "0 0 10px rgba(34,197,94,0.85)" }} />
                     Disponible
                   </div>
 
                   <div style={legendRowStyle}>
-                    <span
-                      style={{
-                        ...legendDotStyle,
-                        background: "#f59e0b",
-                        boxShadow: "0 0 10px rgba(245,158,11,0.85)",
-                      }}
-                    />
+                    <span style={{ ...legendDotStyle, background: "#f59e0b", boxShadow: "0 0 10px rgba(245,158,11,0.85)" }} />
                     En mission
                   </div>
 
                   <div style={legendRowStyle}>
-                    <span
-                      style={{
-                        ...legendDotStyle,
-                        background: "#ef4444",
-                        boxShadow: "0 0 10px rgba(239,68,68,0.85)",
-                      }}
-                    />
+                    <span style={{ ...legendDotStyle, background: "#ef4444", boxShadow: "0 0 10px rgba(239,68,68,0.85)" }} />
                     En maintenance
                   </div>
                 </div>
@@ -538,12 +447,27 @@ const boxStyle = {
 };
 
 const truckCardStyle = {
+  position: "relative" as const,
   background: "rgba(255,255,255,0.08)",
   borderRadius: "16px",
   padding: "16px",
   border: "1px solid rgba(255,255,255,0.08)",
   backdropFilter: "blur(4px)",
   boxShadow: "0 0 18px rgba(0,0,0,0.28)",
+};
+
+const saleBadgeStyle = {
+  position: "absolute" as const,
+  top: "12px",
+  right: "12px",
+  zIndex: 2,
+  padding: "7px 11px",
+  borderRadius: "999px",
+  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
+  color: "white",
+  fontSize: "12px",
+  fontWeight: "bold",
+  boxShadow: "0 0 12px rgba(245,158,11,0.65)",
 };
 
 const infoListStyle = {
@@ -601,6 +525,7 @@ const barHeaderStyle = {
 };
 
 const smallMainButtonLinkStyle = {
+  flex: 1,
   padding: "10px 16px",
   borderRadius: "10px",
   border: "none",
@@ -612,10 +537,10 @@ const smallMainButtonLinkStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  minWidth: "80px",
 };
 
 const smallSecondaryButtonLinkStyle = {
+  flex: 1,
   padding: "10px 16px",
   borderRadius: "10px",
   border: "1px solid rgba(255,255,255,0.12)",
@@ -627,7 +552,33 @@ const smallSecondaryButtonLinkStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  minWidth: "90px",
+};
+
+const sellButtonStyle = {
+  width: "100%",
+  padding: "12px 16px",
+  borderRadius: "10px",
+  border: "none",
+  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const attribuerButtonStyle = {
+  width: "100%",
+  boxSizing: "border-box" as const,
+  padding: "10px 16px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const secondaryButtonStyle = {

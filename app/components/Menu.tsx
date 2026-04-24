@@ -30,6 +30,10 @@ export default function Menu() {
           Mon profil
         </Link>
 
+        <Link href="/marche-occasion" style={menuLinkStyle}>
+          🚛 Marché occasion
+        </Link>
+
         <Link href="/societe/classement" style={menuLinkStyle}>
           Classement
         </Link>

@@ -10,6 +10,8 @@ type Props = {
   }>;
 };
 
+const ROLES_VENTE = ["DIRECTEUR", "SOUS_DIRECTEUR"];
+
 function formatMarque(marque: string) {
   switch (marque) {
     case "RENAULT":
@@ -72,6 +74,20 @@ function getStatutConfig(statut: string) {
   }
 }
 
+function estimerPrixOccasion(prixAchat?: number | null, kilometrage?: number | null) {
+  const base = prixAchat ?? 150000;
+  const km = kilometrage ?? 0;
+
+  let coefficient = 0.85;
+
+  if (km > 100000) coefficient = 0.7;
+  if (km > 250000) coefficient = 0.55;
+  if (km > 400000) coefficient = 0.4;
+  if (km > 600000) coefficient = 0.25;
+
+  return Math.max(15000, Math.round(base * coefficient));
+}
+
 export default async function VoirCamionPage({ params }: Props) {
   const { id } = await params;
   const camionId = Number(id);
@@ -130,6 +146,8 @@ export default async function VoirCamionPage({ params }: Props) {
   }
 
   const statut = getStatutConfig(camion.statut);
+  const peutVendre = ROLES_VENTE.includes(monMembership.role);
+  const prixEstime = estimerPrixOccasion(camion.prixAchat, camion.kilometrage);
 
   return (
     <main
@@ -303,23 +321,17 @@ export default async function VoirCamionPage({ params }: Props) {
 
                       <div style={infoRowStyle}>
                         <span style={labelStyle}>Cabine</span>
-                        <span style={valueStyle}>
-                          {camion.cabine || "Non définie"}
-                        </span>
+                        <span style={valueStyle}>{camion.cabine || "Non définie"}</span>
                       </div>
 
                       <div style={infoRowStyle}>
                         <span style={labelStyle}>Châssis</span>
-                        <span style={valueStyle}>
-                          {camion.chassis || "Non défini"}
-                        </span>
+                        <span style={valueStyle}>{camion.chassis || "Non défini"}</span>
                       </div>
 
                       <div style={infoRowStyle}>
                         <span style={labelStyle}>Moteur</span>
-                        <span style={valueStyle}>
-                          {camion.moteur || "Non défini"}
-                        </span>
+                        <span style={valueStyle}>{camion.moteur || "Non défini"}</span>
                       </div>
 
                       <div style={infoRowStyle}>
@@ -331,9 +343,7 @@ export default async function VoirCamionPage({ params }: Props) {
 
                       <div style={infoRowStyle}>
                         <span style={labelStyle}>Peinture</span>
-                        <span style={valueStyle}>
-                          {camion.peinture || "Non définie"}
-                        </span>
+                        <span style={valueStyle}>{camion.peinture || "Non définie"}</span>
                       </div>
                     </div>
                   </article>
@@ -356,11 +366,10 @@ export default async function VoirCamionPage({ params }: Props) {
                 </div>
               </section>
 
-              <aside
-                style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-              >
+              <aside style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={boxStyle}>
                   <h2>Résumé</h2>
+
                   <div style={infoRowStyle}>
                     <span style={labelStyle}>Entreprise</span>
                     <span style={valueStyle}>{entreprise.nom}</span>
@@ -389,7 +398,70 @@ export default async function VoirCamionPage({ params }: Props) {
                       {camion.positionActuelle || "Non définie"}
                     </span>
                   </div>
+
+                  <div style={infoRowStyle}>
+                    <span style={labelStyle}>Prix achat</span>
+                    <span style={valueStyle}>
+                      {(camion.prixAchat ?? 0).toLocaleString("fr-FR")} €
+                    </span>
+                  </div>
                 </div>
+
+                {peutVendre && (
+                  <div style={boxStyle}>
+                    <h2>Vente occasion</h2>
+
+                    {camion.aVendre ? (
+                      <div
+                        style={{
+                          padding: "12px",
+                          borderRadius: "12px",
+                          background: "rgba(245,158,11,0.14)",
+                          border: "1px solid rgba(245,158,11,0.35)",
+                          color: "#fbbf24",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        Ce camion est déjà en vente à{" "}
+                        {(camion.prixVente ?? 0).toLocaleString("fr-FR")} €.
+                      </div>
+                    ) : (
+                      <form
+                        action="/api/camions/mettre-en-vente"
+                        method="POST"
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "12px",
+                        }}
+                      >
+                        <input type="hidden" name="camionId" value={camion.id} />
+
+                        <label style={{ opacity: 0.85, fontSize: "14px" }}>
+                          Prix de vente
+                        </label>
+
+                        <input
+                          type="number"
+                          name="prix"
+                          defaultValue={prixEstime}
+                          min={1}
+                          required
+                          style={inputStyle}
+                        />
+
+                        <button type="submit" style={sellButtonStyle}>
+                          Mettre en vente
+                        </button>
+
+                        <p style={{ margin: 0, opacity: 0.68, fontSize: "13px" }}>
+                          Prix estimé automatiquement selon le prix d’achat et le
+                          kilométrage.
+                        </p>
+                      </form>
+                    )}
+                  </div>
+                )}
               </aside>
             </div>
           </section>
@@ -403,6 +475,7 @@ const boxStyle = {
   background: "rgba(255,255,255,0.08)",
   borderRadius: "16px",
   padding: "20px",
+  border: "1px solid rgba(255,255,255,0.08)",
 };
 
 const camionCardStyle = {
@@ -410,6 +483,7 @@ const camionCardStyle = {
   background: "rgba(255,255,255,0.08)",
   borderRadius: "16px",
   padding: "16px",
+  border: "1px solid rgba(255,255,255,0.08)",
 };
 
 const infoListStyle = {
@@ -422,6 +496,7 @@ const infoRowStyle = {
   display: "flex",
   justifyContent: "space-between",
   gap: "12px",
+  marginTop: "10px",
 };
 
 const labelStyle = {
@@ -446,4 +521,25 @@ const secondaryButtonStyle = {
   background: "rgba(255,255,255,0.08)",
   color: "white",
   textDecoration: "none",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(0,0,0,0.35)",
+  color: "white",
+  outline: "none",
+};
+
+const sellButtonStyle = {
+  padding: "12px",
+  borderRadius: "12px",
+  border: "none",
+  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
 };

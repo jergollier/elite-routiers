@@ -11,44 +11,8 @@ const ROLES_AUTORISES_ATELIER = [
   "CHEF_ATELIER",
 ] as const;
 
-const PRIX_PNEUS = 8000;
-const PRIX_VIDANGE = 3000;
-const PRIX_REVISION = 12000;
-const PRIX_FREINS = 9500;
-const PRIX_BATTERIE = 6000;
-const PRIX_REPARATION_PAR_POINT = 1000;
-
-function normaliserVille(value?: string | null) {
-  return (value ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
-
-function calculerPrixAtelier(
-  prixBase: number,
-  positionActuelle?: string | null,
-  villeETS2?: string | null,
-  villeATS?: string | null
-) {
-  const villeCamion = normaliserVille(positionActuelle);
-  const maisonETS2 = normaliserVille(villeETS2);
-  const maisonATS = normaliserVille(villeATS);
-
-  const estMaisonMere =
-    villeCamion !== "" && (villeCamion === maisonETS2 || villeCamion === maisonATS);
-
-  const majoration = estMaisonMere ? 0 : Math.round(prixBase * 0.2);
-  const prixFinal = prixBase + majoration;
-
-  return {
-    prixBase,
-    majoration,
-    prixFinal,
-    estMaisonMere,
-  };
-}
+const PRIX_PNEUS_REMORQUE = 10000;
+const PRIX_REPARATION_PAR_POINT = 800;
 
 function getDamageConfig(value?: number | null) {
   const safeValue = value ?? 0;
@@ -76,7 +40,7 @@ function getDamageConfig(value?: number | null) {
   };
 }
 
-function getKmConfig(value?: number | null, max = 60000, warning = 5000) {
+function getKmConfig(value?: number | null, max = 100000, warning = 7500) {
   const safeValue = value ?? 0;
 
   if (safeValue <= 0) {
@@ -108,45 +72,28 @@ function getKmConfig(value?: number | null, max = 60000, warning = 5000) {
   };
 }
 
-function getEtatGeneral(camion: {
-  degatsMoteur?: number | null;
-  degatsCarrosserie?: number | null;
+function getEtatRemorque(remorque: {
+  pneusRestantsKm?: number | null;
   degatsChassis?: number | null;
   degatsRoues?: number | null;
-  vidangeRestante?: number | null;
-  revisionRestante?: number | null;
-  pneusRestantsKm?: number | null;
-  freinsRestantsKm?: number | null;
-  batterieRestanteKm?: number | null;
+  degatsCaisse?: number | null;
+  degatsCargaison?: number | null;
 }) {
   const totalDegats =
-    (camion.degatsMoteur ?? 0) +
-    (camion.degatsCarrosserie ?? 0) +
-    (camion.degatsChassis ?? 0) +
-    (camion.degatsRoues ?? 0);
+    (remorque.degatsChassis ?? 0) +
+    (remorque.degatsRoues ?? 0) +
+    (remorque.degatsCaisse ?? 0) +
+    (remorque.degatsCargaison ?? 0);
 
-  if (
-    (camion.revisionRestante ?? 0) <= 0 ||
-    (camion.pneusRestantsKm ?? 0) <= 0 ||
-    (camion.freinsRestantsKm ?? 0) <= 0 ||
-    (camion.batterieRestanteKm ?? 0) <= 0 ||
-    totalDegats >= 80
-  ) {
+  if ((remorque.pneusRestantsKm ?? 0) <= 0 || totalDegats >= 80) {
     return {
-      label: "Camion bloqué",
+      label: "Remorque bloquée",
       color: "#ef4444",
       glow: "0 0 14px rgba(239,68,68,0.75)",
     };
   }
 
-  if (
-    (camion.vidangeRestante ?? 0) <= 5000 ||
-    (camion.revisionRestante ?? 0) <= 10000 ||
-    (camion.pneusRestantsKm ?? 0) <= 7500 ||
-    (camion.freinsRestantsKm ?? 0) <= 7500 ||
-    (camion.batterieRestanteKm ?? 0) <= 10000 ||
-    totalDegats >= 25
-  ) {
+  if ((remorque.pneusRestantsKm ?? 0) <= 7500 || totalDegats >= 25) {
     return {
       label: "À surveiller",
       color: "#f59e0b",
@@ -161,7 +108,7 @@ function getEtatGeneral(camion: {
   };
 }
 
-function getStatutCamionConfig(statut?: string | null) {
+function getStatutRemorqueConfig(statut?: string | null) {
   switch (statut) {
     case "DISPONIBLE":
       return {
@@ -169,9 +116,9 @@ function getStatutCamionConfig(statut?: string | null) {
         color: "#22c55e",
         glow: "0 0 10px rgba(34,197,94,0.75)",
       };
-    case "EN_MISSION":
+    case "ATTRIBUEE":
       return {
-        label: "En mission",
+        label: "Attribuée",
         color: "#f59e0b",
         glow: "0 0 10px rgba(245,158,11,0.75)",
       };
@@ -190,18 +137,43 @@ function getStatutCamionConfig(statut?: string | null) {
   }
 }
 
+function formatTypeRemorque(type?: string | null) {
+  switch (type) {
+    case "FRIGO":
+      return "Frigo";
+    case "CITERNE":
+      return "Citerne";
+    case "PLATEAU":
+      return "Plateau";
+    case "BACHEE":
+      return "Bâchée";
+    case "BENNE":
+      return "Benne";
+    case "PORTE_ENGINS":
+      return "Porte-engins";
+    case "PORTE_CONTENEUR":
+      return "Porte-conteneur";
+    case "LOWBOY":
+      return "Lowboy";
+    case "FOURGON":
+      return "Fourgon";
+    case "TAUTLINER":
+      return "Tautliner";
+    default:
+      return type || "Inconnu";
+  }
+}
+
 function formatTypeEntretien(type: string) {
   switch (type) {
-    case "VIDANGE":
-      return "Vidange";
-    case "REVISION":
-      return "Révision";
     case "PNEUS":
       return "Pneus";
-    case "FREINS":
-      return "Freins";
-    case "BATTERIE":
-      return "Batterie";
+    case "CHASSIS":
+      return "Châssis";
+    case "CAISSE":
+      return "Caisse";
+    case "CARGAISON":
+      return "Cargaison";
     case "REPARATION_GENERALE":
       return "Réparation générale";
     default:
@@ -213,9 +185,7 @@ async function getAtelierContext() {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
 
-  if (!steamId) {
-    return null;
-  }
+  if (!steamId) return null;
 
   const user = await prisma.user.findUnique({
     where: { steamId },
@@ -228,9 +198,7 @@ async function getAtelierContext() {
     },
   });
 
-  if (!user || !user.memberships?.entreprise) {
-    return null;
-  }
+  if (!user || !user.memberships?.entreprise) return null;
 
   return {
     user,
@@ -239,24 +207,11 @@ async function getAtelierContext() {
   };
 }
 
-async function faireEntretien(
-  formData: FormData,
-  type: "VIDANGE" | "REVISION" | "PNEUS" | "FREINS" | "BATTERIE",
-  prixBase: number,
-  resetData: {
-    vidangeRestante?: number;
-    revisionRestante?: number;
-    pneusRestantsKm?: number;
-    freinsRestantsKm?: number;
-    batterieRestanteKm?: number;
-    statut?: "DISPONIBLE" | "EN_MISSION" | "EN_MAINTENANCE";
-  },
-  commentaireBase: string
-) {
+async function reparerPneusRemorque(formData: FormData) {
   "use server";
 
-  const camionId = Number(formData.get("camionId"));
-  if (!camionId || Number.isNaN(camionId)) return;
+  const remorqueId = Number(formData.get("remorqueId"));
+  if (!remorqueId || Number.isNaN(remorqueId)) return;
 
   const context = await getAtelierContext();
   if (!context) return;
@@ -271,141 +226,74 @@ async function faireEntretien(
     return;
   }
 
-  const camion = await prisma.camion.findFirst({
+  const remorque = await prisma.remorque.findFirst({
     where: {
-      id: camionId,
+      id: remorqueId,
       entrepriseId: entreprise.id,
     },
     select: {
       id: true,
-      kilometrage: true,
-      positionActuelle: true,
+      marque: true,
+      modele: true,
+      pneusRestantsKm: true,
     },
   });
 
-  if (!camion) return;
+  if (!remorque) return;
 
-  const prix = calculerPrixAtelier(
-    prixBase,
-    camion.positionActuelle,
-    entreprise.villeETS2,
-    entreprise.villeATS
-  );
-
-  if ((entreprise.argent ?? 0) < prix.prixFinal) return;
+  if ((entreprise.argent ?? 0) < PRIX_PNEUS_REMORQUE) return;
 
   await prisma.$transaction([
-    prisma.camion.update({
-      where: { id: camion.id },
-      data: resetData,
+    prisma.remorque.update({
+      where: { id: remorque.id },
+      data: {
+        pneusRestantsKm: 100000,
+        pneusUsure: 0,
+        statut: "DISPONIBLE",
+      },
     }),
+
     prisma.entreprise.update({
       where: { id: entreprise.id },
       data: {
         argent: {
-          decrement: prix.prixFinal,
+          decrement: PRIX_PNEUS_REMORQUE,
         },
       },
     }),
-    prisma.camionEntretien.create({
+
+    prisma.remorqueEntretien.create({
       data: {
-        camionId: camion.id,
+        remorqueId: remorque.id,
         entrepriseId: entreprise.id,
         userId: user.id,
-        type,
-        prix: prix.prixFinal,
-        kilometrageKm: camion.kilometrage ?? 0,
-        commentaire: prix.estMaisonMere
-          ? `${commentaireBase} à la maison mère`
-          : `${commentaireBase} hors maison mère (+20%)`,
+        type: "PNEUS",
+        prix: PRIX_PNEUS_REMORQUE,
+        commentaire: "Remplacement complet des pneus de la remorque",
+      },
+    }),
+
+    prisma.finance.create({
+      data: {
+        entrepriseId: entreprise.id,
+        chauffeurId: user.id,
+        type: "ENTRETIEN_REMORQUE",
+        description: `Remplacement pneus remorque ${remorque.marque} ${remorque.modele}`,
+        montant: -PRIX_PNEUS_REMORQUE,
       },
     }),
   ]);
 
-  revalidatePath(`/atelier/${camion.id}`);
+  revalidatePath(`/atelier/remorques/${remorque.id}`);
   revalidatePath("/atelier");
-  revalidatePath("/camions");
+  revalidatePath("/remorques");
 }
 
-async function faireVidange(formData: FormData) {
+async function reparerDegatsRemorque(formData: FormData) {
   "use server";
 
-  await faireEntretien(
-    formData,
-    "VIDANGE",
-    PRIX_VIDANGE,
-    {
-      vidangeRestante: 60000,
-    },
-    "Vidange moteur complète"
-  );
-}
-
-async function faireRevision(formData: FormData) {
-  "use server";
-
-  await faireEntretien(
-    formData,
-    "REVISION",
-    PRIX_REVISION,
-    {
-      revisionRestante: 120000,
-      statut: "DISPONIBLE",
-    },
-    "Révision complète du camion"
-  );
-}
-
-async function changerPneus(formData: FormData) {
-  "use server";
-
-  await faireEntretien(
-    formData,
-    "PNEUS",
-    PRIX_PNEUS,
-    {
-      pneusRestantsKm: 80000,
-      statut: "DISPONIBLE",
-    },
-    "Remplacement complet des pneus camion"
-  );
-}
-
-async function changerFreins(formData: FormData) {
-  "use server";
-
-  await faireEntretien(
-    formData,
-    "FREINS",
-    PRIX_FREINS,
-    {
-      freinsRestantsKm: 60000,
-      statut: "DISPONIBLE",
-    },
-    "Remplacement complet des freins"
-  );
-}
-
-async function changerBatterie(formData: FormData) {
-  "use server";
-
-  await faireEntretien(
-    formData,
-    "BATTERIE",
-    PRIX_BATTERIE,
-    {
-      batterieRestanteKm: 150000,
-      statut: "DISPONIBLE",
-    },
-    "Remplacement de la batterie"
-  );
-}
-
-async function reparerDegats(formData: FormData) {
-  "use server";
-
-  const camionId = Number(formData.get("camionId"));
-  if (!camionId || Number.isNaN(camionId)) return;
+  const remorqueId = Number(formData.get("remorqueId"));
+  if (!remorqueId || Number.isNaN(remorqueId)) return;
 
   const context = await getAtelierContext();
   if (!context) return;
@@ -420,79 +308,82 @@ async function reparerDegats(formData: FormData) {
     return;
   }
 
-  const camion = await prisma.camion.findFirst({
+  const remorque = await prisma.remorque.findFirst({
     where: {
-      id: camionId,
+      id: remorqueId,
       entrepriseId: entreprise.id,
     },
     select: {
       id: true,
-      kilometrage: true,
-      positionActuelle: true,
-      degatsMoteur: true,
-      degatsCarrosserie: true,
+      marque: true,
+      modele: true,
       degatsChassis: true,
       degatsRoues: true,
+      degatsCaisse: true,
+      degatsCargaison: true,
     },
   });
 
-  if (!camion) return;
+  if (!remorque) return;
 
   const totalDegats =
-    (camion.degatsMoteur ?? 0) +
-    (camion.degatsCarrosserie ?? 0) +
-    (camion.degatsChassis ?? 0) +
-    (camion.degatsRoues ?? 0);
+    (remorque.degatsChassis ?? 0) +
+    (remorque.degatsRoues ?? 0) +
+    (remorque.degatsCaisse ?? 0) +
+    (remorque.degatsCargaison ?? 0);
 
   if (totalDegats <= 0) return;
 
-  const prixBase = totalDegats * PRIX_REPARATION_PAR_POINT;
+  const prixFinal = totalDegats * PRIX_REPARATION_PAR_POINT;
 
-  const prix = calculerPrixAtelier(
-    prixBase,
-    camion.positionActuelle,
-    entreprise.villeETS2,
-    entreprise.villeATS
-  );
-
-  if ((entreprise.argent ?? 0) < prix.prixFinal) return;
+  if ((entreprise.argent ?? 0) < prixFinal) return;
 
   await prisma.$transaction([
-    prisma.camion.update({
-      where: { id: camion.id },
+    prisma.remorque.update({
+      where: { id: remorque.id },
       data: {
-        degatsMoteur: 0,
-        degatsCarrosserie: 0,
         degatsChassis: 0,
         degatsRoues: 0,
+        degatsCaisse: 0,
+        degatsCargaison: 0,
+        statut: "DISPONIBLE",
       },
     }),
+
     prisma.entreprise.update({
       where: { id: entreprise.id },
       data: {
         argent: {
-          decrement: prix.prixFinal,
+          decrement: prixFinal,
         },
       },
     }),
-    prisma.camionEntretien.create({
+
+    prisma.remorqueEntretien.create({
       data: {
-        camionId: camion.id,
+        remorqueId: remorque.id,
         entrepriseId: entreprise.id,
         userId: user.id,
         type: "REPARATION_GENERALE",
-        prix: prix.prixFinal,
-        kilometrageKm: camion.kilometrage ?? 0,
-        commentaire: prix.estMaisonMere
-          ? `Réparation des dégâts camion (${totalDegats}% cumulés) à la maison mère`
-          : `Réparation des dégâts camion (${totalDegats}% cumulés) hors maison mère (+20%)`,
+        prix: prixFinal,
+        commentaire: `Réparation des dégâts remorque (${totalDegats}% cumulés)`,
+      },
+    }),
+
+    prisma.finance.create({
+      data: {
+        entrepriseId: entreprise.id,
+        chauffeurId: user.id,
+        type: "REPARATION_REMORQUE",
+        description: `Réparation dégâts remorque ${remorque.marque} ${remorque.modele}`,
+        montant: -prixFinal,
       },
     }),
   ]);
 
-  revalidatePath(`/atelier/${camion.id}`);
+  revalidatePath(`/atelier/remorques/${remorque.id}`);
   revalidatePath("/atelier");
-  revalidatePath("/camions");
+  revalidatePath("/remorques");
 }
 
 type PageProps = {
@@ -565,11 +456,11 @@ function EntretienDisplay({
   );
 }
 
-export default async function AtelierCamionPage({ params }: PageProps) {
+export default async function AtelierRemorquePage({ params }: PageProps) {
   const { id } = await params;
-  const camionId = Number(id);
+  const remorqueId = Number(id);
 
-  if (!camionId || Number.isNaN(camionId)) {
+  if (!remorqueId || Number.isNaN(remorqueId)) {
     notFound();
   }
 
@@ -585,27 +476,27 @@ export default async function AtelierCamionPage({ params }: PageProps) {
     membership.role as (typeof ROLES_AUTORISES_ATELIER)[number]
   );
 
-  const camion = await prisma.camion.findFirst({
+  const remorque = await prisma.remorque.findFirst({
     where: {
-      id: camionId,
+      id: remorqueId,
       entrepriseId: entreprise.id,
     },
     select: {
       id: true,
       marque: true,
       modele: true,
+      type: true,
+      jeu: true,
       statut: true,
-      positionActuelle: true,
-      kilometrage: true,
-      vidangeRestante: true,
-      revisionRestante: true,
+      description: true,
+      image: true,
+      prixAchat: true,
+      pneusUsure: true,
       pneusRestantsKm: true,
-      freinsRestantsKm: true,
-      batterieRestanteKm: true,
-      degatsMoteur: true,
-      degatsCarrosserie: true,
       degatsChassis: true,
       degatsRoues: true,
+      degatsCaisse: true,
+      degatsCargaison: true,
       chauffeurAttribue: {
         select: {
           username: true,
@@ -620,7 +511,6 @@ export default async function AtelierCamionPage({ params }: PageProps) {
           id: true,
           type: true,
           prix: true,
-          kilometrageKm: true,
           commentaire: true,
           createdAt: true,
           user: {
@@ -633,69 +523,24 @@ export default async function AtelierCamionPage({ params }: PageProps) {
     },
   });
 
-  if (!camion) {
+  if (!remorque) {
     notFound();
   }
 
-  const moteurConfig = getDamageConfig(camion.degatsMoteur);
-  const carrosserieConfig = getDamageConfig(camion.degatsCarrosserie);
-  const chassisConfig = getDamageConfig(camion.degatsChassis);
-  const rouesConfig = getDamageConfig(camion.degatsRoues);
+  const chassisConfig = getDamageConfig(remorque.degatsChassis);
+  const rouesConfig = getDamageConfig(remorque.degatsRoues);
+  const caisseConfig = getDamageConfig(remorque.degatsCaisse);
+  const cargaisonConfig = getDamageConfig(remorque.degatsCargaison);
 
   const totalDegats =
-    (camion.degatsMoteur ?? 0) +
-    (camion.degatsCarrosserie ?? 0) +
-    (camion.degatsChassis ?? 0) +
-    (camion.degatsRoues ?? 0);
+    (remorque.degatsChassis ?? 0) +
+    (remorque.degatsRoues ?? 0) +
+    (remorque.degatsCaisse ?? 0) +
+    (remorque.degatsCargaison ?? 0);
 
-  const prixVidange = calculerPrixAtelier(
-    PRIX_VIDANGE,
-    camion.positionActuelle,
-    entreprise.villeETS2,
-    entreprise.villeATS
-  );
-
-  const prixRevision = calculerPrixAtelier(
-    PRIX_REVISION,
-    camion.positionActuelle,
-    entreprise.villeETS2,
-    entreprise.villeATS
-  );
-
-  const prixPneus = calculerPrixAtelier(
-    PRIX_PNEUS,
-    camion.positionActuelle,
-    entreprise.villeETS2,
-    entreprise.villeATS
-  );
-
-  const prixFreins = calculerPrixAtelier(
-    PRIX_FREINS,
-    camion.positionActuelle,
-    entreprise.villeETS2,
-    entreprise.villeATS
-  );
-
-  const prixBatterie = calculerPrixAtelier(
-    PRIX_BATTERIE,
-    camion.positionActuelle,
-    entreprise.villeETS2,
-    entreprise.villeATS
-  );
-
-  const prixReparation = calculerPrixAtelier(
-    totalDegats * PRIX_REPARATION_PAR_POINT,
-    camion.positionActuelle,
-    entreprise.villeETS2,
-    entreprise.villeATS
-  );
-
-  const etatGeneral = getEtatGeneral(camion);
-  const statutConfig = getStatutCamionConfig(camion.statut);
-
-  const lieuPrixLabel = prixVidange.estMaisonMere
-    ? "Prix maison mère"
-    : "Hors maison mère : +20%";
+  const prixReparation = totalDegats * PRIX_REPARATION_PAR_POINT;
+  const etatGeneral = getEtatRemorque(remorque);
+  const statutConfig = getStatutRemorqueConfig(remorque.statut);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#080b10" }}>
@@ -746,30 +591,35 @@ export default async function AtelierCamionPage({ params }: PageProps) {
           <div style={heroStyle}>
             <div style={heroInnerStyle}>
               <div>
-                <h1 style={heroTitleStyle}>🔧 Fiche atelier camion</h1>
+                <h1 style={heroTitleStyle}>🔧 Fiche atelier remorque</h1>
 
                 <div style={truckTitleStyle}>
-                  {camion.marque} {camion.modele}
+                  {remorque.marque} {remorque.modele}
+                </div>
+
+                <div style={mutedLineStyle}>
+                  Type :{" "}
+                  <strong style={{ color: "#ffffff" }}>
+                    {formatTypeRemorque(remorque.type)}
+                  </strong>
+                </div>
+
+                <div style={mutedLineStyle}>
+                  Jeu :{" "}
+                  <strong style={{ color: "#ffffff" }}>{remorque.jeu}</strong>
                 </div>
 
                 <div style={mutedLineStyle}>
                   Chauffeur :{" "}
                   <strong style={{ color: "#ffffff" }}>
-                    {camion.chauffeurAttribue?.username ?? "Non attribué"}
+                    {remorque.chauffeurAttribue?.username ?? "Non attribuée"}
                   </strong>
                 </div>
 
                 <div style={mutedLineStyle}>
-                  Position :{" "}
+                  Prix achat :{" "}
                   <strong style={{ color: "#ffffff" }}>
-                    {camion.positionActuelle ?? "Inconnue"}
-                  </strong>
-                </div>
-
-                <div style={mutedLineStyle}>
-                  Kilométrage :{" "}
-                  <strong style={{ color: "#ffffff" }}>
-                    {(camion.kilometrage ?? 0).toLocaleString("fr-FR")} km
+                    {(remorque.prixAchat ?? 0).toLocaleString("fr-FR")} €
                   </strong>
                 </div>
               </div>
@@ -798,10 +648,10 @@ export default async function AtelierCamionPage({ params }: PageProps) {
                 <div
                   style={{
                     ...statusPillStyle,
-                    color: prixVidange.estMaisonMere ? "#86efac" : "#fcd34d",
+                    color: "#93c5fd",
                   }}
                 >
-                  {lieuPrixLabel}
+                  Pneus : {remorque.pneusUsure ?? 0}% usure
                 </div>
               </div>
             </div>
@@ -810,67 +660,30 @@ export default async function AtelierCamionPage({ params }: PageProps) {
           <div style={mainGridStyle}>
             <div style={leftColumnStyle}>
               <div style={boxStyle}>
-                <div style={sectionTitleStyle}>Entretien mécanique</div>
-
-                <EntretienDisplay
-                  icon="🔧"
-                  label="Vidange"
-                  value={camion.vidangeRestante}
-                  max={60000}
-                  warning={5000}
-                />
-
-                <EntretienDisplay
-                  icon="🔩"
-                  label="Révision"
-                  value={camion.revisionRestante}
-                  max={120000}
-                  warning={10000}
-                />
+                <div style={sectionTitleStyle}>Entretien remorque</div>
 
                 <EntretienDisplay
                   icon="🛞"
-                  label="Pneus"
-                  value={camion.pneusRestantsKm}
-                  max={80000}
+                  label="Pneus remorque"
+                  value={remorque.pneusRestantsKm}
+                  max={100000}
                   warning={7500}
                 />
 
-                <EntretienDisplay
-                  icon="🛑"
-                  label="Freins"
-                  value={camion.freinsRestantsKm}
-                  max={60000}
-                  warning={5000}
-                />
-
-                <EntretienDisplay
-                  icon="🔋"
-                  label="Batterie"
-                  value={camion.batterieRestanteKm}
-                  max={150000}
-                  warning={10000}
-                />
+                {remorque.description ? (
+                  <p style={mutedLineStyle}>
+                    Description :{" "}
+                    <strong style={{ color: "#ffffff" }}>
+                      {remorque.description}
+                    </strong>
+                  </p>
+                ) : null}
               </div>
 
               <div style={boxStyle}>
-                <div style={sectionTitleStyle}>Dégâts camion</div>
+                <div style={sectionTitleStyle}>Dégâts remorque</div>
 
                 <div style={damageGridStyle}>
-                  <div style={damageRowStyle}>
-                    💥 Moteur :{" "}
-                    <span style={damageValueStyle(moteurConfig)}>
-                      {moteurConfig.label}
-                    </span>
-                  </div>
-
-                  <div style={damageRowStyle}>
-                    🚪 Carrosserie :{" "}
-                    <span style={damageValueStyle(carrosserieConfig)}>
-                      {carrosserieConfig.label}
-                    </span>
-                  </div>
-
                   <div style={damageRowStyle}>
                     🧱 Châssis :{" "}
                     <span style={damageValueStyle(chassisConfig)}>
@@ -884,15 +697,29 @@ export default async function AtelierCamionPage({ params }: PageProps) {
                       {rouesConfig.label}
                     </span>
                   </div>
+
+                  <div style={damageRowStyle}>
+                    📦 Caisse :{" "}
+                    <span style={damageValueStyle(caisseConfig)}>
+                      {caisseConfig.label}
+                    </span>
+                  </div>
+
+                  <div style={damageRowStyle}>
+                    📉 Cargaison :{" "}
+                    <span style={damageValueStyle(cargaisonConfig)}>
+                      {cargaisonConfig.label}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               <div style={boxStyle}>
-                <div style={sectionTitleStyle}>Suivi mécanique</div>
+                <div style={sectionTitleStyle}>Suivi atelier remorque</div>
 
-                {camion.entretiens.length > 0 ? (
+                {remorque.entretiens.length > 0 ? (
                   <div style={historyListStyle}>
-                    {camion.entretiens.map((entretien) => (
+                    {remorque.entretiens.map((entretien) => (
                       <div key={entretien.id} style={historyCardStyle}>
                         <div style={historyHeaderStyle}>
                           <strong style={{ color: "#ffffff" }}>
@@ -908,13 +735,6 @@ export default async function AtelierCamionPage({ params }: PageProps) {
                           Prix :{" "}
                           <strong style={{ color: "#ffffff" }}>
                             {entretien.prix.toLocaleString("fr-FR")} €
-                          </strong>
-                        </div>
-
-                        <div style={historyLineStyle}>
-                          Kilométrage :{" "}
-                          <strong style={{ color: "#ffffff" }}>
-                            {(entretien.kilometrageKm ?? 0).toLocaleString("fr-FR")} km
                           </strong>
                         </div>
 
@@ -938,7 +758,7 @@ export default async function AtelierCamionPage({ params }: PageProps) {
                   </div>
                 ) : (
                   <div style={emptyStateStyle}>
-                    Aucun entretien enregistré pour ce camion.
+                    Aucun entretien enregistré pour cette remorque.
                   </div>
                 )}
               </div>
@@ -948,56 +768,18 @@ export default async function AtelierCamionPage({ params }: PageProps) {
               <div style={boxStyle}>
                 <div style={sectionTitleStyle}>Actions atelier</div>
 
-                <div style={priceInfoStyle}>
-                  {prixVidange.estMaisonMere
-                    ? "✅ Camion dans la maison mère : prix normal."
-                    : "⚠️ Camion hors maison mère : tous les prix sont majorés de 20%."}
-                </div>
-
                 {peutAgirAtelier ? (
                   <div style={actionsGridStyle}>
-                    <form action={faireVidange}>
-                      <input type="hidden" name="camionId" value={camion.id} />
-                      <button type="submit" style={actionButtonStyle}>
-                        🔧 Faire la vidange •{" "}
-                        {prixVidange.prixFinal.toLocaleString("fr-FR")} €
-                      </button>
-                    </form>
-
-                    <form action={faireRevision}>
-                      <input type="hidden" name="camionId" value={camion.id} />
-                      <button type="submit" style={actionButtonStyle}>
-                        🔩 Faire la révision •{" "}
-                        {prixRevision.prixFinal.toLocaleString("fr-FR")} €
-                      </button>
-                    </form>
-
-                    <form action={changerPneus}>
-                      <input type="hidden" name="camionId" value={camion.id} />
+                    <form action={reparerPneusRemorque}>
+                      <input type="hidden" name="remorqueId" value={remorque.id} />
                       <button type="submit" style={actionBlueButtonStyle}>
                         🛞 Changer les pneus •{" "}
-                        {prixPneus.prixFinal.toLocaleString("fr-FR")} €
+                        {PRIX_PNEUS_REMORQUE.toLocaleString("fr-FR")} €
                       </button>
                     </form>
 
-                    <form action={changerFreins}>
-                      <input type="hidden" name="camionId" value={camion.id} />
-                      <button type="submit" style={actionOrangeButtonStyle}>
-                        🛑 Changer les freins •{" "}
-                        {prixFreins.prixFinal.toLocaleString("fr-FR")} €
-                      </button>
-                    </form>
-
-                    <form action={changerBatterie}>
-                      <input type="hidden" name="camionId" value={camion.id} />
-                      <button type="submit" style={actionGreenButtonStyle}>
-                        🔋 Changer la batterie •{" "}
-                        {prixBatterie.prixFinal.toLocaleString("fr-FR")} €
-                      </button>
-                    </form>
-
-                    <form action={reparerDegats}>
-                      <input type="hidden" name="camionId" value={camion.id} />
+                    <form action={reparerDegatsRemorque}>
+                      <input type="hidden" name="remorqueId" value={remorque.id} />
                       <button
                         type="submit"
                         style={{
@@ -1009,15 +791,15 @@ export default async function AtelierCamionPage({ params }: PageProps) {
                       >
                         💥 Réparer les dégâts
                         {totalDegats > 0
-                          ? ` • ${prixReparation.prixFinal.toLocaleString("fr-FR")} €`
+                          ? ` • ${prixReparation.toLocaleString("fr-FR")} €`
                           : " • Aucun dégât"}
                       </button>
                     </form>
                   </div>
                 ) : (
                   <div style={emptyStateStyle}>
-                    Vous pouvez consulter la fiche, mais vous n&apos;avez pas les droits
-                    pour effectuer des actions atelier.
+                    Vous pouvez consulter la fiche, mais vous n&apos;avez pas les
+                    droits pour effectuer des actions atelier.
                   </div>
                 )}
               </div>
@@ -1028,20 +810,6 @@ export default async function AtelierCamionPage({ params }: PageProps) {
                 <div style={summaryLineStyle}>
                   Société :{" "}
                   <strong style={{ color: "#ffffff" }}>{entreprise.nom}</strong>
-                </div>
-
-                <div style={summaryLineStyle}>
-                  Maison mère ETS2 :{" "}
-                  <strong style={{ color: "#ffffff" }}>
-                    {entreprise.villeETS2 ?? "Non définie"}
-                  </strong>
-                </div>
-
-                <div style={summaryLineStyle}>
-                  Maison mère ATS :{" "}
-                  <strong style={{ color: "#ffffff" }}>
-                    {entreprise.villeATS ?? "Non définie"}
-                  </strong>
                 </div>
 
                 <div style={summaryLineStyle}>
@@ -1059,8 +827,29 @@ export default async function AtelierCamionPage({ params }: PageProps) {
                 </div>
 
                 <div style={summaryLineStyle}>
-                  Total dégâts camion :{" "}
+                  Total dégâts remorque :{" "}
                   <strong style={{ color: "#ffffff" }}>{totalDegats}%</strong>
+                </div>
+
+                <div style={summaryLineStyle}>
+                  Pneus restants :{" "}
+                  <strong style={{ color: "#ffffff" }}>
+                    {(remorque.pneusRestantsKm ?? 0).toLocaleString("fr-FR")} km
+                  </strong>
+                </div>
+              </div>
+
+              <div style={boxStyle}>
+                <div style={sectionTitleStyle}>Accès rapides</div>
+
+                <div style={actionsGridStyle}>
+                  <Link href="/remorques" style={linkButtonStyle}>
+                    🚚 Voir flotte remorques
+                  </Link>
+
+                  <Link href="/remorques/acheter" style={linkButtonStyle}>
+                    🛒 Acheter une remorque
+                  </Link>
                 </div>
               </div>
             </div>
@@ -1262,32 +1051,10 @@ const emptyStateStyle = {
   lineHeight: 1.6,
 };
 
-const priceInfoStyle = {
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.06)",
-  borderRadius: "14px",
-  padding: "12px",
-  color: "rgba(255,255,255,0.82)",
-  fontSize: "14px",
-  marginBottom: "14px",
-};
-
 const actionsGridStyle = {
   display: "grid",
   gridTemplateColumns: "1fr",
   gap: "12px",
-};
-
-const actionButtonStyle = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.10)",
-  background: "rgba(255,255,255,0.08)",
-  color: "white",
-  fontWeight: "bold",
-  cursor: "pointer",
-  boxShadow: "0 0 14px rgba(255,255,255,0.04)",
 };
 
 const actionBlueButtonStyle = {
@@ -1302,30 +1069,6 @@ const actionBlueButtonStyle = {
   boxShadow: "0 0 14px rgba(59,130,246,0.08)",
 };
 
-const actionOrangeButtonStyle = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  border: "1px solid rgba(245,158,11,0.24)",
-  background: "rgba(245,158,11,0.14)",
-  color: "#fde68a",
-  fontWeight: "bold",
-  cursor: "pointer",
-  boxShadow: "0 0 14px rgba(245,158,11,0.08)",
-};
-
-const actionGreenButtonStyle = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  border: "1px solid rgba(34,197,94,0.24)",
-  background: "rgba(34,197,94,0.14)",
-  color: "#bbf7d0",
-  fontWeight: "bold",
-  cursor: "pointer",
-  boxShadow: "0 0 14px rgba(34,197,94,0.08)",
-};
-
 const actionDangerButtonStyle = {
   width: "100%",
   padding: "12px 14px",
@@ -1335,6 +1078,20 @@ const actionDangerButtonStyle = {
   color: "#fecaca",
   fontWeight: "bold",
   boxShadow: "0 0 14px rgba(239,68,68,0.08)",
+};
+
+const linkButtonStyle = {
+  width: "100%",
+  boxSizing: "border-box" as const,
+  padding: "12px 14px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.10)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+  textDecoration: "none",
+  textAlign: "center" as const,
 };
 
 const backLinkStyle = {

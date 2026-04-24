@@ -112,10 +112,46 @@ function getEtatGeneral(camion: {
     (camion.vidangeRestante ?? 0) <= 5000 ||
     (camion.revisionRestante ?? 0) <= 10000 ||
     (camion.pneusRestantsKm ?? 0) <= 7500 ||
-    (camion.freinsRestantsKm ?? 0) <= 7500 ||
+    (camion.freinsRestantsKm ?? 0) <= 5000 ||
     (camion.batterieRestanteKm ?? 0) <= 10000 ||
     totalDegats >= 25
   ) {
+    return {
+      label: "À surveiller",
+      color: "#f59e0b",
+      glow: "0 0 14px rgba(245,158,11,0.65)",
+    };
+  }
+
+  return {
+    label: "Bon état",
+    color: "#22c55e",
+    glow: "0 0 14px rgba(34,197,94,0.55)",
+  };
+}
+
+function getEtatRemorque(remorque: {
+  pneusRestantsKm?: number | null;
+  degatsChassis?: number | null;
+  degatsRoues?: number | null;
+  degatsCaisse?: number | null;
+  degatsCargaison?: number | null;
+}) {
+  const totalDegats =
+    (remorque.degatsChassis ?? 0) +
+    (remorque.degatsRoues ?? 0) +
+    (remorque.degatsCaisse ?? 0) +
+    (remorque.degatsCargaison ?? 0);
+
+  if ((remorque.pneusRestantsKm ?? 0) <= 0 || totalDegats >= 80) {
+    return {
+      label: "Remorque bloquée",
+      color: "#ef4444",
+      glow: "0 0 14px rgba(239,68,68,0.75)",
+    };
+  }
+
+  if ((remorque.pneusRestantsKm ?? 0) <= 7500 || totalDegats >= 25) {
     return {
       label: "À surveiller",
       color: "#f59e0b",
@@ -156,6 +192,62 @@ function getStatutCamionConfig(statut?: string | null) {
         color: "#94a3b8",
         glow: "0 0 8px rgba(148,163,184,0.55)",
       };
+  }
+}
+
+function getStatutRemorqueConfig(statut?: string | null) {
+  switch (statut) {
+    case "DISPONIBLE":
+      return {
+        label: "Disponible",
+        color: "#22c55e",
+        glow: "0 0 10px rgba(34,197,94,0.75)",
+      };
+    case "ATTRIBUEE":
+      return {
+        label: "Attribuée",
+        color: "#f59e0b",
+        glow: "0 0 10px rgba(245,158,11,0.75)",
+      };
+    case "EN_MAINTENANCE":
+      return {
+        label: "En maintenance",
+        color: "#ef4444",
+        glow: "0 0 10px rgba(239,68,68,0.75)",
+      };
+    default:
+      return {
+        label: "Inconnu",
+        color: "#94a3b8",
+        glow: "0 0 8px rgba(148,163,184,0.55)",
+      };
+  }
+}
+
+function formatTypeRemorque(type?: string | null) {
+  switch (type) {
+    case "FRIGO":
+      return "Frigo";
+    case "CITERNE":
+      return "Citerne";
+    case "PLATEAU":
+      return "Plateau";
+    case "BACHEE":
+      return "Bâchée";
+    case "BENNE":
+      return "Benne";
+    case "PORTE_ENGINS":
+      return "Porte-engins";
+    case "PORTE_CONTENEUR":
+      return "Porte-conteneur";
+    case "LOWBOY":
+      return "Lowboy";
+    case "FOURGON":
+      return "Fourgon";
+    case "TAUTLINER":
+      return "Tautliner";
+    default:
+      return type || "Inconnu";
   }
 }
 
@@ -287,25 +379,70 @@ export default async function AtelierPage() {
     },
   });
 
-  const totalCamions = camions.length;
+  const remorques = await prisma.remorque.findMany({
+    where: {
+      entrepriseId: entreprise.id,
+      actif: true,
+    },
+    select: {
+      id: true,
+      marque: true,
+      modele: true,
+      type: true,
+      jeu: true,
+      statut: true,
+      pneusUsure: true,
+      pneusRestantsKm: true,
+      degatsChassis: true,
+      degatsRoues: true,
+      degatsCaisse: true,
+      degatsCargaison: true,
+      chauffeurAttribue: {
+        select: {
+          username: true,
+        },
+      },
+    },
+    orderBy: {
+      id: "desc",
+    },
+  });
 
-  const totalCritiques = camions.filter(
+  const totalCamions = camions.length;
+  const totalRemorques = remorques.length;
+
+  const totalCritiquesCamions = camions.filter(
     (camion) => getEtatGeneral(camion).label === "Camion bloqué"
   ).length;
 
-  const totalASurveiller = camions.filter(
+  const totalASurveillerCamions = camions.filter(
     (camion) => getEtatGeneral(camion).label === "À surveiller"
   ).length;
 
-  const totalOk = camions.filter(
-    (camion) => getEtatGeneral(camion).label === "Bon état"
+  const totalCritiquesRemorques = remorques.filter(
+    (remorque) => getEtatRemorque(remorque).label === "Remorque bloquée"
   ).length;
+
+  const totalASurveillerRemorques = remorques.filter(
+    (remorque) => getEtatRemorque(remorque).label === "À surveiller"
+  ).length;
+
+  const totalOk =
+    camions.filter((camion) => getEtatGeneral(camion).label === "Bon état")
+      .length +
+    remorques.filter((remorque) => getEtatRemorque(remorque).label === "Bon état")
+      .length;
 
   const stats: StatItem[] = [
     ["Camions atelier", totalCamions, "#60a5fa"],
+    ["Remorques atelier", totalRemorques, "#93c5fd"],
     ["État correct", totalOk, "#22c55e"],
-    ["À surveiller", totalASurveiller, "#f59e0b"],
-    ["Bloqués", totalCritiques, "#ef4444"],
+    [
+      "À surveiller",
+      totalASurveillerCamions + totalASurveillerRemorques,
+      "#f59e0b",
+    ],
+    ["Bloqués", totalCritiquesCamions + totalCritiquesRemorques, "#ef4444"],
   ];
 
   return (
@@ -382,6 +519,15 @@ export default async function AtelierPage() {
             ))}
           </div>
 
+          <div style={sectionHeaderStyle}>
+            <div>
+              <h2 style={bigSectionTitleStyle}>🚛 Camions</h2>
+              <p style={sectionSubtitleStyle}>
+                Entretien mécanique, dégâts et état général des camions.
+              </p>
+            </div>
+          </div>
+
           {camions.length === 0 ? (
             <div style={emptyStyle}>
               Aucun camion dans la société pour le moment.
@@ -425,8 +571,7 @@ export default async function AtelierPage() {
                         <p style={smallTextStyle}>
                           Kilométrage :{" "}
                           <strong style={{ color: "#ffffff" }}>
-                            {(camion.kilometrage ?? 0).toLocaleString("fr-FR")}{" "}
-                            km
+                            {(camion.kilometrage ?? 0).toLocaleString("fr-FR")} km
                           </strong>
                         </p>
                       </div>
@@ -489,8 +634,8 @@ export default async function AtelierPage() {
                         icon="🛑"
                         label="Freins"
                         value={camion.freinsRestantsKm}
-                        max={90000}
-                        warning={7500}
+                        max={60000}
+                        warning={5000}
                       />
 
                       <EntretienLine
@@ -531,6 +676,155 @@ export default async function AtelierPage() {
                           🛞 Roues :{" "}
                           <span style={damageValueStyle(rouesConfig)}>
                             {rouesConfig.label}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div style={sectionHeaderStyle}>
+            <div>
+              <h2 style={bigSectionTitleStyle}>🚚 Remorques</h2>
+              <p style={sectionSubtitleStyle}>
+                État des pneus, dégâts et suivi des remorques de société.
+              </p>
+            </div>
+
+            <Link href="/remorques" style={atelierLinkStyle}>
+              Voir flotte remorques
+            </Link>
+          </div>
+
+          {remorques.length === 0 ? (
+            <div style={emptyStyle}>
+              Aucune remorque dans la société pour le moment.
+            </div>
+          ) : (
+            <div style={camionGridStyle}>
+              {remorques.map((remorque) => {
+                const chassisConfig = getDamageConfig(remorque.degatsChassis);
+                const rouesConfig = getDamageConfig(remorque.degatsRoues);
+                const caisseConfig = getDamageConfig(remorque.degatsCaisse);
+                const cargaisonConfig = getDamageConfig(
+                  remorque.degatsCargaison
+                );
+
+                const etatGeneral = getEtatRemorque(remorque);
+                const statutConfig = getStatutRemorqueConfig(remorque.statut);
+
+                return (
+                  <div key={remorque.id} style={camionCardStyle}>
+                    <div style={cardHeaderStyle}>
+                      <div>
+                        <h2 style={camionTitleStyle}>
+                          {remorque.marque} {remorque.modele}
+                        </h2>
+
+                        <p style={smallTextStyle}>
+                          Type :{" "}
+                          <strong style={{ color: "#ffffff" }}>
+                            {formatTypeRemorque(remorque.type)}
+                          </strong>
+                        </p>
+
+                        <p style={smallTextStyle}>
+                          Jeu :{" "}
+                          <strong style={{ color: "#ffffff" }}>
+                            {remorque.jeu}
+                          </strong>
+                        </p>
+
+                        <p style={smallTextStyle}>
+                          Chauffeur :{" "}
+                          <strong style={{ color: "#ffffff" }}>
+                            {remorque.chauffeurAttribue?.username ??
+                              "Non attribuée"}
+                          </strong>
+                        </p>
+                      </div>
+
+                      <div
+                        style={{
+                          ...pillStyle,
+                          color: statutConfig.color,
+                          textShadow: statutConfig.glow,
+                        }}
+                      >
+                        {statutConfig.label}
+                      </div>
+                    </div>
+
+                    <div style={etatRowStyle}>
+                      <div
+                        style={{
+                          ...etatPillStyle,
+                          color: etatGeneral.color,
+                          textShadow: etatGeneral.glow,
+                        }}
+                      >
+                        État général : {etatGeneral.label}
+                      </div>
+
+                      <Link
+                        href={`/atelier/remorques/${remorque.id}`}
+                        style={atelierLinkStyle}
+                      >
+                        🔧 Atelier
+                      </Link>
+                    </div>
+
+                    <div style={sectionStyle}>
+                      <div style={sectionTitleStyle}>Entretien remorque</div>
+
+                      <EntretienLine
+                        icon="🛞"
+                        label="Pneus remorque"
+                        value={remorque.pneusRestantsKm}
+                        max={100000}
+                        warning={7500}
+                      />
+
+                      <p style={smallTextStyle}>
+                        Usure pneus :{" "}
+                        <strong style={{ color: "#ffffff" }}>
+                          {remorque.pneusUsure ?? 0}%
+                        </strong>
+                      </p>
+                    </div>
+
+                    <div style={sectionStyle}>
+                      <div style={sectionTitleStyle}>Dégâts remorque</div>
+
+                      <div style={damageGridStyle}>
+                        <div style={damageTextStyle}>
+                          🧱 Châssis :{" "}
+                          <span style={damageValueStyle(chassisConfig)}>
+                            {chassisConfig.label}
+                          </span>
+                        </div>
+
+                        <div style={damageTextStyle}>
+                          🛞 Roues :{" "}
+                          <span style={damageValueStyle(rouesConfig)}>
+                            {rouesConfig.label}
+                          </span>
+                        </div>
+
+                        <div style={damageTextStyle}>
+                          📦 Caisse :{" "}
+                          <span style={damageValueStyle(caisseConfig)}>
+                            {caisseConfig.label}
+                          </span>
+                        </div>
+
+                        <div style={damageTextStyle}>
+                          📉 Cargaison :{" "}
+                          <span style={damageValueStyle(cargaisonConfig)}>
+                            {cargaisonConfig.label}
                           </span>
                         </div>
                       </div>
@@ -596,12 +890,36 @@ const emptyStyle = {
   backdropFilter: "blur(8px)",
   border: "1px solid rgba(255,255,255,0.05)",
   color: "rgba(255,255,255,0.82)",
+  marginBottom: "28px",
+};
+
+const sectionHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "16px",
+  flexWrap: "wrap" as const,
+  margin: "10px 0 18px",
+};
+
+const bigSectionTitleStyle = {
+  margin: 0,
+  color: "#ffffff",
+  fontSize: "28px",
+  fontWeight: 900,
+};
+
+const sectionSubtitleStyle = {
+  margin: "6px 0 0 0",
+  color: "rgba(255,255,255,0.68)",
+  fontSize: "14px",
 };
 
 const camionGridStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
   gap: "22px",
+  marginBottom: "34px",
 };
 
 const camionCardStyle = {

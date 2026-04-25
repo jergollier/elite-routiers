@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import Menu from "@/app/components/Menu";
+
 
 function formatJeu(jeu: string) {
   if (jeu === "LES_DEUX") return "Les deux";
@@ -135,12 +135,11 @@ export default async function MonEntreprisePage() {
           minHeight: "100vh",
           padding: "20px",
           display: "grid",
-          gridTemplateColumns: "280px 1fr",
+          gridTemplateColumns: "1fr",
           gap: "20px",
         }}
       >
-        <Menu />
-
+        
         <section
           style={{
             display: "flex",

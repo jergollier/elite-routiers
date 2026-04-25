@@ -160,76 +160,13 @@ export default async function SocietePage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "260px 1fr 280px",
+            gridTemplateColumns: "1fr 280px",
             gap: "20px",
             padding: "20px",
             flex: 1,
           }}
         >
-          <aside
-            style={{
-              background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "16px",
-              padding: "20px",
-              backdropFilter: "blur(6px)",
-              boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-              height: "fit-content",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <h2 style={{ marginTop: 0, marginBottom: "20px" }}>Menu</h2>
-
-            <nav
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              <Link href="/societe" style={menuLinkStyle}>
-                Accueil
-              </Link>
-
-              <Link href="/profil" style={menuLinkStyle}>
-                Mon profil
-              </Link>
-
-              <Link
-                href="/marche-occasion"
-                style={{
-                  ...menuLinkStyle,
-                  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
-                  boxShadow: "0 0 10px rgba(245,158,11,0.6)",
-                }}
-              >
-                🚛 Marché occasion
-              </Link>
-
-              <Link href="/mon-entreprise" style={menuLinkStyle}>
-                Mon entreprise
-              </Link>
-
-              <Link href="/parametres" style={menuLinkStyle}>
-                Paramètres
-              </Link>
-
-              <a
-                href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/tacky/Elite%20Routier%20Tacky%20Setup%201.0.3.exe"
-                style={downloadStyle}
-              >
-                ⬇ Télécharger le Tacky
-              </a>
-
-              <a href="/downloads/Plugin-Elite-Routiers.zip" style={pluginStyle}>
-                🔌 Télécharger le Plugin
-              </a>
-
-              <a href="/api/logout" style={logoutStyle}>
-                Déconnexion
-              </a>
-            </nav>
-          </aside>
-
+          
           <section
             style={{
               background: "rgba(0, 0, 0, 0.45)",
@@ -682,50 +619,6 @@ export default async function SocietePage() {
   );
 }
 
-const menuLinkStyle = {
-  padding: "12px 14px",
-  borderRadius: "10px",
-  background: "rgba(255,255,255,0.08)",
-  color: "white",
-  fontWeight: "bold",
-  textDecoration: "none",
-  display: "block",
-};
-
-const downloadStyle = {
-  padding: "12px 14px",
-  borderRadius: "10px",
-  background: "linear-gradient(135deg, #22c55e, #16a34a)",
-  color: "white",
-  fontWeight: "bold",
-  textDecoration: "none",
-  display: "block",
-  textAlign: "center" as const,
-  boxShadow: "0 0 10px rgba(34,197,94,0.5)",
-};
-
-const pluginStyle = {
-  padding: "12px 14px",
-  borderRadius: "10px",
-  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-  color: "white",
-  fontWeight: "bold",
-  textDecoration: "none",
-  display: "block",
-  textAlign: "center" as const,
-  boxShadow: "0 0 10px rgba(59,130,246,0.5)",
-};
-
-const logoutStyle = {
-  padding: "12px 14px",
-  borderRadius: "10px",
-  background: "rgba(255,80,80,0.2)",
-  color: "#ff4d4d",
-  fontWeight: "bold",
-  textDecoration: "none",
-  display: "block",
-  marginTop: "10px",
-};
 
 const buttonBlue = {
   padding: "10px 16px",

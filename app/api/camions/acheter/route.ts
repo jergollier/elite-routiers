@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    return NextResponse.redirect(new URL("/parking", request.url));
+    return NextResponse.redirect(new URL("/camions/parking", request.url));
   } catch (error) {
     console.error("Erreur achat camion occasion :", error);
     return NextResponse.redirect(new URL("/marche-occasion", request.url));

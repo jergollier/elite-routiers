@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
-import Menu from "@/app/components/Menu";
+
 
 export default async function ProfilPage() {
   const cookieStore = await cookies();
@@ -72,11 +72,11 @@ export default async function ProfilPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "220px 1fr",
+         gridTemplateColumns: "1fr",
           gap: "20px",
         }}
       >
-        <Menu />
+        
 
         <div style={{ display: "grid", gap: "20px" }}>
           <section

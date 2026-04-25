@@ -59,13 +59,14 @@ export default async function ParametresPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "260px 1fr",
+          gridTemplateColumns: "1fr",
           gap: "24px",
           padding: "24px",
         }}
       >
-        <Menu />
 
+        <Menu />
+       
         <main>
           <div
             style={{

@@ -43,6 +43,7 @@ model User {
   entretiensEffectues         CamionEntretien[]
   entretiensRemorqueEffectues RemorqueEntretien[]
   infractionsRecues           Infraction[]
+  financesPerso               FinancePerso[]
 
   achatsCamionsOccasion VenteCamion[] @relation("AchatsCamionsOccasion")
 }
@@ -727,4 +728,25 @@ enum TypeEntretienRemorque {
   CAISSE
   CARGAISON
   REPARATION_GENERALE
+}
+
+model FinancePerso {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  type        String
+  description String
+  montant     Int
+  livraisonId String?
+  camionId    Int?
+  pleinId     String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([livraisonId])
+  @@index([camionId])
+  @@index([pleinId])
 }

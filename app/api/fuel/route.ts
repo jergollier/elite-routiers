@@ -112,10 +112,18 @@ export async function POST(req: Request) {
     const litresHorsCuve = Math.max(0, litres - cuveAvant);
     const nouveauStock = Math.max(0, cuveAvant - litresPrisCuve);
 
+    const prixCuve = Number(entreprise.prixLitreCuve ?? 1.35);
     const prixHorsCuve = Number(entreprise.prixLitreHorsCuve ?? 2.3);
+
+    const montantCuve = Math.round(litresPrisCuve * prixCuve);
     const montantHorsCuve = Math.round(litresHorsCuve * prixHorsCuve);
+    const montantTotalPlein = montantCuve + montantHorsCuve;
 
     const result = await prisma.$transaction(async (tx) => {
+      if ((user.argentPerso ?? 0) < montantTotalPlein) {
+        throw new Error("ARGENT_PERSO_INSUFFISANT");
+      }
+
       await tx.entreprise.update({
         where: { id: entreprise.id },
         data: {
@@ -146,6 +154,27 @@ export async function POST(req: Request) {
         },
       });
 
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          argentPerso: {
+            decrement: montantTotalPlein,
+          },
+        },
+      });
+
+      await tx.financePerso.create({
+        data: {
+          userId: user.id,
+          type: "DEPENSE_CARBURANT",
+          description: `Plein carburant ${litres} L (${litresPrisCuve} L cuve + ${litresHorsCuve} L hors cuve)`,
+          montant: -montantTotalPlein,
+          pleinId: plein.id,
+          camionId,
+          livraisonId,
+        },
+      });
+
       if (litresPrisCuve > 0) {
         await tx.mouvementCuve.create({
           data: {
@@ -159,6 +188,26 @@ export async function POST(req: Request) {
             description: `Plein chauffeur (${litresPrisCuve} L)`,
           },
         });
+
+        await tx.finance.create({
+          data: {
+            entrepriseId: entreprise.id,
+            chauffeurId: user.id,
+            pleinId: plein.id,
+            type: "VENTE_CARBURANT_CUVE",
+            description: `Vente carburant cuve au chauffeur (${litresPrisCuve} L à ${prixCuve}€/L)`,
+            montant: montantCuve,
+          },
+        });
+
+        await tx.entreprise.update({
+          where: { id: entreprise.id },
+          data: {
+            argent: {
+              increment: montantCuve,
+            },
+          },
+        });
       }
 
       if (litresHorsCuve > 0) {
@@ -167,9 +216,9 @@ export async function POST(req: Request) {
             entrepriseId: entreprise.id,
             chauffeurId: user.id,
             pleinId: plein.id,
-            type: "CARBURANT_HORS_CUVE",
-            description: `Carburant hors cuve (${litresHorsCuve} L à ${prixHorsCuve}€/L)`,
-            montant: montantHorsCuve,
+            type: "CARBURANT_HORS_CUVE_PAYE_CHAUFFEUR",
+            description: `Carburant hors cuve payé par le chauffeur (${litresHorsCuve} L à ${prixHorsCuve}€/L)`,
+            montant: 0,
           },
         });
       }
@@ -179,7 +228,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "plein enregistré",
+      message: "plein enregistré et payé par le chauffeur",
       plein: result,
       resume: {
         steamId,
@@ -187,13 +236,26 @@ export async function POST(req: Request) {
         litres,
         prisCuve: litresPrisCuve,
         horsCuve: litresHorsCuve,
-        montant: montantHorsCuve,
+        montantCuve,
+        montantHorsCuve,
+        montantTotal: montantTotalPlein,
         cuveAvant,
         cuveApres: nouveauStock,
       },
     });
   } catch (error) {
     console.error("Erreur /api/fuel :", error);
+
+    if (error instanceof Error && error.message === "ARGENT_PERSO_INSUFFISANT") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Argent perso insuffisant pour payer le plein.",
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: "Erreur serveur" },
       { status: 500 }

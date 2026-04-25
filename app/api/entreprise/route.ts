@@ -21,6 +21,81 @@ function redirect303(path: string, request: Request) {
   return NextResponse.redirect(new URL(path, request.url), 303);
 }
 
+// 🔥 WEBHOOK DISCORD
+async function envoyerWebhookEntreprise(data: {
+  nom: string;
+  abreviation: string;
+  createur: string;
+  jeu: string;
+}) {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  const isATS = data.jeu === "ATS";
+  const isETS = data.jeu === "ETS2";
+
+  const flag = isATS ? "🇺🇸" : isETS ? "🇪🇺" : "🌍";
+  const color = isATS ? 0xef4444 : isETS ? 0x2563eb : 0x22c55e;
+
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: "🏛️ Elite Routiers • Direction des Sociétés",
+        embeds: [
+          {
+            title: `${flag} Nouvelle société créée`,
+            description:
+              "Une nouvelle entreprise vient d’ouvrir ses portes sur **Elite Routiers** !",
+            color,
+            thumbnail: {
+              url: isATS
+                ? "https://flagcdn.com/w320/us.png"
+                : isETS
+                ? "https://flagcdn.com/w320/eu.png"
+                : "https://flagcdn.com/w320/un.png",
+            },
+            fields: [
+              {
+                name: "🏢 Société",
+                value: `**${data.nom}**`,
+                inline: true,
+              },
+              {
+                name: "🏷️ Tag",
+                value: `\`${data.abreviation}\``,
+                inline: true,
+              },
+              {
+                name: "👑 Directeur",
+                value: data.createur,
+                inline: true,
+              },
+              {
+                name: "🎮 Jeu",
+                value: data.jeu,
+                inline: true,
+              },
+            ],
+            image: {
+              url: "https://elite-routiers.vercel.app/truck.jpg",
+            },
+            footer: {
+              text: "Elite Routiers",
+            },
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      }),
+    });
+  } catch (err) {
+    console.error("Erreur webhook Discord :", err);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -109,6 +184,7 @@ export async function POST(request: Request) {
       banniereUrl = blob.url;
     }
 
+    // 🔥 CREATION ENTREPRISE
     const entreprise = await prisma.entreprise.create({
       data: {
         nom,
@@ -130,6 +206,14 @@ export async function POST(request: Request) {
         userId: user.id,
         role: RoleEntreprise.DIRECTEUR,
       },
+    });
+
+    // 🔥 ENVOI DISCORD
+    await envoyerWebhookEntreprise({
+      nom: entreprise.nom,
+      abreviation: entreprise.abreviation,
+      createur: user.username || "Inconnu",
+      jeu: entreprise.jeu,
     });
 
     return redirect303("/monentreprise", request);

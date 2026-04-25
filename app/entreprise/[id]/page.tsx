@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import Menu from "@/app/components/Menu";
+
 
 type PageProps = {
   params: Promise<{
@@ -193,13 +193,13 @@ export default async function EntreprisePage({ params }: PageProps) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "260px 1fr 320px",
+            gridTemplateColumns: "1fr 320px",
             gap: "20px",
             padding: "20px",
             flex: 1,
           }}
         >
-          <Menu />
+          
 
           <section
             style={{

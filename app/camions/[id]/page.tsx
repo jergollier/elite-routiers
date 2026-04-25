@@ -14,63 +14,33 @@ const ROLES_VENTE = ["DIRECTEUR", "SOUS_DIRECTEUR"];
 
 function formatMarque(marque: string) {
   switch (marque) {
-    case "RENAULT":
-      return "Renault";
-    case "SCANIA":
-      return "Scania";
-    case "VOLVO":
-      return "Volvo";
-    case "MAN":
-      return "MAN";
-    case "DAF":
-      return "DAF";
-    case "MERCEDES":
-      return "Mercedes-Benz";
-    case "IVECO":
-      return "Iveco";
-    case "KENWORTH":
-      return "Kenworth";
-    case "PETERBILT":
-      return "Peterbilt";
-    case "FREIGHTLINER":
-      return "Freightliner";
-    case "INTERNATIONAL":
-      return "International";
-    case "MACK":
-      return "Mack";
-    case "WESTERN_STAR":
-      return "Western Star";
-    default:
-      return marque;
+    case "RENAULT": return "Renault";
+    case "SCANIA": return "Scania";
+    case "VOLVO": return "Volvo";
+    case "MAN": return "MAN";
+    case "DAF": return "DAF";
+    case "MERCEDES": return "Mercedes-Benz";
+    case "IVECO": return "Iveco";
+    case "KENWORTH": return "Kenworth";
+    case "PETERBILT": return "Peterbilt";
+    case "FREIGHTLINER": return "Freightliner";
+    case "INTERNATIONAL": return "International";
+    case "MACK": return "Mack";
+    case "WESTERN_STAR": return "Western Star";
+    default: return marque;
   }
 }
 
 function getStatutConfig(statut: string) {
   switch (statut) {
     case "DISPONIBLE":
-      return {
-        label: "Disponible",
-        color: "#22c55e",
-        glow: "0 0 10px rgba(34,197,94,0.85)",
-      };
+      return { label: "Disponible", color: "#22c55e", glow: "0 0 10px rgba(34,197,94,0.85)" };
     case "EN_MISSION":
-      return {
-        label: "En mission",
-        color: "#f59e0b",
-        glow: "0 0 10px rgba(245,158,11,0.85)",
-      };
+      return { label: "En mission", color: "#f59e0b", glow: "0 0 10px rgba(245,158,11,0.85)" };
     case "EN_MAINTENANCE":
-      return {
-        label: "En maintenance",
-        color: "#ef4444",
-        glow: "0 0 10px rgba(239,68,68,0.85)",
-      };
+      return { label: "En maintenance", color: "#ef4444", glow: "0 0 10px rgba(239,68,68,0.85)" };
     default:
-      return {
-        label: "Inconnu",
-        color: "#9ca3af",
-        glow: "0 0 10px rgba(156,163,175,0.85)",
-      };
+      return { label: "Inconnu", color: "#9ca3af", glow: "0 0 10px rgba(156,163,175,0.85)" };
   }
 }
 
@@ -79,7 +49,6 @@ function estimerPrixOccasion(prixAchat?: number | null, kilometrage?: number | n
   const km = kilometrage ?? 0;
 
   let coefficient = 0.85;
-
   if (km > 100000) coefficient = 0.7;
   if (km > 250000) coefficient = 0.55;
   if (km > 400000) coefficient = 0.4;
@@ -119,25 +88,25 @@ export default async function VoirCamionPage({ params }: Props) {
   }
 
   const monMembership = user.memberships ?? null;
-
-  if (!monMembership) {
-    redirect("/societe");
-  }
-
-  const entreprise = monMembership.entreprise;
-
-  if (!entreprise) {
-    redirect("/societe");
-  }
+  const entrepriseId = monMembership?.entrepriseId ?? -1;
 
   const camion = await prisma.camion.findFirst({
     where: {
       id: camionId,
-      entrepriseId: monMembership.entrepriseId,
       actif: true,
+      OR: [
+        {
+          entrepriseId,
+        },
+        {
+          proprietaireId: user.id,
+        },
+      ],
     },
     include: {
       chauffeurAttribue: true,
+      entreprise: true,
+      proprietaire: true,
     },
   });
 
@@ -145,9 +114,23 @@ export default async function VoirCamionPage({ params }: Props) {
     notFound();
   }
 
+  const estCamionPerso = camion.proprietaireId === user.id && !camion.entrepriseId;
+  const estCamionSociete = !!camion.entrepriseId;
   const statut = getStatutConfig(camion.statut);
-  const peutVendre = ROLES_VENTE.includes(monMembership.role);
+  const peutVendre =
+    estCamionSociete &&
+    !!monMembership &&
+    camion.entrepriseId === monMembership.entrepriseId &&
+    ROLES_VENTE.includes(monMembership.role);
+
   const prixEstime = estimerPrixOccasion(camion.prixAchat, camion.kilometrage);
+
+  const titreDescription = estCamionPerso
+    ? "Détails de ton camion personnel"
+    : `Détails du camion de l’entreprise ${camion.entreprise?.nom ?? "inconnue"}`;
+
+  const retourHref = estCamionPerso ? "/camions/parking" : "/camions";
+  const retourLabel = estCamionPerso ? "← Retour parking" : "← Retour camions";
 
   return (
     <main
@@ -217,12 +200,12 @@ export default async function VoirCamionPage({ params }: Props) {
                     lineHeight: 1.5,
                   }}
                 >
-                  Détails du camion de l’entreprise {entreprise.nom}
+                  {titreDescription}
                 </p>
               </div>
 
-              <Link href="/camions" style={secondaryButtonStyle}>
-                ← Retour camions
+              <Link href={retourHref} style={secondaryButtonStyle}>
+                {retourLabel}
               </Link>
             </div>
 
@@ -313,6 +296,15 @@ export default async function VoirCamionPage({ params }: Props) {
 
                     <div style={infoListStyle}>
                       <div style={infoRowStyle}>
+                        <span style={labelStyle}>Propriétaire</span>
+                        <span style={valueStyle}>
+                          {estCamionPerso
+                            ? user.username ?? "Toi"
+                            : camion.entreprise?.nom ?? "Entreprise"}
+                        </span>
+                      </div>
+
+                      <div style={infoRowStyle}>
                         <span style={labelStyle}>Chauffeur</span>
                         <span style={valueStyle}>
                           {camion.chauffeurAttribue?.username ?? "Non attribué"}
@@ -371,8 +363,10 @@ export default async function VoirCamionPage({ params }: Props) {
                   <h2>Résumé</h2>
 
                   <div style={infoRowStyle}>
-                    <span style={labelStyle}>Entreprise</span>
-                    <span style={valueStyle}>{entreprise.nom}</span>
+                    <span style={labelStyle}>Type</span>
+                    <span style={valueStyle}>
+                      {estCamionPerso ? "Camion personnel" : "Camion société"}
+                    </span>
                   </div>
 
                   <div style={infoRowStyle}>
@@ -406,6 +400,22 @@ export default async function VoirCamionPage({ params }: Props) {
                     </span>
                   </div>
                 </div>
+
+                {estCamionPerso && (
+                  <div style={boxStyle}>
+                    <h2>Atelier perso</h2>
+                    <p style={{ margin: 0, opacity: 0.82, lineHeight: 1.5 }}>
+                      Répare ce camion avec ton argent personnel.
+                    </p>
+
+                    <Link
+                      href={`/camions/parking/atelier?camionId=${camion.id}`}
+                      style={atelierButtonStyle}
+                    >
+                      Ouvrir atelier
+                    </Link>
+                  </div>
+                )}
 
                 {peutVendre && (
                   <div style={boxStyle}>
@@ -455,8 +465,7 @@ export default async function VoirCamionPage({ params }: Props) {
                         </button>
 
                         <p style={{ margin: 0, opacity: 0.68, fontSize: "13px" }}>
-                          Prix estimé automatiquement selon le prix d’achat et le
-                          kilométrage.
+                          Prix estimé automatiquement selon le prix d’achat et le kilométrage.
                         </p>
                       </form>
                     )}
@@ -542,4 +551,18 @@ const sellButtonStyle = {
   color: "white",
   fontWeight: "bold",
   cursor: "pointer",
+};
+
+const atelierButtonStyle = {
+  marginTop: "14px",
+  width: "100%",
+  boxSizing: "border-box" as const,
+  padding: "12px",
+  borderRadius: "12px",
+  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
+  color: "white",
+  fontWeight: "bold",
+  textDecoration: "none",
+  display: "inline-flex",
+  justifyContent: "center",
 };

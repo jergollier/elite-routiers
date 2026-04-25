@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import Menu from "@/app/components/Menu";
+
 
 export default async function ChauffeurPage() {
   const cookieStore = await cookies();
@@ -82,11 +82,11 @@ export default async function ChauffeurPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "220px 1fr",
+          gridTemplateColumns: "1fr",
           gap: "20px",
         }}
       >
-        <Menu />
+        
 
         <div style={{ display: "grid", gap: "20px" }}>
           <section
@@ -148,7 +148,9 @@ export default async function ChauffeurPage() {
               />
               <StatCard
                 title="Kilomètres"
-                value={`${Math.round(totalKilometres).toLocaleString("fr-FR")} km`}
+                value={`${Math.round(totalKilometres).toLocaleString(
+                  "fr-FR"
+                )} km`}
                 color="#f59e0b"
               />
               <StatCard
@@ -244,7 +246,12 @@ export default async function ChauffeurPage() {
                         }}
                       >
                         <div>
-                          <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+                          <div
+                            style={{
+                              fontWeight: "bold",
+                              marginBottom: "4px",
+                            }}
+                          >
                             {trajet}
                           </div>
                           <div style={{ opacity: 0.8, fontSize: "14px" }}>
@@ -269,7 +276,9 @@ export default async function ChauffeurPage() {
                               marginTop: "4px",
                             }}
                           >
-                            {new Date(livraison.createdAt).toLocaleString("fr-FR")}
+                            {new Date(livraison.createdAt).toLocaleString(
+                              "fr-FR"
+                            )}
                           </div>
                         </div>
                       </div>
@@ -286,16 +295,26 @@ export default async function ChauffeurPage() {
                           }}
                         >
                           <span>
-                            💰 Brut : {(livraison.income ?? 0).toLocaleString("fr-FR")} €
+                            💰 Brut :{" "}
+                            {(livraison.income ?? 0).toLocaleString("fr-FR")} €
                           </span>
                           <span>
-                            👤 Chauffeur : {(livraison.gainChauffeur ?? 0).toLocaleString("fr-FR")} €
+                            👤 Chauffeur :{" "}
+                            {(livraison.gainChauffeur ?? 0).toLocaleString(
+                              "fr-FR"
+                            )}{" "}
+                            €
                           </span>
                           <span>
-                            🏢 Société : {(livraison.gainSociete ?? 0).toLocaleString("fr-FR")} €
+                            🏢 Société :{" "}
+                            {(livraison.gainSociete ?? 0).toLocaleString(
+                              "fr-FR"
+                            )}{" "}
+                            €
                           </span>
                           <span>
-                            🏛️ Charges : {(livraison.charges ?? 0).toLocaleString("fr-FR")} €
+                            🏛️ Charges :{" "}
+                            {(livraison.charges ?? 0).toLocaleString("fr-FR")} €
                           </span>
                         </div>
                       )}
@@ -327,6 +346,10 @@ export default async function ChauffeurPage() {
 
             <Link href="/camions/parking" style={btnBlue}>
               Parking
+            </Link>
+
+            <Link href="/finance-perso" style={btnGreen}>
+              💰 Finance perso
             </Link>
           </div>
         </div>
@@ -390,4 +413,11 @@ const btn: React.CSSProperties = {
 const btnBlue: React.CSSProperties = {
   ...btn,
   background: "rgba(0,100,255,0.6)",
+};
+
+const btnGreen: React.CSSProperties = {
+  ...btn,
+  background: "linear-gradient(135deg, #16a34a, #22c55e)",
+  boxShadow: "0 0 12px rgba(34,197,94,0.5)",
+  fontWeight: "bold",
 };

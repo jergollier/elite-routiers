@@ -266,15 +266,28 @@ export async function POST(request: Request) {
       }
 
       if (!isCancelled && gainChauffeur > 0) {
-        await tx.user.update({
-          where: { id: user.id },
-          data: {
-            argentPerso: {
-              increment: gainChauffeur,
-            },
-          },
-        });
-      }
+  await tx.user.update({
+    where: { id: user.id },
+    data: {
+      argentPerso: {
+        increment: gainChauffeur,
+      },
+    },
+  });
+
+  await tx.financePerso.create({
+    data: {
+      userId: user.id,
+      type: "GAIN_LIVRAISON",
+      description: `Gain livraison ${freshLivraison.sourceCity || "Départ"} → ${
+        freshLivraison.destinationCity || "Arrivée"
+      }`,
+      montant: gainChauffeur,
+      livraisonId: freshLivraison.id,
+      camionId: freshLivraison.camionId,
+    },
+  });
+}
 
       if (freshLivraison.entrepriseId) {
         await tx.chauffeurStat.upsert({

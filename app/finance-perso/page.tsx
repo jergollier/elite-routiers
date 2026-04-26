@@ -1,8 +1,7 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 
 function euro(value: number) {
@@ -101,7 +100,13 @@ export default async function FinancePersoPage() {
   if (!user) redirect("/");
 
   const mouvements = user.financesPerso;
-  const entreprise = user.memberships?.entreprise ?? null;
+
+const membershipActif = Array.isArray(user.memberships)
+  ? user.memberships[0] ?? null
+  : user.memberships ?? null;
+
+const entreprise = membershipActif?.entreprise ?? null;
+const roleEntreprise = membershipActif?.role ?? "CHAUFFEUR";
 
   const totalGains = mouvements
     .filter((m) => m.montant > 0)
@@ -149,23 +154,40 @@ export default async function FinancePersoPage() {
     <main style={mainStyle}>
       <div style={overlayStyle} />
 
+      <div style={topButtonsStyle}>
+        <Link href="/profil" style={topButtonStyle}>
+          👤 Profil
+        </Link>
+
+        <Link href="/societe" style={topButtonBlueStyle}>
+          🏢 Société
+        </Link>
+      </div>
+
       <div style={layoutStyle}>
-        <Menu />
-
         <div style={contentStyle}>
-          <section style={heroStyle}>
-            <div>
-              <div style={kickerStyle}>Elite Routiers • Comptabilité chauffeur</div>
-              <h1 style={titleStyle}>💰 Finance perso</h1>
-              <p style={subtitleStyle}>
-                Suivi complet de ton argent chauffeur : livraisons, carburant,
-                entretien, dépenses et balance nette.
-              </p>
+          <section style={proHeaderStyle}>
+            <div style={headerGlowStyle} />
 
-              <div style={identityRowStyle}>
-                <Badge>{user.username || "Chauffeur"}</Badge>
-                <Badge>{entreprise?.nom || "Aucune entreprise"}</Badge>
-                <Badge>{user.jeuPrincipal || "Jeu non renseigné"}</Badge>
+            <div style={profileLeftStyle}>
+              <div style={avatarFrameStyle}>
+                <img
+                  src={user.avatar || "/truck.jpg"}
+                  alt={user.username || "Chauffeur"}
+                  style={avatarStyle}
+                />
+              </div>
+
+              <div style={profileTextStyle}>
+                <div style={kickerStyle}>Elite Routiers • Espace chauffeur</div>
+
+                <h1 style={pseudoStyle}>{user.username || "Chauffeur"}</h1>
+
+                <div style={identityRowStyle}>
+                  <Badge>{entreprise?.nom || "Aucune entreprise"}</Badge>
+                  <Badge>{roleEntreprise}</Badge>
+                  <Badge>{user.jeuPrincipal || "Jeu non renseigné"}</Badge>
+                </div>
               </div>
             </div>
 
@@ -209,7 +231,9 @@ export default async function FinancePersoPage() {
 
             <BigStat
               title="Balance nette"
-              value={`${balanceNette >= 0 ? "+" : "-"} ${euro(Math.abs(balanceNette))}`}
+              value={`${balanceNette >= 0 ? "+" : "-"} ${euro(
+                Math.abs(balanceNette)
+              )}`}
               detail="Gains - dépenses"
               color={balanceNette >= 0 ? "#22c55e" : "#ef4444"}
               icon="⚖️"
@@ -471,18 +495,18 @@ function MiniStat({
   );
 }
 
-function Badge({ children }: { children: React.ReactNode }) {
+function Badge({ children }: { children: ReactNode }) {
   return <span style={badgeStyle}>{children}</span>;
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
+function Empty({ children }: { children: ReactNode }) {
   return <div style={emptyStyle}>{children}</div>;
 }
 
 const mainStyle: CSSProperties = {
   minHeight: "100vh",
   backgroundImage:
-    "linear-gradient(120deg, rgba(0,0,0,0.75), rgba(0,0,0,0.55)), url('/truck.jpg')",
+    "linear-gradient(120deg, rgba(0,0,0,0.82), rgba(0,0,0,0.62)), url('/truck.jpg')",
   backgroundSize: "cover",
   backgroundPosition: "center",
   backgroundAttachment: "fixed",
@@ -497,6 +521,34 @@ const overlayStyle: CSSProperties = {
   pointerEvents: "none",
 };
 
+const topButtonsStyle: CSSProperties = {
+  position: "fixed",
+  top: "22px",
+  right: "24px",
+  zIndex: 20,
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+};
+
+const topButtonStyle: CSSProperties = {
+  color: "white",
+  textDecoration: "none",
+  padding: "11px 15px",
+  borderRadius: "14px",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  fontWeight: 900,
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 12px 28px rgba(0,0,0,0.28)",
+};
+
+const topButtonBlueStyle: CSSProperties = {
+  ...topButtonStyle,
+  background: "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(29,78,216,0.9))",
+  border: "1px solid rgba(147,197,253,0.28)",
+};
+
 const layoutStyle: CSSProperties = {
   position: "relative",
   zIndex: 1,
@@ -506,47 +558,85 @@ const layoutStyle: CSSProperties = {
 
 const contentStyle: CSSProperties = {
   flex: 1,
-  padding: "24px",
+  padding: "78px 24px 24px",
   minWidth: 0,
   display: "grid",
   gap: "18px",
 };
 
-const heroStyle: CSSProperties = {
+const proHeaderStyle: CSSProperties = {
+  position: "relative",
+  overflow: "hidden",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "stretch",
-  gap: "18px",
+  gap: "20px",
   flexWrap: "wrap",
-  padding: "26px",
-  borderRadius: "24px",
+  padding: "28px",
+  borderRadius: "28px",
   background:
-    "linear-gradient(135deg, rgba(15,23,42,0.82), rgba(0,0,0,0.58))",
-  border: "1px solid rgba(255,255,255,0.1)",
-  boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
-  backdropFilter: "blur(8px)",
+    "linear-gradient(120deg, rgba(255,255,255,0.13), rgba(15,23,42,0.74) 46%, rgba(0,0,0,0.62))",
+  border: "1px solid rgba(255,255,255,0.16)",
+  boxShadow:
+    "0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)",
+  backdropFilter: "blur(14px)",
+};
+
+const headerGlowStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background:
+    "radial-gradient(circle at 18% 35%, rgba(255,255,255,0.18), transparent 24%), radial-gradient(circle at 78% 20%, rgba(34,197,94,0.14), transparent 28%)",
+  pointerEvents: "none",
+};
+
+const profileLeftStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  display: "flex",
+  alignItems: "center",
+  gap: "22px",
+  minWidth: 0,
+};
+
+const avatarFrameStyle: CSSProperties = {
+  width: "112px",
+  height: "112px",
+  borderRadius: "26px",
+  padding: "4px",
+  background:
+    "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.25))",
+  boxShadow: "0 18px 40px rgba(0,0,0,0.42)",
+  flex: "0 0 auto",
+};
+
+const avatarStyle: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  borderRadius: "22px",
+  objectFit: "cover",
+  display: "block",
+};
+
+const profileTextStyle: CSSProperties = {
+  minWidth: 0,
 };
 
 const kickerStyle: CSSProperties = {
-  opacity: 0.72,
+  opacity: 0.82,
   fontSize: "13px",
   textTransform: "uppercase",
-  letterSpacing: "0.16em",
+  letterSpacing: "0.18em",
+  fontWeight: 900,
 };
 
-const titleStyle: CSSProperties = {
+const pseudoStyle: CSSProperties = {
   margin: "8px 0 0",
-  fontSize: "42px",
-  lineHeight: 1,
+  fontSize: "58px",
+  lineHeight: 0.95,
   fontWeight: 950,
-};
-
-const subtitleStyle: CSSProperties = {
-  maxWidth: "760px",
-  margin: "12px 0 0",
-  opacity: 0.82,
-  fontSize: "15px",
-  lineHeight: 1.6,
+  letterSpacing: "-0.04em",
+  textShadow: "0 8px 28px rgba(0,0,0,0.48)",
 };
 
 const identityRowStyle: CSSProperties = {
@@ -557,15 +647,19 @@ const identityRowStyle: CSSProperties = {
 };
 
 const badgeStyle: CSSProperties = {
-  padding: "8px 12px",
+  padding: "9px 14px",
   borderRadius: "999px",
-  background: "rgba(255,255,255,0.08)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  fontWeight: 700,
+  background: "rgba(255,255,255,0.1)",
+  border: "1px solid rgba(255,255,255,0.16)",
+  fontWeight: 900,
   fontSize: "13px",
+  textTransform: "uppercase",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
 };
 
 const heroWalletStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
   minWidth: "270px",
   borderRadius: "22px",
   padding: "20px",

@@ -1,5 +1,7 @@
 export const dynamic = "force-dynamic";
 
+import type { CSSProperties } from "react";
+import Menu from "@/app/components/Menu";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateCuveSite, recalculerPrixCuveSite } from "@/lib/fuel-market";
@@ -19,9 +21,7 @@ export default async function SocietePage() {
   try {
     const [entreprisesData, chauffeursData] = await Promise.all([
       prisma.entreprise.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
         include: {
           _count: {
             select: {
@@ -31,9 +31,7 @@ export default async function SocietePage() {
         },
       }),
       prisma.user.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
         select: {
           id: true,
           username: true,
@@ -55,7 +53,9 @@ export default async function SocietePage() {
       prixActuelLitre: Number(cuveSiteData.prixActuelLitre),
       pourcentage:
         cuveSiteData.capaciteMax > 0
-          ? Math.round((cuveSiteData.stockActuel / cuveSiteData.capaciteMax) * 100)
+          ? Math.round(
+              (cuveSiteData.stockActuel / cuveSiteData.capaciteMax) * 100
+            )
           : 0,
     };
   } catch (error) {
@@ -74,130 +74,59 @@ export default async function SocietePage() {
       ? "#22c55e"
       : "#16a34a";
 
-  return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundImage: "url('/truck.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        position: "relative",
-        color: "white",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.55)",
-        }}
-      />
+  const entreprisesOuvertes = entreprises.filter((e) => e.recrutement).length;
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <header
-          style={{
-            height: "80px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 24px",
-            borderBottom: "1px solid rgba(255,255,255,0.15)",
-            background: "rgba(0,0,0,0.35)",
-            backdropFilter: "blur(6px)",
-          }}
-        >
-          <div style={{ fontSize: "28px", fontWeight: "bold" }}>
-            Elite Routiers
+  return (
+    <main style={mainStyle}>
+      <div style={backgroundGlowStyle} />
+
+      <div style={pageStyle}>
+        <header style={headerStyle}>
+          <div>
+            <div style={brandStyle}>🚛 ELITE ROUTIERS</div>
+            <h1 style={heroTitleStyle}>Accueil des sociétés</h1>
+            <p style={heroTextStyle}>
+              Trouve une entreprise, suis l’activité du réseau et prends la route
+              avec ta flotte.
+            </p>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "18px",
-              fontWeight: "bold",
-              flexWrap: "wrap",
-            }}
-          >
-            <div>Entreprises : {entreprises.length}</div>
-            <div>Chauffeurs : {chauffeurs.length}</div>
+          <div style={headerRightStyle}>
+            <div style={topStatStyle}>
+              <strong>{entreprises.length}</strong>
+              <span>Entreprises</span>
+            </div>
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "rgba(255,255,255,0.08)",
-                padding: "8px 14px",
-                borderRadius: "999px",
-                border: "1px solid rgba(255,255,255,0.12)",
-              }}
-            >
-              <span
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  background: "#22c55e",
-                  display: "inline-block",
-                  boxShadow: "0 0 8px #22c55e",
-                }}
-              />
-              <span>Connexion Steam OK</span>
+            <div style={topStatStyle}>
+              <strong>{entreprisesOuvertes}</strong>
+              <span>Recrutent</span>
+            </div>
+
+            <div style={topStatStyle}>
+              <strong>{chauffeurs.length}</strong>
+              <span>Chauffeurs</span>
+            </div>
+
+            <div style={steamBadgeStyle}>
+              <span style={steamDotStyle} />
+              Connexion Steam OK
             </div>
           </div>
         </header>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 280px",
-            gap: "20px",
-            padding: "20px",
-            flex: 1,
-          }}
-        >
-          
-          <section
-            style={{
-              background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "16px",
-              padding: "20px",
-              backdropFilter: "blur(6px)",
-              boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "10px",
-                marginBottom: "20px",
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: "32px" }}>Entreprises</h2>
+        <div style={layoutStyle}>
+          <Menu />
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  flexWrap: "wrap",
-                }}
-              >
+          <section style={centerPanelStyle}>
+            <div style={sectionHeaderStyle}>
+              <div>
+                <div style={smallTitleStyle}>Réseau Elite Routiers</div>
+                <h2 style={sectionTitleStyle}>Entreprises</h2>
+              </div>
+
+              <div style={buttonGroupStyle}>
                 <Link href="/societe/classement" style={buttonBlue}>
-                  Classement
+                  🏆 Classement
                 </Link>
 
                 <Link href="/societe/create" style={buttonDark}>
@@ -206,58 +135,16 @@ export default async function SocietePage() {
               </div>
             </div>
 
-            <div
-              style={{
-                marginBottom: "20px",
-                background:
-                  "linear-gradient(135deg, rgba(24,24,27,0.95), rgba(10,10,10,0.88))",
-                borderRadius: "16px",
-                padding: "18px",
-                border: "1px solid rgba(255,255,255,0.08)",
-                boxShadow: "0 0 20px rgba(0,0,0,0.25)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                  marginBottom: "14px",
-                }}
-              >
+            <div style={fuelPanelStyle}>
+              <div style={fuelHeaderStyle}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: "22px",
-                      fontWeight: "bold",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Cuve Elite Routiers
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      opacity: 0.82,
-                    }}
-                  >
+                  <div style={fuelTitleStyle}>⛽ Cuve Elite Routiers</div>
+                  <div style={fuelSubtitleStyle}>
                     Réserve centrale du site pour alimenter les sociétés
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: "12px",
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    fontWeight: "bold",
-                    fontSize: "15px",
-                  }}
-                >
+                <div style={fuelPriceStyle}>
                   Tarif actuel :{" "}
                   <span style={{ color: "#22c55e" }}>
                     {cuveSite.prixActuelLitre.toFixed(2)} €/L
@@ -265,14 +152,7 @@ export default async function SocietePage() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                  gap: "12px",
-                  marginBottom: "14px",
-                }}
-              >
+              <div style={fuelInfoGridStyle}>
                 <div style={fuelInfoCard}>
                   <div style={fuelInfoLabel}>Stock actuel</div>
                   <div style={fuelInfoValue}>
@@ -293,34 +173,20 @@ export default async function SocietePage() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  width: "100%",
-                  height: "16px",
-                  borderRadius: "999px",
-                  background: "rgba(255,255,255,0.08)",
-                  overflow: "hidden",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
+              <div style={fuelProgressStyle}>
                 <div
                   style={{
                     width: `${cuveSite.pourcentage}%`,
                     height: "100%",
+                    borderRadius: "999px",
                     background: `linear-gradient(90deg, ${couleurCuveSite}, ${couleurCuveSite})`,
-                    boxShadow: `0 0 12px ${couleurCuveSite}`,
+                    boxShadow: `0 0 18px ${couleurCuveSite}`,
                     transition: "width 0.3s ease",
                   }}
                 />
               </div>
 
-              <div
-                style={{
-                  marginTop: "10px",
-                  fontSize: "13px",
-                  opacity: 0.85,
-                }}
-              >
+              <div style={fuelMessageStyle}>
                 {cuveSite.pourcentage <= 20
                   ? "Stock critique : le prix du litre est au plus haut."
                   : cuveSite.pourcentage <= 40
@@ -334,137 +200,58 @@ export default async function SocietePage() {
             </div>
 
             {erreurChargement ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  padding: "20px",
-                  background: "rgba(239,68,68,0.15)",
-                  border: "1px solid rgba(239,68,68,0.35)",
-                  borderRadius: "12px",
-                  color: "#fecaca",
-                }}
-              >
-                {erreurChargement}
-              </div>
+              <div style={errorStyle}>{erreurChargement}</div>
             ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                  gap: "16px",
-                }}
-              >
+              <div style={companyGridStyle}>
                 {entreprises.map((entreprise) => (
-                  <div
-                    key={entreprise.id}
-                    style={{
-                      background: "rgba(15,15,15,0.78)",
-                      borderRadius: "14px",
-                      overflow: "hidden",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      display: "flex",
-                      flexDirection: "column",
-                      minHeight: "255px",
-                    }}
-                  >
+                  <article key={entreprise.id} style={companyCardStyle}>
                     <div
                       style={{
-                        height: "95px",
-                        backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }}
-                    />
-
-                    <div
-                      style={{
-                        padding: "12px",
-                        display: "flex",
-                        flexDirection: "column",
-                        flex: 1,
+                        ...companyImageStyle,
+                        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.78)), url('${
+                          entreprise.banniere || "/truck.jpg"
+                        }')`,
                       }}
                     >
-                      <div
-                        style={{
-                          fontWeight: "bold",
-                          fontSize: "17px",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        {entreprise.nom}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          opacity: 0.85,
-                          marginBottom: "10px",
-                        }}
-                      >
+                      <div style={companyAbbrStyle}>
                         [{entreprise.abreviation}]
                       </div>
+                    </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          fontSize: "13px",
-                          fontWeight: "bold",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: "10px",
-                            height: "10px",
-                            borderRadius: "50%",
-                            display: "inline-block",
-                            background: entreprise.recrutement
-                              ? "#22c55e"
-                              : "#ef4444",
-                            boxShadow: entreprise.recrutement
-                              ? "0 0 8px #22c55e"
-                              : "0 0 8px #ef4444",
-                          }}
-                        />
-                        <span>
-                          Recrutement :{" "}
-                          {entreprise.recrutement ? "Ouvert" : "Fermé"}
-                        </span>
+                    <div style={companyContentStyle}>
+                      <div>
+                        <h3 style={companyNameStyle}>{entreprise.nom}</h3>
+
+                        <div style={companyStatusStyle}>
+                          <span
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "50%",
+                              display: "inline-block",
+                              background: entreprise.recrutement
+                                ? "#22c55e"
+                                : "#ef4444",
+                              boxShadow: entreprise.recrutement
+                                ? "0 0 10px #22c55e"
+                                : "0 0 10px #ef4444",
+                            }}
+                          />
+                          <span>
+                            Recrutement :{" "}
+                            {entreprise.recrutement ? "Ouvert" : "Fermé"}
+                          </span>
+                        </div>
+
+                        <div style={companyMembersStyle}>
+                          🚛 Chauffeurs : {entreprise._count?.membres ?? 0}
+                        </div>
                       </div>
 
-                      <div
-                        style={{
-                          fontSize: "13px",
-                          opacity: 0.9,
-                          marginBottom: "14px",
-                        }}
-                      >
-                        🚛 Chauffeurs : {entreprise._count?.membres ?? 0}
-                      </div>
-
-                      <div
-                        style={{
-                          marginTop: "auto",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "8px",
-                        }}
-                      >
+                      <div style={companyActionsStyle}>
                         <Link
                           href={`/entreprise/${entreprise.id}`}
-                          style={{
-                            display: "block",
-                            textAlign: "center",
-                            padding: "9px",
-                            background: "#171a21",
-                            borderRadius: "8px",
-                            color: "white",
-                            textDecoration: "none",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
+                          style={companyViewButtonStyle}
                         >
                           Voir
                         </Link>
@@ -472,52 +259,22 @@ export default async function SocietePage() {
                         {entreprise.recrutement ? (
                           <Link
                             href={`/entreprise/${entreprise.id}/postuler`}
-                            style={{
-                              display: "block",
-                              textAlign: "center",
-                              padding: "9px",
-                              background: "#2563eb",
-                              borderRadius: "8px",
-                              color: "white",
-                              textDecoration: "none",
-                              fontWeight: "bold",
-                              fontSize: "13px",
-                            }}
+                            style={companyApplyButtonStyle}
                           >
                             Postuler
                           </Link>
                         ) : (
-                          <div
-                            style={{
-                              display: "block",
-                              textAlign: "center",
-                              padding: "9px",
-                              background: "rgba(255,255,255,0.12)",
-                              borderRadius: "8px",
-                              color: "rgba(255,255,255,0.7)",
-                              fontWeight: "bold",
-                              fontSize: "13px",
-                              cursor: "not-allowed",
-                            }}
-                          >
+                          <div style={companyClosedButtonStyle}>
                             Recrutement fermé
                           </div>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </article>
                 ))}
 
                 {entreprises.length === 0 && (
-                  <div
-                    style={{
-                      gridColumn: "1 / -1",
-                      textAlign: "center",
-                      padding: "20px",
-                      background: "rgba(255,255,255,0.05)",
-                      borderRadius: "12px",
-                    }}
-                  >
+                  <div style={emptyCompanyStyle}>
                     Aucune entreprise pour le moment.
                   </div>
                 )}
@@ -525,89 +282,35 @@ export default async function SocietePage() {
             )}
           </section>
 
-          <aside
-            style={{
-              background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "16px",
-              padding: "20px",
-              backdropFilter: "blur(6px)",
-              boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <h2 style={{ marginTop: 0, marginBottom: "18px" }}>
-              Chauffeurs du site
-            </h2>
+          <aside style={rightPanelStyle}>
+            <div style={rightHeaderStyle}>
+              <div style={smallTitleStyle}>Communauté</div>
+              <h2 style={driversTitleStyle}>Chauffeurs du site</h2>
+            </div>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
+            <div style={driversListStyle}>
               {chauffeurs.map((chauffeur) => {
                 const nomAffiche =
                   chauffeur.username?.trim() || "Chauffeur sans pseudo";
 
                 return (
-                  <div
-                    key={chauffeur.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      padding: "12px",
-                      borderRadius: "10px",
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
+                  <div key={chauffeur.id} style={driverCardStyle}>
                     <img
                       src={chauffeur.avatar || "/truck.jpg"}
                       alt={nomAffiche}
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                        border: "1px solid rgba(255,255,255,0.15)",
-                        flexShrink: 0,
-                      }}
+                      style={driverAvatarStyle}
                     />
 
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        minWidth: 0,
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontWeight: "bold",
-                          fontSize: "14px",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {nomAffiche}
-                      </div>
+                    <div style={driverInfoStyle}>
+                      <div style={driverNameStyle}>{nomAffiche}</div>
+                      <div style={driverSubStyle}>Chauffeur Elite Routiers</div>
                     </div>
                   </div>
                 );
               })}
 
               {chauffeurs.length === 0 && (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "14px",
-                    background: "rgba(255,255,255,0.05)",
-                    borderRadius: "10px",
-                  }}
-                >
+                <div style={emptyDriverStyle}>
                   Aucun chauffeur inscrit pour le moment.
                 </div>
               )}
@@ -619,39 +322,449 @@ export default async function SocietePage() {
   );
 }
 
-
-const buttonBlue = {
-  padding: "10px 16px",
-  background: "#2563eb",
-  borderRadius: "10px",
+const mainStyle: CSSProperties = {
+  minHeight: "100vh",
+  position: "relative",
   color: "white",
-  textDecoration: "none",
-  fontWeight: "bold",
+  backgroundImage:
+    "linear-gradient(90deg, rgba(0,0,0,0.88), rgba(0,0,0,0.55), rgba(0,0,0,0.88)), url('/truck.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundAttachment: "fixed",
 };
 
-const buttonDark = {
-  padding: "10px 16px",
-  background: "#171a21",
-  borderRadius: "10px",
-  color: "white",
-  textDecoration: "none",
-  fontWeight: "bold",
+const backgroundGlowStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background: "rgba(0,0,0,0.2)",
 };
 
-const fuelInfoCard = {
-  background: "rgba(255,255,255,0.05)",
+const pageStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  minHeight: "100vh",
+  padding: "24px",
+};
+
+const headerStyle: CSSProperties = {
+  maxWidth: "1720px",
+  margin: "0 auto 24px",
+  minHeight: "145px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "24px",
+  padding: "30px",
+  borderRadius: "30px",
+  background:
+    "linear-gradient(135deg, rgba(15,23,42,0.88), rgba(15,23,42,0.58))",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(16px)",
+  boxShadow: "0 26px 90px rgba(0,0,0,0.6)",
+};
+
+const brandStyle: CSSProperties = {
+  color: "#93c5fd",
+  fontSize: "1rem",
+  letterSpacing: "0.18em",
+  textTransform: "uppercase",
+  fontWeight: 900,
+};
+
+const heroTitleStyle: CSSProperties = {
+  margin: "10px 0 8px",
+  fontSize: "3.4rem",
+  lineHeight: 1,
+  fontWeight: 900,
+  textShadow: "0 5px 25px rgba(0,0,0,0.65)",
+};
+
+const heroTextStyle: CSSProperties = {
+  margin: 0,
+  maxWidth: "650px",
+  color: "rgba(255,255,255,0.72)",
+  fontSize: "1rem",
+  fontWeight: 600,
+};
+
+const headerRightStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const topStatStyle: CSSProperties = {
+  width: "112px",
+  minHeight: "82px",
+  display: "grid",
+  placeItems: "center",
+  borderRadius: "20px",
+  background: "rgba(0,0,0,0.42)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+  fontWeight: 900,
+};
+
+const steamBadgeStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "9px",
+  padding: "12px 16px",
+  borderRadius: "999px",
+  background: "rgba(34,197,94,0.13)",
+  border: "1px solid rgba(34,197,94,0.32)",
+  color: "#bbf7d0",
+  fontWeight: 900,
+};
+
+const steamDotStyle: CSSProperties = {
+  width: "10px",
+  height: "10px",
+  borderRadius: "50%",
+  background: "#22c55e",
+  boxShadow: "0 0 12px #22c55e",
+};
+
+const layoutStyle: CSSProperties = {
+  maxWidth: "1720px",
+  margin: "0 auto",
+  display: "grid",
+  gridTemplateColumns: "260px minmax(0, 1fr) 310px",
+  gap: "22px",
+  alignItems: "start",
+};
+
+const centerPanelStyle: CSSProperties = {
+  borderRadius: "30px",
+  padding: "24px",
+  background: "rgba(0,0,0,0.42)",
+  border: "1px solid rgba(255,255,255,0.15)",
+  backdropFilter: "blur(16px)",
+  boxShadow: "0 26px 90px rgba(0,0,0,0.58)",
+};
+
+const sectionHeaderStyle: CSSProperties = {
+  display: "flex",background:
+  "linear-gradient(135deg, rgba(0,0,0,0.42), rgba(255,255,255,0.08))",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "16px",
+  flexWrap: "wrap",
+  marginBottom: "22px",
+};
+
+const smallTitleStyle: CSSProperties = {
+  color: "#93c5fd",
+  textTransform: "uppercase",
+  letterSpacing: "0.13em",
+  fontSize: "0.76rem",
+  fontWeight: 900,
+};
+
+const sectionTitleStyle: CSSProperties = {
+  margin: "6px 0 0",
+  fontSize: "2.2rem",
+  lineHeight: 1,
+};
+
+const buttonGroupStyle: CSSProperties = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+};
+
+const fuelPanelStyle: CSSProperties = {
+  marginBottom: "24px",
+  padding: "22px",
+  borderRadius: "24px",
+  background:
+    "linear-gradient(135deg, rgba(0,0,0,0.42), rgba(0,0,0,0.24))",
+  border: "1px solid rgba(255,255,255,0.14)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+};
+
+const fuelHeaderStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "14px",
+  flexWrap: "wrap",
+  marginBottom: "16px",
+};
+
+const fuelTitleStyle: CSSProperties = {
+  fontSize: "1.55rem",
+  fontWeight: 900,
+};
+
+const fuelSubtitleStyle: CSSProperties = {
+  marginTop: "4px",
+  fontSize: "0.9rem",
+  color: "rgba(255,255,255,0.66)",
+  fontWeight: 700,
+};
+
+const fuelPriceStyle: CSSProperties = {
+  padding: "12px 16px",
+  borderRadius: "15px",
+  background: "rgba(255,255,255,0.075)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  fontWeight: 900,
+};
+
+const fuelInfoGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "12px",
+  marginBottom: "15px",
+};
+
+const fuelInfoCard: CSSProperties = {
+  background: "rgba(255,255,255,0.065)",
+  borderRadius: "16px",
+  padding: "15px",
+  border: "1px solid rgba(255,255,255,0.10)",
+};
+
+const fuelInfoLabel: CSSProperties = {
+  fontSize: "0.75rem",
+  color: "rgba(255,255,255,0.62)",
+  marginBottom: "7px",
+  fontWeight: 800,
+};
+
+const fuelInfoValue: CSSProperties = {
+  fontSize: "1.25rem",
+  fontWeight: 900,
+};
+
+const fuelProgressStyle: CSSProperties = {
+  width: "100%",
+  height: "17px",
+  borderRadius: "999px",
+  background: "rgba(255,255,255,0.08)",
+  overflow: "hidden",
+  border: "1px solid rgba(255,255,255,0.10)",
+};
+
+const fuelMessageStyle: CSSProperties = {
+  marginTop: "11px",
+  color: "rgba(255,255,255,0.75)",
+  fontSize: "0.9rem",
+  fontWeight: 700,
+};
+
+const companyGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: "17px",
+};
+
+const companyCardStyle: CSSProperties = {
+  minHeight: "318px",
+  overflow: "hidden",
+  display: "flex",
+  flexDirection: "column",
+  borderRadius: "22px",
+  background: "rgba(8,13,24,0.86)",
+  border: "1px solid rgba(255,255,255,0.13)",
+  boxShadow: "0 20px 52px rgba(0,0,0,0.42)",
+};
+
+const companyImageStyle: CSSProperties = {
+  height: "128px",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  position: "relative",
+};
+
+const companyAbbrStyle: CSSProperties = {
+  position: "absolute",
+  left: "13px",
+  bottom: "13px",
+  padding: "6px 11px",
+  borderRadius: "999px",
+  background: "rgba(0,0,0,0.6)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  fontWeight: 900,
+  fontSize: "0.78rem",
+};
+
+const companyContentStyle: CSSProperties = {
+  padding: "15px",
+  display: "flex",
+  flexDirection: "column",
+  flex: 1,
+};
+
+const companyNameStyle: CSSProperties = {
+  margin: "0 0 10px",
+  fontSize: "1.17rem",
+  lineHeight: 1.15,
+};
+
+const companyStatusStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  fontSize: "0.86rem",
+  fontWeight: 900,
+  marginBottom: "9px",
+};
+
+const companyMembersStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.76)",
+  fontSize: "0.9rem",
+  fontWeight: 700,
+};
+
+const companyActionsStyle: CSSProperties = {
+  marginTop: "auto",
+  display: "grid",
+  gap: "8px",
+};
+
+const companyViewButtonStyle: CSSProperties = {
+  textAlign: "center",
+  padding: "10px",
   borderRadius: "12px",
-  padding: "14px",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 900,
 };
 
-const fuelInfoLabel = {
-  fontSize: "12px",
-  opacity: 0.75,
-  marginBottom: "6px",
+const companyApplyButtonStyle: CSSProperties = {
+  textAlign: "center",
+  padding: "10px",
+  borderRadius: "12px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.55)",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 900,
+  boxShadow: "0 0 20px rgba(37,99,235,0.34)",
 };
 
-const fuelInfoValue = {
-  fontSize: "20px",
-  fontWeight: "bold",
+const companyClosedButtonStyle: CSSProperties = {
+  textAlign: "center",
+  padding: "10px",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,0.07)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  color: "rgba(255,255,255,0.6)",
+  fontWeight: 900,
+  cursor: "not-allowed",
+};
+
+const rightPanelStyle: CSSProperties = {
+  borderRadius: "30px",
+  padding: "21px",
+  background: "rgba(2,6,23,0.74)",
+  border: "1px solid rgba(255,255,255,0.15)",
+  backdropFilter: "blur(16px)",
+  boxShadow: "0 26px 90px rgba(0,0,0,0.58)",
+};
+
+const rightHeaderStyle: CSSProperties = {
+  marginBottom: "16px",
+};
+
+const driversTitleStyle: CSSProperties = {
+  margin: "6px 0 0",
+  fontSize: "1.45rem",
+};
+
+const driversListStyle: CSSProperties = {
+  display: "grid",
+  gap: "11px",
+};
+
+const driverCardStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "11px",
+  padding: "11px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.065)",
+  border: "1px solid rgba(255,255,255,0.10)",
+};
+
+const driverAvatarStyle: CSSProperties = {
+  width: "46px",
+  height: "46px",
+  borderRadius: "50%",
+  objectFit: "cover",
+  border: "1px solid rgba(255,255,255,0.18)",
+  flexShrink: 0,
+};
+
+const driverInfoStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  minWidth: 0,
+};
+
+const driverNameStyle: CSSProperties = {
+  fontWeight: 900,
+  fontSize: "0.92rem",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const driverSubStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.56)",
+  fontSize: "0.76rem",
+  fontWeight: 700,
+};
+
+const errorStyle: CSSProperties = {
+  textAlign: "center",
+  padding: "22px",
+  background: "rgba(239,68,68,0.15)",
+  border: "1px solid rgba(239,68,68,0.35)",
+  borderRadius: "16px",
+  color: "#fecaca",
+  fontWeight: 900,
+};
+
+const emptyCompanyStyle: CSSProperties = {
+  gridColumn: "1 / -1",
+  textAlign: "center",
+  padding: "24px",
+  background: "rgba(255,255,255,0.06)",
+  borderRadius: "16px",
+  border: "1px solid rgba(255,255,255,0.10)",
+};
+
+const emptyDriverStyle: CSSProperties = {
+  textAlign: "center",
+  padding: "16px",
+  background: "rgba(255,255,255,0.06)",
+  borderRadius: "14px",
+};
+
+const buttonBlue: CSSProperties = {
+  padding: "11px 16px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  borderRadius: "13px",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 900,
+  border: "1px solid rgba(147,197,253,0.55)",
+  boxShadow: "0 0 18px rgba(37,99,235,0.3)",
+};
+
+const buttonDark: CSSProperties = {
+  padding: "11px 16px",
+  background: "rgba(255,255,255,0.08)",
+  borderRadius: "13px",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 900,
+  border: "1px solid rgba(255,255,255,0.14)",
 };

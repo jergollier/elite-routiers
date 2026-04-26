@@ -3,11 +3,11 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
 function cleanValue(value: unknown) {
-  const text = String(value ?? "").trim();
-  return text === "" ? null : text;
+  return String(value ?? "").trim();
 }
 
-function isValidDiscordWebhook(url: string | null) {
+
+function isValidDiscordWebhook(url: string) {
   if (!url) return true;
 
   return (

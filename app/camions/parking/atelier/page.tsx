@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 
 const PRIX = {
@@ -15,6 +14,9 @@ const PRIX = {
   BATTERIE: 7000,
 };
 
+type EntretienType = keyof typeof PRIX;
+type StatItem = [string, number | string, string];
+
 async function payerEntretien(formData: FormData) {
   "use server";
 
@@ -24,56 +26,32 @@ async function payerEntretien(formData: FormData) {
   if (!steamId) redirect("/");
 
   const camionId = Number(formData.get("camionId"));
-  const type = String(formData.get("type"));
+  const type = String(formData.get("type")) as EntretienType;
 
   if (!camionId || Number.isNaN(camionId)) return;
+  if (!PRIX[type]) return;
 
-  const prix =
-    type === "REPARATION"
-      ? PRIX.REPARATION
-      : type === "PNEUS"
-      ? PRIX.PNEUS
-      : type === "VIDANGE"
-      ? PRIX.VIDANGE
-      : type === "REVISION"
-      ? PRIX.REVISION
-      : type === "FREINS"
-      ? PRIX.FREINS
-      : type === "BATTERIE"
-      ? PRIX.BATTERIE
-      : null;
-
-  if (!prix) return;
+  const prix = PRIX[type];
 
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.findUnique({
       where: { steamId },
       select: {
-        id: true,
         argentPerso: true,
-        camionsPerso: {
-          select: {
-            id: true,
-          },
-        },
+        camionsPerso: { select: { id: true } },
       },
     });
 
     if (!user) return;
     if ((user.argentPerso ?? 0) < prix) return;
 
-    const camionAppartientAuUser = user.camionsPerso.some(
-      (camion) => camion.id === camionId
-    );
-
-    if (!camionAppartientAuUser) return;
+    const ok = user.camionsPerso.some((c) => c.id === camionId);
+    if (!ok) return;
 
     await tx.user.update({
       where: { steamId },
       data: {
-        argentPerso: {
-          decrement: prix,
-        },
+        argentPerso: { decrement: prix },
       },
     });
 
@@ -140,192 +118,239 @@ async function payerEntretien(formData: FormData) {
   revalidatePath("/camions/atelier-perso");
 }
 
-function formatMarque(marque: string) {
-  return marque
-    .replace("_", " ")
+function getDamageConfig(value?: number | null) {
+  const safeValue = value ?? 0;
+
+  if (safeValue >= 30) {
+    return {
+      color: "#ef4444",
+      glow: "0 0 10px rgba(239,68,68,0.65)",
+      label: `${safeValue}%`,
+    };
+  }
+
+  if (safeValue >= 10) {
+    return {
+      color: "#f59e0b",
+      glow: "0 0 10px rgba(245,158,11,0.55)",
+      label: `${safeValue}%`,
+    };
+  }
+
+  return {
+    color: "#22c55e",
+    glow: "0 0 10px rgba(34,197,94,0.45)",
+    label: `${safeValue}%`,
+  };
+}
+
+function getKmConfig(value?: number | null, max = 60000, warning = 5000) {
+  const safeValue = value ?? 0;
+
+  if (safeValue <= 0) {
+    return {
+      color: "#ef4444",
+      glow: "0 0 10px rgba(239,68,68,0.65)",
+      label: "Urgent",
+      message: "Entretien obligatoire",
+      percent: 0,
+      urgent: true,
+      warning: false,
+    };
+  }
+
+  if (safeValue <= warning) {
+    return {
+      color: "#f59e0b",
+      glow: "0 0 10px rgba(245,158,11,0.55)",
+      label: "À prévoir",
+      message: `Attention dans ${safeValue.toLocaleString("fr-FR")} km`,
+      percent: Math.max(0, Math.min(100, (safeValue / max) * 100)),
+      urgent: false,
+      warning: true,
+    };
+  }
+
+  return {
+    color: "#22c55e",
+    glow: "0 0 10px rgba(34,197,94,0.45)",
+    label: "OK",
+    message: "RAS",
+    percent: Math.max(0, Math.min(100, (safeValue / max) * 100)),
+    urgent: false,
+    warning: false,
+  };
+}
+
+function getEtatGeneral(camion: {
+  degatsMoteur?: number | null;
+  degatsCarrosserie?: number | null;
+  degatsChassis?: number | null;
+  degatsRoues?: number | null;
+  vidangeRestante?: number | null;
+  revisionRestante?: number | null;
+  pneusRestantsKm?: number | null;
+  freinsRestantsKm?: number | null;
+  batterieRestanteKm?: number | null;
+}) {
+  const totalDegats =
+    (camion.degatsMoteur ?? 0) +
+    (camion.degatsCarrosserie ?? 0) +
+    (camion.degatsChassis ?? 0) +
+    (camion.degatsRoues ?? 0);
+
+  if (
+    (camion.revisionRestante ?? 0) <= 0 ||
+    (camion.pneusRestantsKm ?? 0) <= 0 ||
+    (camion.freinsRestantsKm ?? 0) <= 0 ||
+    (camion.batterieRestanteKm ?? 0) <= 0 ||
+    totalDegats >= 80
+  ) {
+    return {
+      label: "Camion bloqué",
+      color: "#ef4444",
+      glow: "0 0 14px rgba(239,68,68,0.75)",
+    };
+  }
+
+  if (
+    (camion.vidangeRestante ?? 0) <= 0 ||
+    (camion.vidangeRestante ?? 0) <= 5000 ||
+    (camion.revisionRestante ?? 0) <= 10000 ||
+    (camion.pneusRestantsKm ?? 0) <= 7500 ||
+    (camion.freinsRestantsKm ?? 0) <= 5000 ||
+    (camion.batterieRestanteKm ?? 0) <= 10000 ||
+    totalDegats >= 25
+  ) {
+    return {
+      label: "À surveiller",
+      color: "#f59e0b",
+      glow: "0 0 14px rgba(245,158,11,0.65)",
+    };
+  }
+
+  return {
+    label: "Bon état",
+    color: "#22c55e",
+    glow: "0 0 14px rgba(34,197,94,0.55)",
+  };
+}
+
+function getStatutCamionConfig(statut?: string | null) {
+  switch (statut) {
+    case "DISPONIBLE":
+      return {
+        label: "Disponible",
+        color: "#22c55e",
+        glow: "0 0 10px rgba(34,197,94,0.75)",
+      };
+    case "EN_MISSION":
+      return {
+        label: "En mission",
+        color: "#f59e0b",
+        glow: "0 0 10px rgba(245,158,11,0.75)",
+      };
+    case "EN_MAINTENANCE":
+      return {
+        label: "En maintenance",
+        color: "#ef4444",
+        glow: "0 0 10px rgba(239,68,68,0.75)",
+      };
+    default:
+      return {
+        label: "Garage perso",
+        color: "#93c5fd",
+        glow: "0 0 8px rgba(147,197,253,0.55)",
+      };
+  }
+}
+
+function formatMarque(value?: string | null) {
+  if (!value) return "Marque inconnue";
+
+  return value
+    .replaceAll("_", " ")
     .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function getStatut(statut: string) {
-  if (statut === "DISPONIBLE") return { label: "Disponible", color: "#22c55e" };
-  if (statut === "EN_MISSION") return { label: "En mission", color: "#f59e0b" };
-  return { label: "En maintenance", color: "#ef4444" };
-}
-
-function getBarColor(value: number) {
-  if (value > 60) return "#22c55e";
-  if (value > 30) return "#f59e0b";
-  return "#ef4444";
-}
-
-function percent(value: number, max: number) {
-  return Math.max(0, Math.min(100, (value / max) * 100));
-}
-
-export default async function Page() {
-  const cookieStore = await cookies();
-  const steamId = cookieStore.get("steamId")?.value;
-
-  if (!steamId) redirect("/");
-
-  const user = await prisma.user.findUnique({
-    where: { steamId },
-    include: {
-      camionsPerso: {
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
-
-  if (!user) redirect("/");
-
-  const argentPerso = user.argentPerso ?? 0;
+function EntretienLine({
+  icon,
+  label,
+  value,
+  max,
+  warning,
+}: {
+  icon: string;
+  label: string;
+  value?: number | null;
+  max: number;
+  warning: number;
+}) {
+  const restante = value ?? 0;
+  const config = getKmConfig(restante, max, warning);
 
   return (
-    <main style={mainStyle}>
-      <div style={overlayStyle} />
+    <div style={{ marginBottom: "14px" }}>
+      <div style={rowTopStyle}>
+        <span>
+          {icon} {label}
+        </span>
 
-      <div style={layoutStyle}>
-        <Menu />
-
-        <div style={contentStyle}>
-          <section style={panelStyle}>
-            <div style={headerStyle}>
-              <div>
-                <h1 style={titleStyle}>🏭 Atelier perso chauffeur</h1>
-                <p style={subtitleStyle}>
-                  Entretien de tes camions personnels avec ton argent perso.
-                </p>
-              </div>
-
-              <div style={topActionsStyle}>
-                <Link href="/finance-perso" style={financeButtonStyle}>
-                  💰 Finance perso
-                </Link>
-
-                <Link href="/camions/parking" style={backButtonStyle}>
-                  ← Retour parking
-                </Link>
-              </div>
-            </div>
-
-            <div style={statsGridStyle}>
-              <div style={statCardStyle}>
-                <span style={statLabelStyle}>Argent perso</span>
-                <strong style={statValueStyle}>
-                  {argentPerso.toLocaleString("fr-FR")} €
-                </strong>
-              </div>
-
-              <div style={statCardStyle}>
-                <span style={statLabelStyle}>Camions perso</span>
-                <strong style={statValueStyle}>{user.camionsPerso.length}</strong>
-              </div>
-            </div>
-
-            {user.camionsPerso.length === 0 ? (
-              <div style={emptyStyle}>
-                Tu n’as aucun camion personnel dans ton parking.
-              </div>
-            ) : (
-              <div style={gridStyle}>
-                {user.camionsPerso.map((camion) => {
-                  const statut = getStatut(camion.statut);
-                  const vidange = percent(camion.vidangeRestante ?? 0, 60000);
-                  const revision = percent(camion.revisionRestante ?? 0, 120000);
-                  const pneus = percent(camion.pneusRestantsKm ?? 0, 100000);
-                  const freins = percent(camion.freinsRestantsKm ?? 0, 60000);
-                  const batterie = percent(camion.batterieRestanteKm ?? 0, 150000);
-
-                  return (
-                    <article key={camion.id} style={cardStyle}>
-                      <div style={cardTopStyle}>
-                        <div>
-                          <h2 style={truckTitleStyle}>
-                            {formatMarque(camion.marque)} {camion.modele}
-                          </h2>
-                          <p style={smallTextStyle}>
-                            {camion.kilometrage.toLocaleString("fr-FR")} km
-                          </p>
-                        </div>
-
-                        <div style={{ ...badgeStyle, color: statut.color }}>
-                          ● {statut.label}
-                        </div>
-                      </div>
-
-                      <div style={infoRowStyle}>
-                        <span>État général</span>
-                        <strong>{camion.etat}%</strong>
-                      </div>
-
-                      <div style={infoRowStyle}>
-                        <span>Carburant</span>
-                        <strong>{camion.carburant}%</strong>
-                      </div>
-
-                      <div style={sectionStyle}>
-                        <h3 style={sectionTitleStyle}>Entretien</h3>
-
-                        <Bar label="Vidange" value={camion.vidangeRestante ?? 0} percent={vidange} />
-                        <Bar label="Révision" value={camion.revisionRestante ?? 0} percent={revision} />
-                        <Bar label="Pneus" value={camion.pneusRestantsKm ?? 0} percent={pneus} />
-                        <Bar label="Freins" value={camion.freinsRestantsKm ?? 0} percent={freins} />
-                        <Bar label="Batterie" value={camion.batterieRestanteKm ?? 0} percent={batterie} />
-                      </div>
-
-                      <div style={sectionStyle}>
-                        <h3 style={sectionTitleStyle}>Dégâts</h3>
-
-                        <div style={damageGridStyle}>
-                          <span>Moteur : {camion.degatsMoteur ?? 0}%</span>
-                          <span>Carrosserie : {camion.degatsCarrosserie ?? 0}%</span>
-                          <span>Châssis : {camion.degatsChassis ?? 0}%</span>
-                          <span>Roues : {camion.degatsRoues ?? 0}%</span>
-                        </div>
-                      </div>
-
-                      <div style={sectionStyle}>
-                        <h3 style={sectionTitleStyle}>Actions atelier</h3>
-
-                        <div style={actionsGridStyle}>
-                          <PayButton camionId={camion.id} type="REPARATION" label="Réparer" prix={PRIX.REPARATION} argent={argentPerso} />
-                          <PayButton camionId={camion.id} type="PNEUS" label="Pneus" prix={PRIX.PNEUS} argent={argentPerso} />
-                          <PayButton camionId={camion.id} type="VIDANGE" label="Vidange" prix={PRIX.VIDANGE} argent={argentPerso} />
-                          <PayButton camionId={camion.id} type="REVISION" label="Révision" prix={PRIX.REVISION} argent={argentPerso} />
-                          <PayButton camionId={camion.id} type="FREINS" label="Freins" prix={PRIX.FREINS} argent={argentPerso} />
-                          <PayButton camionId={camion.id} type="BATTERIE" label="Batterie" prix={PRIX.BATTERIE} argent={argentPerso} />
-                        </div>
-                      </div>
-
-                      <Link href={`/camions/${camion.id}`} style={buttonStyle}>
-                        Voir le camion
-                      </Link>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </div>
+        <span
+          style={{
+            color: config.color,
+            textShadow: config.glow,
+            fontWeight: 800,
+          }}
+        >
+          {Math.max(0, restante).toLocaleString("fr-FR")} km • {config.label}
+        </span>
       </div>
-    </main>
+
+      {(config.warning || config.urgent) && (
+        <div
+          style={{
+            marginBottom: "8px",
+            color: config.color,
+            fontSize: "13px",
+            fontWeight: 800,
+            textShadow: config.glow,
+          }}
+        >
+          {config.urgent ? "🔴 " : "⚠️ "}
+          {config.message}
+        </div>
+      )}
+
+      <div style={barBackgroundStyle}>
+        <div
+          style={{
+            ...barFillBaseStyle,
+            width: `${config.percent}%`,
+            background: config.color,
+            boxShadow: config.glow,
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
 function PayButton({
   camionId,
   type,
-  label,
   prix,
   argent,
+  label,
+  icon,
 }: {
   camionId: number;
-  type: string;
-  label: string;
+  type: EntretienType;
   prix: number;
   argent: number;
+  label: string;
+  icon: string;
 }) {
   const disabled = argent < prix;
 
@@ -343,166 +368,515 @@ function PayButton({
           cursor: disabled ? "not-allowed" : "pointer",
         }}
       >
+        <span>{icon}</span>
         <span>{label}</span>
-        <small>{prix.toLocaleString("fr-FR")} €</small>
+        <strong>{prix.toLocaleString("fr-FR")} €</strong>
       </button>
     </form>
   );
 }
 
-function Bar({
-  label,
-  value,
-  percent,
-}: {
-  label: string;
-  value: number;
-  percent: number;
-}) {
-  const color = getBarColor(percent);
+export default async function AtelierPersoPage() {
+  const cookieStore = await cookies();
+  const steamId = cookieStore.get("steamId")?.value;
+
+  if (!steamId) {
+    redirect("/");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { steamId },
+    include: {
+      camionsPerso: {
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    redirect("/");
+  }
+
+  const argent = user.argentPerso ?? 0;
+  const camions = user.camionsPerso ?? [];
+
+  const totalCamions = camions.length;
+
+  const totalBloques = camions.filter(
+    (camion) => getEtatGeneral(camion).label === "Camion bloqué"
+  ).length;
+
+  const totalASurveiller = camions.filter(
+    (camion) => getEtatGeneral(camion).label === "À surveiller"
+  ).length;
+
+  const totalOk = camions.filter(
+    (camion) => getEtatGeneral(camion).label === "Bon état"
+  ).length;
+
+  const stats: StatItem[] = [
+    ["Solde personnel", `${argent.toLocaleString("fr-FR")} €`, "#22c55e"],
+    ["Camions perso", totalCamions, "#60a5fa"],
+    ["Bon état", totalOk, "#22c55e"],
+    ["À surveiller", totalASurveiller, "#f59e0b"],
+    ["Bloqués", totalBloques, "#ef4444"],
+  ];
 
   return (
-    <div style={{ marginBottom: "12px" }}>
-      <div style={barTopStyle}>
-        <span>{label}</span>
-        <strong>{Math.max(0, value).toLocaleString("fr-FR")} km</strong>
-      </div>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#080b10" }}>
+      <div style={backgroundStyle}>
+        <div style={{ minHeight: "100vh", padding: "32px" }}>
+          <div style={headerStyle}>
+            <div style={headerTopStyle}>
+              <div style={profileBlockStyle}>
+                <img
+                  src={user.avatar || "/truck.jpg"}
+                  alt={user.username || "Profil Steam"}
+                  style={avatarStyle}
+                />
 
-      <div style={barBgStyle}>
-        <div
-          style={{
-            ...barFillStyle,
-            width: `${percent}%`,
-            background: color,
-            boxShadow: `0 0 10px ${color}`,
-          }}
-        />
+                <div>
+                  <h1 style={titleStyle}>🏭 Atelier personnel</h1>
+
+                  <p style={{ margin: 0, color: "rgba(255,255,255,0.74)" }}>
+                    Garage privé de{" "}
+                    <strong style={{ color: "#ffffff" }}>
+                      {user.username || "Chauffeur"}
+                    </strong>
+                  </p>
+
+                  <p style={{ margin: "8px 0 0", color: "#93c5fd" }}>
+                    Entretien, réparations et suivi mécanique de tes camions
+                    personnels.
+                  </p>
+                </div>
+              </div>
+
+              <div style={actionsStyle}>
+                <Link href="/societe" style={btnBlue}>
+                  🏠 Accueil
+                </Link>
+
+                <Link href="/parking" style={btnGreen}>
+                  🅿️ Parking
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div style={statsGridStyle}>
+            {stats.map(([label, value, color]) => (
+              <div key={label} style={statCardStyle}>
+                <div style={statLabelStyle}>{label}</div>
+
+                <div
+                  style={{
+                    fontSize: "32px",
+                    fontWeight: 800,
+                    color,
+                  }}
+                >
+                  {value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={sectionHeaderStyle}>
+            <div>
+              <h2 style={bigSectionTitleStyle}>🚛 Camions personnels</h2>
+              <p style={sectionSubtitleStyle}>
+                Même suivi que l’atelier entreprise, mais payé avec ton argent
+                personnel.
+              </p>
+            </div>
+          </div>
+
+          {camions.length === 0 ? (
+            <div style={emptyStyle}>
+              Aucun camion personnel dans ton parking pour le moment.
+            </div>
+          ) : (
+            <div style={camionGridStyle}>
+              {camions.map((camion) => {
+                const moteurConfig = getDamageConfig(camion.degatsMoteur);
+                const carrosserieConfig = getDamageConfig(
+                  camion.degatsCarrosserie
+                );
+                const chassisConfig = getDamageConfig(camion.degatsChassis);
+                const rouesConfig = getDamageConfig(camion.degatsRoues);
+
+                const etatGeneral = getEtatGeneral(camion);
+                const statutConfig = getStatutCamionConfig(camion.statut);
+
+                return (
+                  <div key={camion.id} style={camionCardStyle}>
+                    <div style={cardHeaderStyle}>
+                      <div>
+                        <h2 style={camionTitleStyle}>
+                          {formatMarque(String(camion.marque))} {camion.modele}
+                        </h2>
+
+                        <p style={smallTextStyle}>
+                          Propriétaire :{" "}
+                          <strong style={{ color: "#ffffff" }}>
+                            {user.username || "Moi"}
+                          </strong>
+                        </p>
+
+                        <p style={smallTextStyle}>
+                          Kilométrage :{" "}
+                          <strong style={{ color: "#ffffff" }}>
+                            {(camion.kilometrage ?? 0).toLocaleString("fr-FR")}{" "}
+                            km
+                          </strong>
+                        </p>
+
+                        <p style={smallTextStyle}>
+                          Valeur entretien :{" "}
+                          <strong style={{ color: "#ffffff" }}>
+                            Atelier privé
+                          </strong>
+                        </p>
+                      </div>
+
+                      <div
+                        style={{
+                          ...pillStyle,
+                          color: statutConfig.color,
+                          textShadow: statutConfig.glow,
+                        }}
+                      >
+                        {statutConfig.label}
+                      </div>
+                    </div>
+
+                    <div style={etatRowStyle}>
+                      <div
+                        style={{
+                          ...etatPillStyle,
+                          color: etatGeneral.color,
+                          textShadow: etatGeneral.glow,
+                        }}
+                      >
+                        État général : {etatGeneral.label}
+                      </div>
+
+                      <div style={moneyPillStyle}>
+                        💰 {argent.toLocaleString("fr-FR")} €
+                      </div>
+                    </div>
+
+                    <div style={sectionStyle}>
+                      <div style={sectionTitleStyle}>Entretien atelier</div>
+
+                      <EntretienLine
+                        icon="🔧"
+                        label="Vidange"
+                        value={camion.vidangeRestante}
+                        max={60000}
+                        warning={5000}
+                      />
+
+                      <EntretienLine
+                        icon="🔩"
+                        label="Révision"
+                        value={camion.revisionRestante}
+                        max={120000}
+                        warning={10000}
+                      />
+
+                      <EntretienLine
+                        icon="🛞"
+                        label="Pneus"
+                        value={camion.pneusRestantsKm}
+                        max={100000}
+                        warning={7500}
+                      />
+
+                      <EntretienLine
+                        icon="🛑"
+                        label="Freins"
+                        value={camion.freinsRestantsKm}
+                        max={60000}
+                        warning={5000}
+                      />
+
+                      <EntretienLine
+                        icon="🔋"
+                        label="Batterie"
+                        value={camion.batterieRestanteKm}
+                        max={150000}
+                        warning={10000}
+                      />
+                    </div>
+
+                    <div style={sectionStyle}>
+                      <div style={sectionTitleStyle}>Dégâts camion</div>
+
+                      <div style={damageGridStyle}>
+                        <div style={damageTextStyle}>
+                          💥 Moteur :{" "}
+                          <span style={damageValueStyle(moteurConfig)}>
+                            {moteurConfig.label}
+                          </span>
+                        </div>
+
+                        <div style={damageTextStyle}>
+                          🚪 Carrosserie :{" "}
+                          <span style={damageValueStyle(carrosserieConfig)}>
+                            {carrosserieConfig.label}
+                          </span>
+                        </div>
+
+                        <div style={damageTextStyle}>
+                          🧱 Châssis :{" "}
+                          <span style={damageValueStyle(chassisConfig)}>
+                            {chassisConfig.label}
+                          </span>
+                        </div>
+
+                        <div style={damageTextStyle}>
+                          🛞 Roues :{" "}
+                          <span style={damageValueStyle(rouesConfig)}>
+                            {rouesConfig.label}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={sectionStyle}>
+                      <div style={sectionTitleStyle}>Actions atelier perso</div>
+
+                      <div style={actionsGridStyle}>
+                        <PayButton
+                          camionId={camion.id}
+                          type="REPARATION"
+                          prix={PRIX.REPARATION}
+                          argent={argent}
+                          label="Réparation"
+                          icon="🛠️"
+                        />
+
+                        <PayButton
+                          camionId={camion.id}
+                          type="PNEUS"
+                          prix={PRIX.PNEUS}
+                          argent={argent}
+                          label="Pneus"
+                          icon="🛞"
+                        />
+
+                        <PayButton
+                          camionId={camion.id}
+                          type="VIDANGE"
+                          prix={PRIX.VIDANGE}
+                          argent={argent}
+                          label="Vidange"
+                          icon="🔧"
+                        />
+
+                        <PayButton
+                          camionId={camion.id}
+                          type="REVISION"
+                          prix={PRIX.REVISION}
+                          argent={argent}
+                          label="Révision"
+                          icon="🔩"
+                        />
+
+                        <PayButton
+                          camionId={camion.id}
+                          type="FREINS"
+                          prix={PRIX.FREINS}
+                          argent={argent}
+                          label="Freins"
+                          icon="🛑"
+                        />
+
+                        <PayButton
+                          camionId={camion.id}
+                          type="BATTERIE"
+                          prix={PRIX.BATTERIE}
+                          argent={argent}
+                          label="Batterie"
+                          icon="🔋"
+                        />
+                      </div>
+
+                      {argent < PRIX.VIDANGE && (
+                        <p style={warningTextStyle}>
+                          Solde insuffisant pour effectuer un entretien.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-const mainStyle: CSSProperties = {
+const backgroundStyle: CSSProperties = {
+  flex: 1,
   minHeight: "100vh",
-  backgroundImage: "url('/atelier.jpg')",
+  backgroundImage:
+    "linear-gradient(rgba(5,8,15,0.62), rgba(5,8,15,0.72)), url('/atelier.jpg')",
   backgroundSize: "cover",
   backgroundPosition: "center",
   backgroundAttachment: "fixed",
-  position: "relative",
-  color: "white",
-};
-
-const overlayStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "rgba(0,0,0,0.68)",
-};
-
-const layoutStyle: CSSProperties = {
-  position: "relative",
-  zIndex: 1,
-  minHeight: "100vh",
-  display: "flex",
-};
-
-const contentStyle: CSSProperties = {
-  flex: 1,
-  padding: "24px",
-  minWidth: 0,
-};
-
-const panelStyle: CSSProperties = {
-  background: "rgba(0,0,0,0.48)",
-  borderRadius: "18px",
-  padding: "24px",
-  backdropFilter: "blur(6px)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  boxShadow: "0 0 20px rgba(0,0,0,0.45)",
 };
 
 const headerStyle: CSSProperties = {
+  background:
+    "linear-gradient(135deg, rgba(20,20,20,0.82), rgba(12,12,12,0.62))",
+  border: "1px solid rgba(255,255,255,0.06)",
+  borderRadius: "24px",
+  padding: "28px",
+  backdropFilter: "blur(8px)",
+  boxShadow:
+    "0 0 20px rgba(0,0,0,0.6), inset 0 0 20px rgba(255,255,255,0.02)",
+  marginBottom: "26px",
+};
+
+const headerTopStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: "16px",
   flexWrap: "wrap",
-  marginBottom: "22px",
 };
 
-const topActionsStyle: CSSProperties = {
+const profileBlockStyle: CSSProperties = {
   display: "flex",
-  gap: "12px",
-  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "18px",
+};
+
+const avatarStyle: CSSProperties = {
+  width: "76px",
+  height: "76px",
+  borderRadius: "20px",
+  objectFit: "cover",
+  border: "2px solid rgba(96,165,250,0.8)",
+  boxShadow: "0 0 28px rgba(37,99,235,0.42)",
 };
 
 const titleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "34px",
+  fontSize: "36px",
   fontWeight: 900,
+  color: "#ffffff",
+  margin: 0,
+  marginBottom: "10px",
 };
 
-const subtitleStyle: CSSProperties = {
-  marginTop: "8px",
-  marginBottom: 0,
-  opacity: 0.82,
+const actionsStyle: CSSProperties = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
 };
 
-const backButtonStyle: CSSProperties = {
-  padding: "12px 18px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.08)",
-  color: "white",
+const btnBlue: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "11px 16px",
+  borderRadius: "999px",
+  background: "rgba(37,99,235,0.22)",
+  border: "1px solid rgba(37,99,235,0.45)",
+  color: "#bfdbfe",
+  fontWeight: 800,
   textDecoration: "none",
-  fontWeight: "bold",
-  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 0 14px rgba(37,99,235,0.28)",
 };
 
-const financeButtonStyle: CSSProperties = {
-  ...backButtonStyle,
-  background: "linear-gradient(135deg, #16a34a, #22c55e)",
+const btnGreen: CSSProperties = {
+  ...btnBlue,
+  background: "rgba(34,197,94,0.18)",
+  border: "1px solid rgba(34,197,94,0.38)",
+  color: "#bbf7d0",
+  boxShadow: "0 0 14px rgba(34,197,94,0.24)",
 };
 
 const statsGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: "16px",
-  marginBottom: "22px",
+  gap: "18px",
+  marginBottom: "28px",
 };
 
 const statCardStyle: CSSProperties = {
-  background: "rgba(255,255,255,0.08)",
-  borderRadius: "16px",
-  padding: "18px",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(18,18,18,0.78)",
+  borderRadius: "20px",
+  padding: "20px",
+  backdropFilter: "blur(8px)",
+  border: "1px solid rgba(255,255,255,0.05)",
 };
 
 const statLabelStyle: CSSProperties = {
-  display: "block",
-  opacity: 0.75,
   fontSize: "14px",
-  marginBottom: "8px",
+  color: "rgba(255,255,255,0.68)",
+  marginBottom: "10px",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
 };
 
-const statValueStyle: CSSProperties = {
-  fontSize: "26px",
-  color: "#22c55e",
+const emptyStyle: CSSProperties = {
+  background: "rgba(18,18,18,0.78)",
+  borderRadius: "22px",
+  padding: "26px",
+  backdropFilter: "blur(8px)",
+  border: "1px solid rgba(255,255,255,0.05)",
+  color: "rgba(255,255,255,0.82)",
+  marginBottom: "28px",
 };
 
-const gridStyle: CSSProperties = {
+const sectionHeaderStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "16px",
+  flexWrap: "wrap",
+  margin: "10px 0 18px",
+};
+
+const bigSectionTitleStyle: CSSProperties = {
+  margin: 0,
+  color: "#ffffff",
+  fontSize: "28px",
+  fontWeight: 900,
+};
+
+const sectionSubtitleStyle: CSSProperties = {
+  margin: "6px 0 0 0",
+  color: "rgba(255,255,255,0.68)",
+  fontSize: "14px",
+};
+
+const camionGridStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-  gap: "18px",
+  gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+  gap: "22px",
+  marginBottom: "34px",
 };
 
-const cardStyle: CSSProperties = {
-  background: "rgba(15,15,15,0.82)",
-  borderRadius: "18px",
-  padding: "18px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  boxShadow: "0 0 18px rgba(0,0,0,0.35)",
+const camionCardStyle: CSSProperties = {
+  background:
+    "linear-gradient(180deg, rgba(18,18,18,0.84), rgba(10,10,10,0.7))",
+  borderRadius: "22px",
+  padding: "20px",
+  backdropFilter: "blur(8px)",
+  border: "1px solid rgba(255,255,255,0.06)",
+  boxShadow: "0 0 20px rgba(0,0,0,0.55)",
 };
 
-const cardTopStyle: CSSProperties = {
+const cardHeaderStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
@@ -510,64 +884,93 @@ const cardTopStyle: CSSProperties = {
   marginBottom: "14px",
 };
 
-const truckTitleStyle: CSSProperties = {
+const camionTitleStyle: CSSProperties = {
   margin: 0,
+  color: "#ffffff",
   fontSize: "22px",
+  fontWeight: 800,
 };
 
 const smallTextStyle: CSSProperties = {
-  margin: "6px 0 0 0",
-  opacity: 0.72,
+  margin: "8px 0 0 0",
+  color: "rgba(255,255,255,0.68)",
+  fontSize: "14px",
 };
 
-const badgeStyle: CSSProperties = {
+const pillStyle: CSSProperties = {
   padding: "8px 12px",
   borderRadius: "999px",
-  background: "rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.04)",
   border: "1px solid rgba(255,255,255,0.08)",
-  fontWeight: "bold",
+  fontWeight: 700,
   fontSize: "13px",
+  whiteSpace: "nowrap",
 };
 
-const infoRowStyle: CSSProperties = {
+const etatRowStyle: CSSProperties = {
   display: "flex",
+  alignItems: "center",
   justifyContent: "space-between",
-  padding: "8px 0",
-  borderBottom: "1px solid rgba(255,255,255,0.06)",
+  gap: "12px",
+  marginBottom: "18px",
+  flexWrap: "wrap",
+};
+
+const etatPillStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  fontWeight: 800,
+};
+
+const moneyPillStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(34,197,94,0.12)",
+  border: "1px solid rgba(34,197,94,0.28)",
+  color: "#86efac",
+  fontWeight: 900,
 };
 
 const sectionStyle: CSSProperties = {
-  marginTop: "16px",
-  padding: "14px",
-  borderRadius: "14px",
-  background: "rgba(255,255,255,0.04)",
+  marginBottom: "16px",
+  padding: "12px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.03)",
   border: "1px solid rgba(255,255,255,0.06)",
 };
 
 const sectionTitleStyle: CSSProperties = {
-  margin: "0 0 12px",
-  fontSize: "14px",
-  opacity: 0.7,
+  fontSize: "13px",
+  color: "rgba(255,255,255,0.56)",
   textTransform: "uppercase",
   letterSpacing: "0.08em",
+  marginBottom: "12px",
 };
 
-const barTopStyle: CSSProperties = {
+const rowTopStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "12px",
-  marginBottom: "6px",
+  marginBottom: "8px",
+  gap: "8px",
+  color: "#ffffff",
   fontSize: "14px",
 };
 
-const barBgStyle: CSSProperties = {
-  height: "9px",
+const barBackgroundStyle: CSSProperties = {
+  height: "8px",
+  background: "rgba(255,255,255,0.08)",
   borderRadius: "999px",
-  background: "rgba(255,255,255,0.1)",
   overflow: "hidden",
 };
 
-const barFillStyle: CSSProperties = {
+const barFillBaseStyle: CSSProperties = {
   height: "100%",
   borderRadius: "999px",
 };
@@ -575,7 +978,11 @@ const barFillStyle: CSSProperties = {
 const damageGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
-  gap: "10px",
+  gap: "10px 14px",
+};
+
+const damageTextStyle: CSSProperties = {
+  color: "#ffffff",
   fontSize: "14px",
 };
 
@@ -587,36 +994,30 @@ const actionsGridStyle: CSSProperties = {
 
 const payButtonStyle: CSSProperties = {
   width: "100%",
-  border: "1px solid rgba(255,255,255,0.12)",
-  borderRadius: "12px",
-  padding: "11px",
-  background: "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(29,78,216,0.95))",
-  color: "white",
-  fontWeight: "bold",
-  display: "flex",
-  flexDirection: "column",
+  display: "grid",
+  gridTemplateColumns: "auto 1fr auto",
   alignItems: "center",
-  gap: "4px",
+  gap: "8px",
+  padding: "11px 12px",
+  borderRadius: "14px",
+  background: "rgba(37,99,235,0.18)",
+  border: "1px solid rgba(37,99,235,0.35)",
+  color: "#dbeafe",
+  fontWeight: 800,
+  boxShadow: "0 0 12px rgba(37,99,235,0.18)",
 };
 
-const buttonStyle: CSSProperties = {
-  marginTop: "16px",
-  width: "100%",
-  boxSizing: "border-box",
-  padding: "12px",
-  borderRadius: "12px",
-  background: "#2563eb",
-  color: "white",
-  textDecoration: "none",
-  fontWeight: "bold",
-  display: "inline-flex",
-  justifyContent: "center",
+const warningTextStyle: CSSProperties = {
+  margin: "12px 0 0",
+  color: "#fca5a5",
+  fontWeight: 800,
+  fontSize: "13px",
 };
 
-const emptyStyle: CSSProperties = {
-  padding: "28px",
-  textAlign: "center",
-  borderRadius: "16px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
+function damageValueStyle(config: { color: string; glow: string }) {
+  return {
+    color: config.color,
+    textShadow: config.glow,
+    fontWeight: 800,
+  };
+}

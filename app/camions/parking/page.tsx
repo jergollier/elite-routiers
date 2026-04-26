@@ -2,7 +2,6 @@ import type { CSSProperties } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 
 export default async function ParkingPage() {
@@ -26,317 +25,382 @@ export default async function ParkingPage() {
   const placesTotales = user.parkingPlaces ?? 0;
   const placesUtilisees = user.camionsPerso.length;
   const placesLibres = Math.max(0, placesTotales - placesUtilisees);
+  const argentPerso = user.argentPerso ?? 0;
+
   const pourcentageParking =
     placesTotales > 0 ? Math.round((placesUtilisees / placesTotales) * 100) : 0;
+
+  const peutAcheterPlace = placesTotales < 5 && argentPerso >= prixPlace;
 
   return (
     <main style={mainStyle}>
       <div style={overlayStyle} />
 
-      <div style={layoutStyle}>
-        <Menu />
+      <div style={topButtonsStyle}>
+        <Link href="/profil" style={topButtonStyle}>
+          👤 Profil
+        </Link>
 
+        <Link href="/societe" style={topButtonBlueStyle}>
+          🏢 Société
+        </Link>
+      </div>
+
+      <div style={layoutStyle}>
         <div style={contentStyle}>
-          <section style={panelStyle}>
-            <div style={headerStyle}>
-              <div>
-                <h1 style={titleStyle}>Parking chauffeur</h1>
-                <p style={subtitleStyle}>
-                  Tes camions personnels, tes places privées et ton atelier perso.
-                </p>
+          <section style={proHeaderStyle}>
+            <div style={headerGlowStyle} />
+
+            <div style={profileLeftStyle}>
+              <div style={avatarFrameStyle}>
+                <img
+                  src={user.avatar || "/truck.jpg"}
+                  alt={user.username || "Chauffeur"}
+                  style={avatarStyle}
+                />
               </div>
 
-              <Link href="/profil" style={secondaryButtonStyle}>
-                ← Retour profil
-              </Link>
+              <div>
+                <div style={kickerStyle}>Elite Routiers • Parking privé</div>
+
+                <h1 style={pseudoStyle}>{user.username || "Chauffeur"}</h1>
+
+                <div style={identityRowStyle}>
+                  <Badge>Garage chauffeur</Badge>
+                  <Badge>{placesUtilisees} camion{placesUtilisees > 1 ? "s" : ""}</Badge>
+                  <Badge>{placesTotales} / 5 places</Badge>
+                </div>
+              </div>
             </div>
 
-            <div style={bodyGridStyle}>
-              <section style={{ minWidth: 0 }}>
-                <div style={heroCardStyle}>
+            <div style={heroWalletStyle}>
+              <span style={walletLabelStyle}>Argent perso</span>
+              <strong style={walletValueStyle}>
+                {argentPerso.toLocaleString("fr-FR")} €
+              </strong>
+              <span style={walletHintStyle}>Solde disponible chauffeur</span>
+            </div>
+          </section>
+
+          <section style={quickActionsStyle}>
+            <Link href="/chauffeur" style={actionButtonStyle}>
+              ← Retour chauffeur
+            </Link>
+
+            <Link href="/finance-perso" style={actionButtonStyle}>
+              💰 Finance perso
+            </Link>
+
+            <Link href="/camions/parking/atelier" style={actionButtonBlueStyle}>
+              🛠 Atelier perso
+            </Link>
+          </section>
+
+          <section style={statsGridStyle}>
+            <BigStat
+              title="Places achetées"
+              value={`${placesTotales} / 5`}
+              detail="Capacité totale du parking"
+              color="#60a5fa"
+              icon="🅿️"
+            />
+
+            <BigStat
+              title="Places utilisées"
+              value={placesUtilisees.toString()}
+              detail="Camions personnels stockés"
+              color="#f59e0b"
+              icon="🚚"
+            />
+
+            <BigStat
+              title="Places libres"
+              value={placesLibres.toString()}
+              detail="Disponible pour achat camion"
+              color={placesLibres > 0 ? "#22c55e" : "#ef4444"}
+              icon="✅"
+            />
+
+            <BigStat
+              title="Remplissage"
+              value={`${pourcentageParking}%`}
+              detail="Occupation du garage privé"
+              color={
+                placesLibres <= 0
+                  ? "#ef4444"
+                  : placesLibres === 1
+                  ? "#f59e0b"
+                  : "#22c55e"
+              }
+              icon="📊"
+            />
+          </section>
+
+          <section style={dashboardGridStyle}>
+            <div style={{ minWidth: 0 }}>
+              <article style={panelStyle}>
+                <div style={panelHeaderStyle}>
                   <div>
-                    <div style={eyebrowStyle}>Garage privé</div>
-                    <h2 style={{ margin: "6px 0 8px", fontSize: "28px" }}>
-                      {placesUtilisees} camion{placesUtilisees > 1 ? "s" : ""} personnel
-                      {placesUtilisees > 1 ? "s" : ""}
-                    </h2>
-                    <p style={smallTextStyle}>
-                      Chaque place achetée permet de stocker un camion personnel.
-                      Les réparations se font avec ton argent perso.
+                    <h2 style={panelTitleStyle}>🏭 Gestion du parking</h2>
+                    <p style={panelSubtitleStyle}>
+                      Prix d’une place : {prixPlace.toLocaleString("fr-FR")} €
                     </p>
                   </div>
 
-                  <div style={moneyBoxStyle}>
-                    <div style={statLabelStyle}>Argent perso</div>
-                    <div style={moneyValueStyle}>
-                      {(user.argentPerso ?? 0).toLocaleString("fr-FR")} €
-                    </div>
-                  </div>
-                </div>
-
-                <div style={statsGridStyle}>
-                  <div style={statBoxStyle}>
-                    <div style={statLabelStyle}>Places achetées</div>
-                    <div style={statValueStyle}>{placesTotales} / 5</div>
-                  </div>
-
-                  <div style={statBoxStyle}>
-                    <div style={statLabelStyle}>Places utilisées</div>
-                    <div style={statValueStyle}>{placesUtilisees}</div>
-                  </div>
-
-                  <div style={statBoxStyle}>
-                    <div style={statLabelStyle}>Places libres</div>
-                    <div style={statValueStyle}>{placesLibres}</div>
-                  </div>
-
-                  <div style={statBoxStyle}>
-                    <div style={statLabelStyle}>Remplissage</div>
-                    <div style={statValueStyle}>{pourcentageParking}%</div>
-                  </div>
-                </div>
-
-                <div style={cardStyle}>
-                  <div style={parkingTopStyle}>
-                    <div>
-                      <h2 style={{ margin: 0 }}>Gestion du parking</h2>
-                      <p style={{ ...smallTextStyle, marginTop: "6px" }}>
-                        Prix d’une place : {prixPlace.toLocaleString("fr-FR")} €
-                      </p>
-                    </div>
-
-                    <div style={actionsStyle}>
-  {placesTotales < 5 && user.argentPerso >= prixPlace && (
-    <form action="/api/parking/acheter" method="POST">
-      <button type="submit" style={greenButtonStyle}>
-        Acheter une place
-      </button>
-    </form>
-  )}
-
-  <form action="/api/parking/acheter" method="POST">
-    <button type="submit" style={orangeButtonStyle}>
-      Acheter place parking
-    </button>
-  </form>
-</div>
-                  </div>
-
-                  <div style={progressTrackStyle}>
-                    <div
-                      style={{
-                        ...progressFillStyle,
-                        width: `${Math.min(100, pourcentageParking)}%`,
-                        background:
-                          placesLibres <= 0
-                            ? "#ef4444"
-                            : placesLibres === 1
-                            ? "#f59e0b"
-                            : "#22c55e",
-                      }}
-                    />
-                  </div>
-
-                  {placesTotales >= 5 && (
-                    <p style={{ ...messageStyle, color: "#f87171" }}>
-                      Tu as atteint le maximum de 5 places.
-                    </p>
-                  )}
-
-                  {user.argentPerso < prixPlace && placesTotales < 5 && (
-                    <p style={{ ...messageStyle, color: "#facc15" }}>
-                      Tu n’as pas assez d’argent personnel pour acheter une place.
-                    </p>
+                  {peutAcheterPlace && (
+                    <form action="/api/parking/acheter" method="POST">
+                      <button type="submit" style={greenButtonStyle}>
+                        Acheter une place
+                      </button>
+                    </form>
                   )}
                 </div>
 
-                <div style={{ ...cardStyle, marginTop: "20px" }}>
-                  <div style={sectionTitleRowStyle}>
-                    <div>
-                      <h2 style={{ margin: 0 }}>Mes camions personnels</h2>
-                      <p style={{ ...smallTextStyle, marginTop: "6px" }}>
-                        Garage privé du chauffeur.
-                      </p>
-                    </div>
-
-                    <Link href="/camions/parking/atelier" style={atelierTopButtonStyle}>
-                      🛠 Atelier perso
-                    </Link>
-                  </div>
-
-                  {user.camionsPerso.length === 0 ? (
-                    <div style={emptyStyle}>
-                      Tu n’as encore aucun camion personnel.
-                    </div>
-                  ) : (
-                    <div style={truckGridStyle}>
-                      {user.camionsPerso.map((camion) => {
-                        const statut = getStatutConfig(camion.statut);
-                        const vidangePourcent = Math.max(
-                          0,
-                          Math.min(100, ((camion.vidangeRestante ?? 0) / 60000) * 100)
-                        );
-                        const revisionPourcent = Math.max(
-                          0,
-                          Math.min(100, ((camion.revisionRestante ?? 0) / 120000) * 100)
-                        );
-
-                        return (
-                          <article key={camion.id} style={truckCardStyle}>
-                            <div style={truckImageWrapStyle}>
-                              <img
-                                src={camion.image || "/truck.jpg"}
-                                alt={`${formatMarque(camion.marque)} ${camion.modele}`}
-                                style={truckImageStyle}
-                              />
-                            </div>
-
-                            <div style={truckHeaderStyle}>
-                              <div>
-                                <h3 style={truckTitleStyle}>
-                                  {formatMarque(camion.marque)}
-                                </h3>
-                                <div style={truckModelStyle}>{camion.modele}</div>
-                              </div>
-
-                              <div style={statusBadgeStyle}>
-                                <span
-                                  style={{
-                                    ...statusDotStyle,
-                                    background: statut.color,
-                                    boxShadow: statut.glow,
-                                  }}
-                                />
-                                {statut.label}
-                              </div>
-                            </div>
-
-                            <div style={infoListStyle}>
-                              <div style={infoRowStyle}>
-                                <span style={labelStyle}>Kilométrage</span>
-                                <span style={valueStyle}>
-                                  {(camion.kilometrage ?? 0).toLocaleString("fr-FR")} km
-                                </span>
-                              </div>
-
-                              <div style={infoRowStyle}>
-                                <span style={labelStyle}>État</span>
-                                <span style={valueStyle}>{camion.etat ?? 0}%</span>
-                              </div>
-
-                              <div style={infoRowStyle}>
-                                <span style={labelStyle}>Carburant</span>
-                                <span style={valueStyle}>{camion.carburant ?? 0}%</span>
-                              </div>
-
-                              <div style={infoRowStyle}>
-                                <span style={labelStyle}>Position</span>
-                                <span style={valueStyle}>
-                                  {camion.positionActuelle || "Non définie"}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div style={{ marginTop: "16px" }}>
-                              <div style={barHeaderStyle}>
-                                <span style={labelStyle}>Vidange</span>
-                                <span style={valueStyle}>
-                                  {(camion.vidangeRestante ?? 0).toLocaleString("fr-FR")} km
-                                </span>
-                              </div>
-
-                              <div style={miniTrackStyle}>
-                                <div
-                                  style={{
-                                    ...miniFillStyle,
-                                    width: `${vidangePourcent}%`,
-                                    background: getBarColor(vidangePourcent),
-                                  }}
-                                />
-                              </div>
-                            </div>
-
-                            <div style={{ marginTop: "12px" }}>
-                              <div style={barHeaderStyle}>
-                                <span style={labelStyle}>Révision</span>
-                                <span style={valueStyle}>
-                                  {(camion.revisionRestante ?? 0).toLocaleString("fr-FR")} km
-                                </span>
-                              </div>
-
-                              <div style={miniTrackStyle}>
-                                <div
-                                  style={{
-                                    ...miniFillStyle,
-                                    width: `${revisionPourcent}%`,
-                                    background: getBarColor(revisionPourcent),
-                                  }}
-                                />
-                              </div>
-                            </div>
-
-                            <div style={truckActionsStyle}>
-                              <Link href={`/camions/${camion.id}`} style={blueButtonFullStyle}>
-                                Voir
-                              </Link>
-
-                              
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              <aside style={sideStyle}>
-                <div style={sideCardStyle}>
-                  <h2 style={{ marginTop: 0 }}>Infos parking</h2>
-
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Prix d’une place</span>
-                    <span style={valueStyle}>
-                      {prixPlace.toLocaleString("fr-FR")} €
-                    </span>
-                  </div>
-
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Maximum</span>
-                    <span style={valueStyle}>5 places</span>
-                  </div>
-
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Règle</span>
-                    <span style={valueStyle}>1 place = 1 camion</span>
-                  </div>
+                <div style={progressTrackStyle}>
+                  <div
+                    style={{
+                      ...progressFillStyle,
+                      width: `${Math.min(100, pourcentageParking)}%`,
+                      background:
+                        placesLibres <= 0
+                          ? "#ef4444"
+                          : placesLibres === 1
+                          ? "#f59e0b"
+                          : "#22c55e",
+                    }}
+                  />
                 </div>
 
-                <div style={sideCardStyle}>
-                  <h2 style={{ marginTop: 0 }}>Atelier perso</h2>
-                  <p style={smallTextStyle}>
-                    Répare tes camions personnels avec ton argent perso :
-                    vidange, révision, pneus, freins et batterie.
+                {placesTotales >= 5 && (
+                  <p style={{ ...messageStyle, color: "#f87171" }}>
+                    Tu as atteint le maximum de 5 places.
                   </p>
+                )}
 
-                  <Link href="/camions/parking/atelier" style={atelierButtonStyle}>
-                    Ouvrir l’atelier
+                {argentPerso < prixPlace && placesTotales < 5 && (
+                  <p style={{ ...messageStyle, color: "#facc15" }}>
+                    Tu n’as pas assez d’argent personnel pour acheter une place.
+                  </p>
+                )}
+
+                {placesTotales === 0 && (
+                  <p style={{ ...messageStyle, color: "#93c5fd" }}>
+                    Achète ta première place pour commencer ton garage privé.
+                  </p>
+                )}
+              </article>
+
+              <article style={{ ...panelStyle, marginTop: "18px" }}>
+                <div style={panelHeaderStyle}>
+                  <div>
+                    <h2 style={panelTitleStyle}>🚛 Mes camions personnels</h2>
+                    <p style={panelSubtitleStyle}>
+                      Garage privé du chauffeur, séparé de la société.
+                    </p>
+                  </div>
+
+                  <Link href="/camions/parking/atelier" style={atelierTopButtonStyle}>
+                    🛠 Atelier perso
                   </Link>
                 </div>
 
-                <div style={sideCardStyle}>
-                  <h2 style={{ marginTop: 0 }}>Résumé</h2>
-                  <p style={smallTextStyle}>
-                    Le parking privé est séparé du garage société. Ces camions
-                    appartiennent au chauffeur.
-                  </p>
-                </div>
-              </aside>
+                {user.camionsPerso.length === 0 ? (
+                  <div style={emptyStyle}>Tu n’as encore aucun camion personnel.</div>
+                ) : (
+                  <div style={truckGridStyle}>
+                    {user.camionsPerso.map((camion) => {
+                      const statut = getStatutConfig(camion.statut);
+
+                      const vidangePourcent = Math.max(
+                        0,
+                        Math.min(100, ((camion.vidangeRestante ?? 0) / 60000) * 100)
+                      );
+
+                      const revisionPourcent = Math.max(
+                        0,
+                        Math.min(100, ((camion.revisionRestante ?? 0) / 120000) * 100)
+                      );
+
+                      return (
+                        <article key={camion.id} style={truckCardStyle}>
+                          <div style={truckImageWrapStyle}>
+                            <img
+                              src={camion.image || "/truck.jpg"}
+                              alt={`${formatMarque(camion.marque)} ${camion.modele}`}
+                              style={truckImageStyle}
+                            />
+                            <div style={truckImageOverlayStyle} />
+                          </div>
+
+                          <div style={truckHeaderStyle}>
+                            <div>
+                              <h3 style={truckTitleStyle}>
+                                {formatMarque(camion.marque)}
+                              </h3>
+                              <div style={truckModelStyle}>{camion.modele}</div>
+                            </div>
+
+                            <div style={statusBadgeStyle}>
+                              <span
+                                style={{
+                                  ...statusDotStyle,
+                                  background: statut.color,
+                                  boxShadow: statut.glow,
+                                }}
+                              />
+                              {statut.label}
+                            </div>
+                          </div>
+
+                          <div style={infoListStyle}>
+                            <Info label="Kilométrage">
+                              {(camion.kilometrage ?? 0).toLocaleString("fr-FR")} km
+                            </Info>
+
+                            <Info label="État">{camion.etat ?? 0}%</Info>
+
+                            <Info label="Carburant">{camion.carburant ?? 0}%</Info>
+
+                            <Info label="Position">
+                              {camion.positionActuelle || "Non définie"}
+                            </Info>
+                          </div>
+
+                          <div style={{ marginTop: "16px" }}>
+                            <div style={barHeaderStyle}>
+                              <span style={labelStyle}>Vidange</span>
+                              <span style={valueStyle}>
+                                {(camion.vidangeRestante ?? 0).toLocaleString("fr-FR")} km
+                              </span>
+                            </div>
+
+                            <div style={miniTrackStyle}>
+                              <div
+                                style={{
+                                  ...miniFillStyle,
+                                  width: `${vidangePourcent}%`,
+                                  background: getBarColor(vidangePourcent),
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div style={{ marginTop: "12px" }}>
+                            <div style={barHeaderStyle}>
+                              <span style={labelStyle}>Révision</span>
+                              <span style={valueStyle}>
+                                {(camion.revisionRestante ?? 0).toLocaleString("fr-FR")} km
+                              </span>
+                            </div>
+
+                            <div style={miniTrackStyle}>
+                              <div
+                                style={{
+                                  ...miniFillStyle,
+                                  width: `${revisionPourcent}%`,
+                                  background: getBarColor(revisionPourcent),
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div style={truckActionsStyle}>
+                            <Link href={`/camions/${camion.id}`} style={blueButtonFullStyle}>
+                              Voir le camion
+                            </Link>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </article>
             </div>
+
+            <aside style={sideStyle}>
+              <div style={sideCardStyle}>
+                <h2 style={sideTitleStyle}>Infos parking</h2>
+
+                <Info label="Prix d’une place">
+                  {prixPlace.toLocaleString("fr-FR")} €
+                </Info>
+
+                <Info label="Maximum">5 places</Info>
+
+                <Info label="Règle">1 place = 1 camion</Info>
+              </div>
+
+              <div style={sideCardStyle}>
+                <h2 style={sideTitleStyle}>Atelier perso</h2>
+
+                <p style={smallTextStyle}>
+                  Répare tes camions personnels avec ton argent perso :
+                  vidange, révision, pneus, freins et batterie.
+                </p>
+
+                <Link href="/camions/parking/atelier" style={atelierButtonStyle}>
+                  Ouvrir l’atelier
+                </Link>
+              </div>
+
+              <div style={sideCardStyle}>
+                <h2 style={sideTitleStyle}>Résumé garage</h2>
+
+                <p style={smallTextStyle}>
+                  Le parking privé est séparé du garage société. Ces camions
+                  appartiennent uniquement au chauffeur.
+                </p>
+              </div>
+            </aside>
           </section>
         </div>
       </div>
     </main>
+  );
+}
+
+function Badge({ children }: { children: React.ReactNode }) {
+  return <span style={badgeStyle}>{children}</span>;
+}
+
+function BigStat({
+  title,
+  value,
+  detail,
+  color,
+  icon,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  color: string;
+  icon: string;
+}) {
+  return (
+    <div style={bigStatStyle}>
+      <div style={bigStatTopStyle}>
+        <span style={bigIconStyle}>{icon}</span>
+        <span style={bigStatTitleStyle}>{title}</span>
+      </div>
+
+      <strong style={{ ...bigStatValueStyle, color }}>{value}</strong>
+      <span style={bigStatDetailStyle}>{detail}</span>
+    </div>
+  );
+}
+
+function Info({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={infoRowStyle}>
+      <span style={labelStyle}>{label}</span>
+      <span style={valueStyle}>{children}</span>
+    </div>
   );
 }
 
@@ -410,7 +474,8 @@ function getBarColor(value: number) {
 
 const mainStyle: CSSProperties = {
   minHeight: "100vh",
-  backgroundImage: "url('/truck.jpg')",
+  backgroundImage:
+    "linear-gradient(120deg, rgba(0,0,0,0.84), rgba(0,0,0,0.62)), url('/truck.jpg')",
   backgroundSize: "cover",
   backgroundPosition: "center",
   backgroundRepeat: "no-repeat",
@@ -420,9 +485,40 @@ const mainStyle: CSSProperties = {
 };
 
 const overlayStyle: CSSProperties = {
-  position: "absolute",
+  position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,0.68)",
+  background:
+    "radial-gradient(circle at top right, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at bottom left, rgba(37,99,235,0.16), transparent 38%)",
+  pointerEvents: "none",
+};
+
+const topButtonsStyle: CSSProperties = {
+  position: "fixed",
+  top: "22px",
+  right: "24px",
+  zIndex: 20,
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+};
+
+const topButtonStyle: CSSProperties = {
+  color: "white",
+  textDecoration: "none",
+  padding: "11px 15px",
+  borderRadius: "14px",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  fontWeight: 900,
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 12px 28px rgba(0,0,0,0.28)",
+};
+
+const topButtonBlueStyle: CSSProperties = {
+  ...topButtonStyle,
+  background:
+    "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(29,78,216,0.9))",
+  border: "1px solid rgba(147,197,253,0.28)",
 };
 
 const layoutStyle: CSSProperties = {
@@ -434,146 +530,258 @@ const layoutStyle: CSSProperties = {
 
 const contentStyle: CSSProperties = {
   flex: 1,
-  padding: "24px",
+  padding: "78px 24px 24px",
+  minWidth: 0,
+  display: "grid",
+  gap: "18px",
+};
+
+const proHeaderStyle: CSSProperties = {
+  position: "relative",
+  overflow: "hidden",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "stretch",
+  gap: "20px",
+  flexWrap: "wrap",
+  padding: "28px",
+  borderRadius: "28px",
+  background:
+    "linear-gradient(120deg, rgba(255,255,255,0.13), rgba(15,23,42,0.76) 46%, rgba(0,0,0,0.64))",
+  border: "1px solid rgba(255,255,255,0.16)",
+  boxShadow:
+    "0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)",
+  backdropFilter: "blur(14px)",
+};
+
+const headerGlowStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background:
+    "radial-gradient(circle at 18% 35%, rgba(255,255,255,0.16), transparent 24%), radial-gradient(circle at 82% 22%, rgba(245,158,11,0.16), transparent 30%)",
+  pointerEvents: "none",
+};
+
+const profileLeftStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  display: "flex",
+  alignItems: "center",
+  gap: "22px",
   minWidth: 0,
 };
 
-const panelStyle: CSSProperties = {
-  background: "rgba(0,0,0,0.45)",
-  borderRadius: "18px",
-  overflow: "hidden",
-  backdropFilter: "blur(6px)",
-  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const headerStyle: CSSProperties = {
-  padding: "24px",
-  borderBottom: "1px solid rgba(255,255,255,0.08)",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "16px",
-  flexWrap: "wrap",
-};
-
-const titleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "34px",
-};
-
-const subtitleStyle: CSSProperties = {
-  marginTop: "8px",
-  marginBottom: 0,
-  opacity: 0.85,
-  lineHeight: 1.5,
-};
-
-const bodyGridStyle: CSSProperties = {
-  padding: "24px",
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 320px",
-  gap: "20px",
-  alignItems: "start",
-};
-
-const heroCardStyle: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "18px",
-  flexWrap: "wrap",
-  alignItems: "center",
+const avatarFrameStyle: CSSProperties = {
+  width: "112px",
+  height: "112px",
+  borderRadius: "26px",
+  padding: "4px",
   background:
-    "linear-gradient(135deg, rgba(37,99,235,0.22), rgba(245,158,11,0.16))",
-  borderRadius: "18px",
-  padding: "22px",
-  border: "1px solid rgba(255,255,255,0.1)",
-  boxShadow: "0 0 22px rgba(0,0,0,0.32)",
-  marginBottom: "18px",
+    "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.22))",
+  boxShadow: "0 18px 40px rgba(0,0,0,0.42)",
+  flex: "0 0 auto",
 };
 
-const eyebrowStyle: CSSProperties = {
+const avatarStyle: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  borderRadius: "22px",
+  objectFit: "cover",
+  display: "block",
+};
+
+const kickerStyle: CSSProperties = {
+  opacity: 0.82,
   fontSize: "13px",
-  opacity: 0.75,
   textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  fontWeight: "bold",
+  letterSpacing: "0.18em",
+  fontWeight: 900,
 };
 
-const moneyBoxStyle: CSSProperties = {
-  minWidth: "190px",
-  background: "rgba(0,0,0,0.32)",
-  borderRadius: "16px",
-  padding: "16px",
-  border: "1px solid rgba(255,255,255,0.1)",
+const pseudoStyle: CSSProperties = {
+  margin: "8px 0 0",
+  fontSize: "58px",
+  lineHeight: 0.95,
+  fontWeight: 950,
+  letterSpacing: "-0.04em",
+  textShadow: "0 8px 28px rgba(0,0,0,0.48)",
 };
 
-const moneyValueStyle: CSSProperties = {
-  fontSize: "26px",
-  fontWeight: "bold",
-  color: "#22c55e",
-};
-
-const statsGridStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "14px",
-  marginBottom: "20px",
-};
-
-const cardStyle: CSSProperties = {
-  background: "rgba(255,255,255,0.08)",
-  borderRadius: "16px",
-  padding: "20px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  backdropFilter: "blur(4px)",
-  boxShadow: "0 0 18px rgba(0,0,0,0.28)",
-};
-
-const sideCardStyle: CSSProperties = {
-  ...cardStyle,
-};
-
-const statBoxStyle: CSSProperties = {
-  background: "rgba(255,255,255,0.06)",
-  borderRadius: "14px",
-  padding: "16px",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const statLabelStyle: CSSProperties = {
-  opacity: 0.78,
-  fontSize: "14px",
-  marginBottom: "8px",
-};
-
-const statValueStyle: CSSProperties = {
-  fontWeight: "bold",
-  fontSize: "24px",
-};
-
-const parkingTopStyle: CSSProperties = {
+const identityRowStyle: CSSProperties = {
   display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "14px",
+  gap: "10px",
   flexWrap: "wrap",
-  marginBottom: "16px",
+  marginTop: "18px",
 };
 
-const actionsStyle: CSSProperties = {
+const badgeStyle: CSSProperties = {
+  padding: "9px 14px",
+  borderRadius: "999px",
+  background: "rgba(255,255,255,0.1)",
+  border: "1px solid rgba(255,255,255,0.16)",
+  fontWeight: 900,
+  fontSize: "13px",
+  textTransform: "uppercase",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+};
+
+const heroWalletStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  minWidth: "270px",
+  borderRadius: "22px",
+  padding: "20px",
+  background:
+    "linear-gradient(135deg, rgba(22,163,74,0.25), rgba(34,197,94,0.08))",
+  border: "1px solid rgba(34,197,94,0.28)",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  boxShadow: "0 0 24px rgba(34,197,94,0.18)",
+};
+
+const walletLabelStyle: CSSProperties = {
+  opacity: 0.78,
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+};
+
+const walletValueStyle: CSSProperties = {
+  fontSize: "34px",
+  color: "#22c55e",
+  marginTop: "8px",
+};
+
+const walletHintStyle: CSSProperties = {
+  opacity: 0.7,
+  fontSize: "13px",
+  marginTop: "6px",
+};
+
+const quickActionsStyle: CSSProperties = {
   display: "flex",
   gap: "10px",
   flexWrap: "wrap",
 };
 
-const sectionTitleRowStyle: CSSProperties = {
+const actionButtonStyle: CSSProperties = {
+  color: "white",
+  textDecoration: "none",
+  padding: "12px 16px",
+  borderRadius: "14px",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  fontWeight: 800,
+};
+
+const actionButtonBlueStyle: CSSProperties = {
+  ...actionButtonStyle,
+  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
+};
+
+const statsGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+  gap: "14px",
+};
+
+const bigStatStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "20px",
+  background: "rgba(0,0,0,0.5)",
+  border: "1px solid rgba(255,255,255,0.09)",
+  boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
+};
+
+const bigStatTopStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  marginBottom: "12px",
+};
+
+const bigIconStyle: CSSProperties = {
+  width: "34px",
+  height: "34px",
+  borderRadius: "12px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(255,255,255,0.08)",
+};
+
+const bigStatTitleStyle: CSSProperties = {
+  opacity: 0.75,
+  fontWeight: 800,
+};
+
+const bigStatValueStyle: CSSProperties = {
+  display: "block",
+  fontSize: "25px",
+  marginBottom: "6px",
+};
+
+const bigStatDetailStyle: CSSProperties = {
+  opacity: 0.62,
+  fontSize: "13px",
+};
+
+const dashboardGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) 320px",
+  gap: "18px",
+  alignItems: "start",
+};
+
+const panelStyle: CSSProperties = {
+  background: "rgba(0,0,0,0.52)",
+  borderRadius: "22px",
+  padding: "20px",
+  backdropFilter: "blur(8px)",
+  border: "1px solid rgba(255,255,255,0.09)",
+  boxShadow: "0 18px 50px rgba(0,0,0,0.34)",
+};
+
+const panelHeaderStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
   gap: "12px",
+  alignItems: "flex-start",
+  marginBottom: "16px",
   flexWrap: "wrap",
-  marginBottom: "18px",
+};
+
+const panelTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: "22px",
+};
+
+const panelSubtitleStyle: CSSProperties = {
+  margin: "6px 0 0",
+  opacity: 0.68,
+  fontSize: "14px",
+};
+
+const progressTrackStyle: CSSProperties = {
+  width: "100%",
+  height: "15px",
+  background: "rgba(255,255,255,0.10)",
+  borderRadius: "999px",
+  overflow: "hidden",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const progressFillStyle: CSSProperties = {
+  height: "100%",
+  borderRadius: "999px",
+  transition: "width 0.3s ease",
+};
+
+const messageStyle: CSSProperties = {
+  marginTop: "16px",
+  marginBottom: 0,
+  fontWeight: 800,
 };
 
 const truckGridStyle: CSSProperties = {
@@ -583,20 +791,22 @@ const truckGridStyle: CSSProperties = {
 };
 
 const truckCardStyle: CSSProperties = {
-  background: "rgba(15,15,15,0.78)",
-  borderRadius: "16px",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(15,15,15,0.78))",
+  borderRadius: "20px",
   padding: "16px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  backdropFilter: "blur(4px)",
-  boxShadow: "0 0 18px rgba(0,0,0,0.28)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(6px)",
+  boxShadow: "0 18px 40px rgba(0,0,0,0.34)",
 };
 
 const truckImageWrapStyle: CSSProperties = {
-  height: "165px",
-  borderRadius: "14px",
+  position: "relative",
+  height: "170px",
+  borderRadius: "16px",
   overflow: "hidden",
   marginBottom: "14px",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.1)",
 };
 
 const truckImageStyle: CSSProperties = {
@@ -604,6 +814,13 @@ const truckImageStyle: CSSProperties = {
   height: "100%",
   objectFit: "cover",
   display: "block",
+};
+
+const truckImageOverlayStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background:
+    "linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.72))",
 };
 
 const truckHeaderStyle: CSSProperties = {
@@ -635,7 +852,7 @@ const statusBadgeStyle: CSSProperties = {
   borderRadius: "999px",
   padding: "8px 12px",
   fontSize: "13px",
-  fontWeight: "bold",
+  fontWeight: 900,
   whiteSpace: "nowrap",
 };
 
@@ -666,7 +883,7 @@ const labelStyle: CSSProperties = {
 };
 
 const valueStyle: CSSProperties = {
-  fontWeight: "bold",
+  fontWeight: 900,
   fontSize: "14px",
   textAlign: "right",
 };
@@ -674,28 +891,15 @@ const valueStyle: CSSProperties = {
 const smallTextStyle: CSSProperties = {
   margin: 0,
   lineHeight: 1.6,
-  opacity: 0.9,
+  opacity: 0.86,
 };
 
-const messageStyle: CSSProperties = {
-  marginTop: "16px",
-  marginBottom: 0,
-  fontWeight: "bold",
-};
-
-const progressTrackStyle: CSSProperties = {
-  width: "100%",
-  height: "14px",
-  background: "rgba(255,255,255,0.10)",
-  borderRadius: "999px",
-  overflow: "hidden",
-  border: "1px solid rgba(255,255,255,0.06)",
-};
-
-const progressFillStyle: CSSProperties = {
-  height: "100%",
-  borderRadius: "999px",
-  transition: "width 0.3s ease",
+const barHeaderStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "10px",
+  marginBottom: "8px",
 };
 
 const miniTrackStyle: CSSProperties = {
@@ -713,14 +917,6 @@ const miniFillStyle: CSSProperties = {
   transition: "width 0.3s ease",
 };
 
-const barHeaderStyle: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "10px",
-  marginBottom: "8px",
-};
-
 const truckActionsStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -734,48 +930,50 @@ const sideStyle: CSSProperties = {
   gap: "16px",
 };
 
+const sideCardStyle: CSSProperties = {
+  background: "rgba(0,0,0,0.52)",
+  borderRadius: "22px",
+  padding: "20px",
+  backdropFilter: "blur(8px)",
+  border: "1px solid rgba(255,255,255,0.09)",
+  boxShadow: "0 18px 50px rgba(0,0,0,0.34)",
+};
+
+const sideTitleStyle: CSSProperties = {
+  marginTop: 0,
+  marginBottom: "14px",
+  fontSize: "20px",
+};
+
 const emptyStyle: CSSProperties = {
-  padding: "24px",
+  padding: "26px",
+  borderRadius: "18px",
   textAlign: "center",
-  borderRadius: "14px",
-  background: "rgba(255,255,255,0.05)",
+  background: "rgba(255,255,255,0.06)",
   border: "1px solid rgba(255,255,255,0.08)",
-  opacity: 0.85,
+  opacity: 0.78,
 };
 
 const greenButtonStyle: CSSProperties = {
   padding: "12px 18px",
-  borderRadius: "10px",
+  borderRadius: "12px",
   border: "none",
   background: "linear-gradient(135deg, #22c55e, #16a34a)",
   color: "white",
-  fontWeight: "bold",
+  fontWeight: 900,
   cursor: "pointer",
-};
-
-const orangeButtonStyle: CSSProperties = {
-  padding: "12px 18px",
-  borderRadius: "10px",
-  border: "none",
-  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
-  color: "white",
-  fontWeight: "bold",
-  cursor: "pointer",
-  textDecoration: "none",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
+  boxShadow: "0 12px 30px rgba(34,197,94,0.24)",
 };
 
 const blueButtonFullStyle: CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
   padding: "12px 16px",
-  borderRadius: "10px",
+  borderRadius: "12px",
   border: "none",
-  background: "#2563eb",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
   color: "white",
-  fontWeight: "bold",
+  fontWeight: 900,
   cursor: "pointer",
   textDecoration: "none",
   display: "inline-flex",
@@ -783,31 +981,30 @@ const blueButtonFullStyle: CSSProperties = {
   justifyContent: "center",
 };
 
-const orangeButtonFullStyle: CSSProperties = {
-  ...orangeButtonStyle,
-  width: "100%",
-  boxSizing: "border-box",
-};
-
 const atelierButtonStyle: CSSProperties = {
-  ...orangeButtonStyle,
   width: "100%",
   boxSizing: "border-box",
   marginTop: "14px",
+  padding: "12px 16px",
+  borderRadius: "12px",
+  border: "none",
+  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
+  color: "white",
+  fontWeight: 900,
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const atelierTopButtonStyle: CSSProperties = {
-  ...orangeButtonStyle,
-  padding: "10px 14px",
-};
-
-const secondaryButtonStyle: CSSProperties = {
-  padding: "12px 18px",
-  borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(255,255,255,0.08)",
+  padding: "11px 15px",
+  borderRadius: "12px",
+  border: "none",
+  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
   color: "white",
-  fontWeight: "bold",
+  fontWeight: 900,
   cursor: "pointer",
   textDecoration: "none",
   display: "inline-flex",

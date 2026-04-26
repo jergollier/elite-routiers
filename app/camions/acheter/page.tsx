@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import Menu from "@/app/components/Menu";
+import type { CSSProperties } from "react";
 import { prisma } from "@/lib/prisma";
 import { put } from "@vercel/blob";
 import { MarqueCamion, RoleEntreprise, StatutCamion } from "@prisma/client";
@@ -35,36 +35,24 @@ export default async function AcheterCamionPage() {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
 
-  if (!steamId) {
-    redirect("/");
-  }
+  if (!steamId) redirect("/");
 
   const user = await prisma.user.findUnique({
     where: { steamId },
   });
 
-  if (!user) {
-    redirect("/");
-  }
+  if (!user) redirect("/");
 
   const monMembership = await prisma.entrepriseMembre.findUnique({
-    where: {
-      userId: user.id,
-    },
-    include: {
-      entreprise: true,
-    },
+    where: { userId: user.id },
+    include: { entreprise: true },
   });
 
-  if (!monMembership) {
-    redirect("/societe");
-  }
+  if (!monMembership) redirect("/societe");
 
   const entreprise = monMembership.entreprise;
 
-  if (!entreprise) {
-    redirect("/societe");
-  }
+  if (!entreprise) redirect("/societe");
 
   const peutAjouterCamion =
     monMembership.role === RoleEntreprise.DIRECTEUR ||
@@ -76,35 +64,25 @@ export default async function AcheterCamionPage() {
     const cookieStore = await cookies();
     const steamId = cookieStore.get("steamId")?.value;
 
-    if (!steamId) {
-      redirect("/");
-    }
+    if (!steamId) redirect("/");
 
     const user = await prisma.user.findUnique({
       where: { steamId },
     });
 
-    if (!user) {
-      redirect("/");
-    }
+    if (!user) redirect("/");
 
     const membership = await prisma.entrepriseMembre.findUnique({
-      where: {
-        userId: user.id,
-      },
+      where: { userId: user.id },
     });
 
-    if (!membership) {
-      redirect("/societe");
-    }
+    if (!membership) redirect("/societe");
 
     const autorise =
       membership.role === RoleEntreprise.DIRECTEUR ||
       membership.role === RoleEntreprise.SOUS_DIRECTEUR;
 
-    if (!autorise) {
-      redirect("/camions");
-    }
+    if (!autorise) redirect("/camions");
 
     const marqueValue = String(formData.get("marque") || "").trim();
     const modele = String(formData.get("modele") || "").trim();
@@ -113,15 +91,10 @@ export default async function AcheterCamionPage() {
     const moteur = String(formData.get("moteur") || "").trim();
     const transmission = String(formData.get("transmission") || "").trim();
     const peinture = String(formData.get("peinture") || "").trim();
+    const prixAchat = toNumber(formData.get("prixAchat"), 0);
+
     const imageFile = formData.get("image") as File | null;
     const preuveAchatFile = formData.get("preuveAchat") as File | null;
-    const accessoiresExterieur = String(
-      formData.get("accessoiresExterieur") || ""
-    ).trim();
-    const accessoiresInterieur = String(
-      formData.get("accessoiresInterieur") || ""
-    ).trim();
-    const prixAchat = toNumber(formData.get("prixAchat"), 0);
 
     let imageUrl = "/truck.jpg";
     let preuveAchatUrl: string | null = null;
@@ -136,9 +109,12 @@ export default async function AcheterCamionPage() {
       ? (marqueValue as MarqueCamion)
       : null;
 
-    if (!marque) {
-      redirect("/camions/acheter");
-    }
+    if (!marque) redirect("/camions/acheter");
+
+    const safeModele = modele
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
 
     if (imageFile instanceof File && imageFile.size > 0) {
       const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -153,11 +129,6 @@ export default async function AcheterCamionPage() {
           : imageFile.type === "image/webp"
           ? "webp"
           : "jpg";
-
-      const safeModele = modele
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
 
       const fileName = `camions/${membership.entrepriseId}-${safeModele}-${Date.now()}.${extension}`;
 
@@ -182,11 +153,6 @@ export default async function AcheterCamionPage() {
           ? "webp"
           : "jpg";
 
-      const safeModele = modele
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
       const fileName = `camions/preuves/${membership.entrepriseId}-${safeModele}-${Date.now()}.${extension}`;
 
       const blob = await put(fileName, preuveAchatFile, {
@@ -200,9 +166,7 @@ export default async function AcheterCamionPage() {
       where: { id: membership.entrepriseId },
     });
 
-    if (!entrepriseActuelle) {
-      redirect("/societe");
-    }
+    if (!entrepriseActuelle) redirect("/societe");
 
     if (entrepriseActuelle.argent < prixAchat) {
       redirect("/camions/acheter");
@@ -227,8 +191,8 @@ export default async function AcheterCamionPage() {
           image: imageUrl,
           preuveAchat: preuveAchatUrl,
           prixAchat,
-          accessoiresExterieur: accessoiresExterieur || null,
-          accessoiresInterieur: accessoiresInterieur || null,
+          accessoiresExterieur: null,
+          accessoiresInterieur: null,
           kilometrage: 0,
           etat: 100,
           carburant: 100,
@@ -265,484 +229,582 @@ export default async function AcheterCamionPage() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundImage: "url('/truck.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        position: "relative",
-        color: "white",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.68)",
-        }}
-      />
+    <main style={page}>
+      <div style={overlay} />
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          minHeight: "100vh",
-          display: "flex",
-        }}
-      >
-        <Menu />
+      <Link href="/societe" style={topButton}>
+        🏢 Société
+      </Link>
 
-        <div
-          style={{
-            flex: 1,
-            padding: "24px",
-            minWidth: 0,
-          }}
-        >
-          <section
-            style={{
-              background: "rgba(0, 0, 0, 0.45)",
-              borderRadius: "18px",
-              overflow: "hidden",
-              backdropFilter: "blur(6px)",
-              boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div
-              style={{
-                padding: "24px",
-                borderBottom: "1px solid rgba(255,255,255,0.08)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "16px",
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <h1 style={{ margin: 0, fontSize: "34px" }}>Ajouter un camion</h1>
-                <p
-                  style={{
-                    marginTop: "8px",
-                    marginBottom: 0,
-                    opacity: 0.88,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Achat manuel du camion pour l’entreprise {entreprise.nom}
+      <div style={container}>
+        <section style={hero}>
+          <div>
+            <div style={smallText}>Elite Routiers • Achat flotte</div>
+
+            <h1 style={title}>Ajouter un camion</h1>
+
+            <p style={subtitle}>
+              Enregistrement manuel d’un véhicule pour l’entreprise{" "}
+              <strong>{entreprise.nom}</strong>.
+            </p>
+
+            <div style={tags}>
+              <Tag>Budget : {entreprise.argent.toLocaleString("fr-FR")} €</Tag>
+              <Tag>Rôle : {monMembership.role}</Tag>
+              <Tag>{peutAjouterCamion ? "Autorisé" : "Accès limité"}</Tag>
+            </div>
+          </div>
+
+          <div style={heroPanel}>
+            <span style={panelLabel}>Fonds disponibles</span>
+            <strong style={panelMoney}>
+              {entreprise.argent.toLocaleString("fr-FR")} €
+            </strong>
+            <span style={panelHint}>
+              Le prix du camion sera retiré automatiquement.
+            </span>
+          </div>
+        </section>
+
+        <form action={ajouterCamion} style={layout}>
+          <section style={mainCard}>
+            {!peutAjouterCamion ? (
+              <div style={accessDenied}>
+                <h2 style={{ marginTop: 0 }}>Accès refusé</h2>
+
+                <p style={muted}>
+                  Seul le directeur ou le sous-directeur peut ajouter un camion.
                 </p>
+
+                <Link href="/camions" style={btnBlue}>
+                  ← Retour camions
+                </Link>
               </div>
-
-              <Link href="/camions" style={secondaryButtonStyle}>
-                ← Retour camions
-              </Link>
-            </div>
-
-            <div
-              style={{
-                padding: "24px",
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1fr) 320px",
-                gap: "20px",
-                alignItems: "start",
-              }}
-            >
-              <section style={{ minWidth: 0 }}>
-                {!peutAjouterCamion ? (
-                  <div style={boxStyle}>
-                    <h2 style={{ marginTop: 0 }}>Accès refusé</h2>
-                    <p style={smallTextStyle}>
-                      Seul le directeur ou le sous-directeur peut ajouter un camion.
-                    </p>
+            ) : (
+              <>
+                <div style={sectionHeader}>
+                  <div>
+                    <div style={smallText}>Fiche technique</div>
+                    <h2 style={sectionTitle}>Informations du camion</h2>
                   </div>
-                ) : (
-                  <form action={ajouterCamion} style={formCardStyle}>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                        gap: "16px",
-                      }}
+
+                  <Link href="/camions" style={btnDark}>
+                    ← Retour camions
+                  </Link>
+                </div>
+
+                <div style={formGrid}>
+                  <Field label="Marque">
+                    <select
+                      name="marque"
+                      defaultValue=""
+                      style={select}
+                      required
                     >
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Marque</label>
-                        <select
-                          name="marque"
-                          defaultValue=""
-                          style={whiteSelectStyle}
-                          required
-                        >
-                          <option value="" disabled style={whiteOptionStyle}>
-                            Choisir une marque
+                      <option value="" disabled>
+                        Choisir une marque
+                      </option>
+
+                      <optgroup label="ETS2">
+                        {MARQUES_ETS2.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
                           </option>
+                        ))}
+                      </optgroup>
 
-                          <optgroup label="ETS2">
-                            {MARQUES_ETS2.map((item) => (
-                              <option
-                                key={item.value}
-                                value={item.value}
-                                style={whiteOptionStyle}
-                              >
-                                {item.label}
-                              </option>
-                            ))}
-                          </optgroup>
+                      <optgroup label="ATS">
+                        {MARQUES_ATS.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </Field>
 
-                          <optgroup label="ATS">
-                            {MARQUES_ATS.map((item) => (
-                              <option
-                                key={item.value}
-                                value={item.value}
-                                style={whiteOptionStyle}
-                              >
-                                {item.label}
-                              </option>
-                            ))}
-                          </optgroup>
-                        </select>
-                      </div>
+                  <Field label="Modèle">
+                    <input
+                      name="modele"
+                      type="text"
+                      placeholder="Exemple : S 770"
+                      required
+                      style={input}
+                    />
+                  </Field>
 
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Modèle</label>
-                        <input
-                          name="modele"
-                          type="text"
-                          placeholder="Exemple : S 770"
-                          required
-                          style={inputStyle}
-                        />
-                      </div>
+                  <Field label="Cabine">
+                    <input
+                      name="cabine"
+                      type="text"
+                      placeholder="Exemple : Topline"
+                      style={input}
+                    />
+                  </Field>
 
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Cabine</label>
-                        <input
-                          name="cabine"
-                          type="text"
-                          placeholder="Exemple : Topline"
-                          style={inputStyle}
-                        />
-                      </div>
+                  <Field label="Châssis">
+                    <input
+                      name="chassis"
+                      type="text"
+                      placeholder="Exemple : 6x4"
+                      style={input}
+                    />
+                  </Field>
 
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Châssis</label>
-                        <input
-                          name="chassis"
-                          type="text"
-                          placeholder="Exemple : 6x4"
-                          style={inputStyle}
-                        />
-                      </div>
+                  <Field label="Moteur">
+                    <input
+                      name="moteur"
+                      type="text"
+                      placeholder="Exemple : 770 ch"
+                      style={input}
+                    />
+                  </Field>
 
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Moteur</label>
-                        <input
-                          name="moteur"
-                          type="text"
-                          placeholder="Exemple : 770 ch"
-                          style={inputStyle}
-                        />
-                      </div>
+                  <Field label="Transmission">
+                    <input
+                      name="transmission"
+                      type="text"
+                      placeholder="Exemple : Automatique"
+                      style={input}
+                    />
+                  </Field>
 
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Transmission</label>
-                        <input
-                          name="transmission"
-                          type="text"
-                          placeholder="Exemple : Automatique"
-                          style={inputStyle}
-                        />
-                      </div>
+                  <Field label="Peinture">
+                    <input
+                      name="peinture"
+                      type="text"
+                      placeholder="Exemple : Blanc nacré"
+                      style={input}
+                    />
+                  </Field>
 
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Peinture</label>
-                        <input
-                          name="peinture"
-                          type="text"
-                          placeholder="Exemple : Blanc nacré"
-                          style={inputStyle}
-                        />
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Prix du camion (€)</label>
-                        <input
-                          name="prixAchat"
-                          type="number"
-                          min="1"
-                          placeholder="Exemple : 185000"
-                          required
-                          style={inputStyle}
-                        />
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Photo du camion</label>
-                        <input
-                          name="image"
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          style={inputStyle}
-                        />
-                      </div>
-
-                      <div style={fieldGroupStyle}>
-                        <label style={labelInputStyle}>Preuve d’achat</label>
-                        <input
-                          name="preuveAchat"
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          style={inputStyle}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ ...boxStyle, marginTop: "20px" }}>
-                      <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
-                        Accessoires
-                      </h2>
-
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                          gap: "16px",
-                        }}
-                      >
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>
-                            Accessoires extérieurs
-                          </label>
-                          <textarea
-                            name="accessoiresExterieur"
-                            placeholder="Exemple : gyrophares, pare-buffle, jantes, trompes..."
-                            style={textareaStyle}
-                          />
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                          <label style={labelInputStyle}>
-                            Accessoires intérieurs
-                          </label>
-                          <textarea
-                            name="accessoiresInterieur"
-                            placeholder="Exemple : GPS, rideaux, tablette, volant personnalisé..."
-                            style={textareaStyle}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "12px",
-                        marginTop: "22px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <button type="submit" style={mainButtonStyle}>
-                        Enregistrer le camion
-                      </button>
-
-                      <Link href="/camions" style={secondaryButtonStyle}>
-                        Annuler
-                      </Link>
-                    </div>
-                  </form>
-                )}
-              </section>
-
-              <aside
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                }}
-              >
-                <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                    Qui peut ajouter
-                  </h2>
-
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Ton rôle</span>
-                    <span style={valueStyle}>{monMembership.role}</span>
-                  </div>
-
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Directeur</span>
-                    <span style={valueStyle}>Oui</span>
-                  </div>
-
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Sous-directeur</span>
-                    <span style={valueStyle}>Oui</span>
-                  </div>
-
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Autres rôles</span>
-                    <span style={valueStyle}>Non</span>
-                  </div>
+                  <Field label="Prix du camion (€)">
+                    <input
+                      name="prixAchat"
+                      type="number"
+                      min="1"
+                      placeholder="Exemple : 185000"
+                      required
+                      style={input}
+                    />
+                  </Field>
                 </div>
 
-                <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                    Budget entreprise
-                  </h2>
+                <div style={actions}>
+                  <button type="submit" style={submitButton}>
+                    ✅ Enregistrer le camion
+                  </button>
 
-                  <div style={infoRowStyle}>
-                    <span style={labelStyle}>Argent disponible</span>
-                    <span style={valueStyle}>
-                      {entreprise.argent.toLocaleString("fr-FR")} €
-                    </span>
-                  </div>
-
-                  <p style={{ ...smallTextStyle, marginTop: "12px" }}>
-                    Quand le camion est enregistré, le prix est retiré directement
-                    de la société.
-                  </p>
+                  <Link href="/camions" style={btnDark}>
+                    Annuler
+                  </Link>
                 </div>
-
-                <div style={boxStyle}>
-                  <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                    Infos camion
-                  </h2>
-
-                  <p style={smallTextStyle}>
-                    Ici le directeur remplit tout à la main : marque, modèle,
-                    technique, prix, photo, preuve d’achat et accessoires.
-                  </p>
-                </div>
-              </aside>
-            </div>
+              </>
+            )}
           </section>
-        </div>
+
+          <aside style={sidePanel}>
+            <InfoCard title="Autorisation" icon="🔐">
+              <InfoLine label="Ton rôle" value={monMembership.role} />
+              <InfoLine label="Directeur" value="Oui" />
+              <InfoLine label="Sous-directeur" value="Oui" />
+              <InfoLine label="Autres rôles" value="Non" />
+            </InfoCard>
+
+            <InfoCard title="Photo du camion" icon="📸">
+              <UploadBox
+                name="image"
+                label="Photo principale"
+                text="Ajoute l’image visible sur la fiche camion."
+              />
+            </InfoCard>
+
+            <InfoCard title="Preuve d’achat" icon="🧾">
+              <UploadBox
+                name="preuveAchat"
+                label="Document / capture"
+                text="Ajoute la preuve d’achat du camion."
+              />
+            </InfoCard>
+          </aside>
+        </form>
       </div>
     </main>
   );
 }
 
-const boxStyle = {
-  background: "rgba(255,255,255,0.08)",
-  borderRadius: "16px",
-  padding: "20px",
-  border: "1px solid rgba(255,255,255,0.08)",
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label style={field}>
+      <span style={labelStyle}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return <span style={tag}>{children}</span>;
+}
+
+function InfoCard({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section style={infoCard}>
+      <h3 style={infoTitle}>
+        <span>{icon}</span>
+        {title}
+      </h3>
+
+      {children}
+    </section>
+  );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={infoLine}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function UploadBox({
+  name,
+  label,
+  text,
+}: {
+  name: string;
+  label: string;
+  text: string;
+}) {
+  return (
+    <label style={uploadBox}>
+      <span style={uploadTitle}>{label}</span>
+      <span style={uploadIcon}>☁️</span>
+      <span style={uploadText}>{text}</span>
+
+      <input
+        name={name}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        style={fileInput}
+      />
+    </label>
+  );
+}
+
+const page: CSSProperties = {
+  minHeight: "100vh",
+  backgroundImage: "url('/truck.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundAttachment: "fixed",
+  color: "white",
+  padding: "24px",
+  position: "relative",
 };
 
-const formCardStyle = {
-  background: "rgba(255,255,255,0.08)",
-  borderRadius: "16px",
-  padding: "20px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  backdropFilter: "blur(4px)",
-  boxShadow: "0 0 18px rgba(0,0,0,0.28)",
+const overlay: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background:
+    "linear-gradient(135deg, rgba(0,0,0,0.9), rgba(5,18,34,0.74), rgba(0,0,0,0.94))",
+  zIndex: 0,
 };
 
-const fieldGroupStyle = {
+const topButton: CSSProperties = {
+  position: "absolute",
+  top: "24px",
+  right: "24px",
+  zIndex: 5,
+  padding: "12px 18px",
+  borderRadius: "999px",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 900,
+  background:
+    "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(14,165,233,0.75))",
+  border: "1px solid rgba(255,255,255,0.25)",
+  boxShadow: "0 15px 35px rgba(0,0,0,0.45)",
+  backdropFilter: "blur(10px)",
+};
+
+const container: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  maxWidth: "1320px",
+  margin: "0 auto",
+  display: "grid",
+  gap: "22px",
+  paddingTop: "62px",
+};
+
+const hero: CSSProperties = {
   display: "flex",
-  flexDirection: "column" as const,
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "24px",
+  padding: "30px",
+  borderRadius: "30px",
+  background:
+    "linear-gradient(135deg, rgba(255,255,255,0.13), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.16)",
+  boxShadow: "0 25px 70px rgba(0,0,0,0.52)",
+  backdropFilter: "blur(13px)",
+};
+
+const smallText: CSSProperties = {
+  opacity: 0.72,
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  fontSize: "0.78rem",
+  fontWeight: 900,
+};
+
+const title: CSSProperties = {
+  margin: "8px 0 10px",
+  fontSize: "clamp(2.1rem, 4vw, 3.8rem)",
+  lineHeight: 1,
+};
+
+const subtitle: CSSProperties = {
+  margin: 0,
+  maxWidth: "700px",
+  opacity: 0.86,
+  lineHeight: 1.6,
+};
+
+const tags: CSSProperties = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+  marginTop: "16px",
+};
+
+const tag: CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(255,255,255,0.1)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  fontWeight: 800,
+  fontSize: "0.85rem",
+};
+
+const heroPanel: CSSProperties = {
+  minWidth: "260px",
+  padding: "20px",
+  borderRadius: "24px",
+  background: "rgba(0,0,0,0.38)",
+  border: "1px solid rgba(255,255,255,0.13)",
+  textAlign: "right",
+};
+
+const panelLabel: CSSProperties = {
+  display: "block",
+  opacity: 0.72,
+  marginBottom: "8px",
+};
+
+const panelMoney: CSSProperties = {
+  display: "block",
+  fontSize: "2rem",
+  color: "#22c55e",
+};
+
+const panelHint: CSSProperties = {
+  display: "block",
+  marginTop: "8px",
+  opacity: 0.65,
+  fontSize: "0.85rem",
+};
+
+const layout: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1.35fr 0.65fr",
+  gap: "22px",
+  alignItems: "start",
+};
+
+const mainCard: CSSProperties = {
+  padding: "24px",
+  borderRadius: "28px",
+  background: "rgba(0,0,0,0.58)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 18px 50px rgba(0,0,0,0.42)",
+  backdropFilter: "blur(11px)",
+};
+
+const sectionHeader: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "14px",
+  flexWrap: "wrap",
+  marginBottom: "20px",
+};
+
+const sectionTitle: CSSProperties = {
+  margin: "4px 0 0",
+  fontSize: "1.45rem",
+};
+
+const formGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "16px",
+};
+
+const field: CSSProperties = {
+  display: "grid",
   gap: "8px",
   minWidth: 0,
 };
 
-const labelInputStyle = {
-  fontSize: "14px",
-  fontWeight: "bold",
-  opacity: 0.92,
-};
-
-const inputStyle = {
-  width: "100%",
-  maxWidth: "100%",
-  boxSizing: "border-box" as const,
-  padding: "12px 14px",
-  borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(255,255,255,0.08)",
-  color: "white",
-  outline: "none",
-};
-
-const textareaStyle = {
-  width: "100%",
-  maxWidth: "100%",
-  minHeight: "120px",
-  boxSizing: "border-box" as const,
-  padding: "12px 14px",
-  borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(255,255,255,0.08)",
-  color: "white",
-  outline: "none",
-  resize: "vertical" as const,
-};
-
-const whiteSelectStyle = {
-  width: "100%",
-  maxWidth: "100%",
-  boxSizing: "border-box" as const,
-  padding: "12px 14px",
-  borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "#ffffff",
-  color: "#111111",
-  outline: "none",
-};
-
-const whiteOptionStyle = {
-  background: "#ffffff",
-  color: "#111111",
-};
-
-const infoRowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "12px",
-  padding: "8px 0",
-  borderBottom: "1px solid rgba(255,255,255,0.06)",
-};
-
-const labelStyle = {
-  opacity: 0.82,
-  fontSize: "14px",
-};
-
-const valueStyle = {
-  fontWeight: "bold",
-  fontSize: "14px",
-  textAlign: "right" as const,
-};
-
-const smallTextStyle = {
-  margin: 0,
-  lineHeight: 1.6,
+const labelStyle: CSSProperties = {
+  fontSize: "0.88rem",
+  fontWeight: 900,
   opacity: 0.9,
 };
 
-const mainButtonStyle = {
-  padding: "12px 18px",
-  borderRadius: "10px",
-  border: "none",
-  background: "#2563eb",
+const input: CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "13px 14px",
+  borderRadius: "14px",
+  border: "1px solid rgba(255,255,255,0.13)",
+  background: "rgba(255,255,255,0.09)",
   color: "white",
-  fontWeight: "bold",
-  cursor: "pointer",
-  textDecoration: "none",
+  outline: "none",
 };
 
-const secondaryButtonStyle = {
-  padding: "12px 18px",
-  borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(255,255,255,0.08)",
+const select: CSSProperties = {
+  ...input,
+  background: "#ffffff",
+  color: "#111111",
+};
+
+const actions: CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+  marginTop: "22px",
+};
+
+const submitButton: CSSProperties = {
+  padding: "13px 18px",
+  borderRadius: "14px",
+  border: "none",
+  background: "linear-gradient(135deg, #16a34a, #22c55e)",
   color: "white",
-  fontWeight: "bold",
+  fontWeight: 900,
   cursor: "pointer",
+  boxShadow: "0 0 16px rgba(34,197,94,0.42)",
+};
+
+const btnDark: CSSProperties = {
+  padding: "12px 16px",
+  borderRadius: "14px",
+  color: "white",
   textDecoration: "none",
-  display: "inline-flex",
+  fontWeight: 900,
+  background: "rgba(255,255,255,0.09)",
+  border: "1px solid rgba(255,255,255,0.13)",
+};
+
+const btnBlue: CSSProperties = {
+  ...btnDark,
+  background:
+    "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(59,130,246,0.65))",
+};
+
+const sidePanel: CSSProperties = {
+  display: "grid",
+  gap: "16px",
+};
+
+const infoCard: CSSProperties = {
+  padding: "20px",
+  borderRadius: "24px",
+  background: "rgba(0,0,0,0.55)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 18px 50px rgba(0,0,0,0.35)",
+  backdropFilter: "blur(10px)",
+};
+
+const infoTitle: CSSProperties = {
+  display: "flex",
   alignItems: "center",
-  justifyContent: "center",
+  gap: "10px",
+  margin: "0 0 14px",
+};
+
+const infoLine: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "10px 0",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+};
+
+const uploadBox: CSSProperties = {
+  display: "grid",
+  placeItems: "center",
+  gap: "10px",
+  padding: "22px",
+  borderRadius: "18px",
+  border: "1px dashed rgba(255,255,255,0.28)",
+  background: "rgba(255,255,255,0.06)",
+  cursor: "pointer",
+  textAlign: "center",
+};
+
+const uploadTitle: CSSProperties = {
+  fontWeight: 900,
+};
+
+const uploadIcon: CSSProperties = {
+  fontSize: "2rem",
+  opacity: 0.9,
+};
+
+const uploadText: CSSProperties = {
+  opacity: 0.72,
+  fontSize: "0.86rem",
+  lineHeight: 1.5,
+};
+
+const fileInput: CSSProperties = {
+  width: "100%",
+  padding: "10px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(0,0,0,0.25)",
+  color: "white",
+};
+
+const muted: CSSProperties = {
+  margin: 0,
+  opacity: 0.78,
+  lineHeight: 1.6,
+};
+
+const accessDenied: CSSProperties = {
+  padding: "24px",
+  borderRadius: "22px",
+  background: "rgba(239,68,68,0.14)",
+  border: "1px solid rgba(239,68,68,0.35)",
 };

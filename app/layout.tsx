@@ -1,5 +1,5 @@
 import "./globals.css";
-import Menu from "@/app/components/Menu";
+
 
 export default function RootLayout({
   children,
@@ -10,7 +10,7 @@ export default function RootLayout({
     <html lang="fr">
       <body style={bodyStyle}>
         <div style={layoutStyle}>
-          <Menu />
+          
 
           <div style={contentStyle}>{children}</div>
         </div>

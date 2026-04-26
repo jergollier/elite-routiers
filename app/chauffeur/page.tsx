@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import type { CSSProperties, ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
-
 
 export default async function ChauffeurPage() {
   const cookieStore = await cookies();
@@ -68,145 +68,103 @@ export default async function ChauffeurPage() {
   ).length;
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundImage: "url('/truck.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-        padding: "20px",
-        color: "white",
-      }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr",
-          gap: "20px",
-        }}
-      >
-        
+    <main style={page}>
+      <div style={overlay} />
 
-        <div style={{ display: "grid", gap: "20px" }}>
-          <section
-            style={{
-              background: "rgba(0,0,0,0.55)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: "18px",
-              backdropFilter: "blur(6px)",
-              boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
-            }}
-          >
-            <div style={{ padding: "24px" }}>
-              <div style={{ opacity: 0.7 }}>Elite Routiers</div>
+      <div style={topActions}>
+        <Link href="/profil" style={topButtonDark}>
+          👤 Profil
+        </Link>
 
-              <h1 style={{ margin: "5px 0", fontSize: "2rem" }}>
-                Espace chauffeur
-              </h1>
+        <Link href="/societe" style={topButtonBlue}>
+          🏢 Société
+        </Link>
+      </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  marginTop: "10px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <Tag>{user.username || "Chauffeur"}</Tag>
+      <div style={container}>
+        <section style={hero}>
+          <div style={heroLeft}>
+            <div style={avatarBox}>
+              {user.avatar ? (
+                <img src={user.avatar} alt="Avatar chauffeur" style={avatar} />
+              ) : (
+                <span style={{ fontSize: "2.5rem" }}>🚛</span>
+              )}
+            </div>
+
+            <div>
+              <div style={smallText}>Elite Routiers • Espace chauffeur</div>
+
+              <h1 style={title}>{user.username || "Chauffeur"}</h1>
+
+              <div style={tags}>
                 <Tag>{entrepriseActuelle?.nom || "Aucune entreprise"}</Tag>
+                <Tag>{membershipActif?.role || "Aucun rôle"}</Tag>
                 <Tag>{user.jeuPrincipal || "Jeu non renseigné"}</Tag>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section
-            style={{
-              background: "rgba(0,0,0,0.55)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: "18px",
-              padding: "20px",
-              backdropFilter: "blur(6px)",
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "15px",
-              }}
-            >
-              <StatCard
-                title="Argent perso"
-                value={`${(user.argentPerso ?? 0).toLocaleString("fr-FR")} €`}
-                color="#22c55e"
-              />
-              <StatCard
-                title="Gains livraisons"
-                value={`${totalArgentGagne.toLocaleString("fr-FR")} €`}
-                color="#60a5fa"
-              />
-              <StatCard
-                title="Kilomètres"
-                value={`${Math.round(totalKilometres).toLocaleString(
-                  "fr-FR"
-                )} km`}
-                color="#f59e0b"
-              />
-              <StatCard
-                title="Livraisons réussies"
-                value={totalLivraisonsReussies.toString()}
-                color="#22c55e"
-              />
+          <div style={heroMoney}>
+            <span style={moneyLabel}>Argent personnel</span>
+            <strong style={moneyValue}>
+              {(user.argentPerso ?? 0).toLocaleString("fr-FR")} €
+            </strong>
+          </div>
+        </section>
+
+        <section style={statsGrid}>
+          <StatCard
+            title="Gains livraisons"
+            value={`${totalArgentGagne.toLocaleString("fr-FR")} €`}
+            color="#22c55e"
+            icon="💰"
+          />
+
+          <StatCard
+            title="Kilomètres parcourus"
+            value={`${Math.round(totalKilometres).toLocaleString("fr-FR")} km`}
+            color="#f59e0b"
+            icon="🛣️"
+          />
+
+          <StatCard
+            title="Livraisons réussies"
+            value={totalLivraisonsReussies.toString()}
+            color="#60a5fa"
+            icon="✅"
+          />
+
+          <StatCard
+            title="En cours"
+            value={totalEnCours.toString()}
+            color="#f59e0b"
+            icon="⏳"
+          />
+
+          <StatCard
+            title="Annulées"
+            value={totalAnnulees.toString()}
+            color="#ef4444"
+            icon="❌"
+          />
+        </section>
+
+        <section style={contentGrid}>
+          <section style={cardLarge}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={smallText}>Historique récent</div>
+                <h2 style={sectionTitle}>Dernières livraisons</h2>
+              </div>
+
+              <span style={badge}>{user.livraisons.length} affichées</span>
             </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: "15px",
-                marginTop: "15px",
-              }}
-            >
-              <StatCard
-                title="Livraisons annulées"
-                value={totalAnnulees.toString()}
-                color="#ef4444"
-              />
-              <StatCard
-                title="Livraisons en cours"
-                value={totalEnCours.toString()}
-                color="#f59e0b"
-              />
-            </div>
-          </section>
-
-          <section
-            style={{
-              background: "rgba(0,0,0,0.55)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: "18px",
-              padding: "20px",
-              backdropFilter: "blur(6px)",
-            }}
-          >
-            <h2 style={{ marginTop: 0, marginBottom: "16px" }}>
-              Dernières livraisons
-            </h2>
 
             {user.livraisons.length === 0 ? (
               <EmptyText>Aucune livraison enregistrée.</EmptyText>
             ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gap: "12px",
-                  maxHeight: "470px",
-                  overflowY: "auto",
-                  paddingRight: "8px",
-                  scrollbarWidth: "thin",
-                }}
-              >
+              <div style={deliveryList}>
                 {user.livraisons.map((livraison) => {
                   const statutLabel =
                     livraison.status === "TERMINEE"
@@ -215,12 +173,12 @@ export default async function ChauffeurPage() {
                       ? "Annulée"
                       : "En cours";
 
-                  const statutStyle =
+                  const statutColor =
                     livraison.status === "TERMINEE"
-                      ? { color: "#22c55e" }
+                      ? "#22c55e"
                       : livraison.status === "ANNULEE"
-                      ? { color: "#ef4444" }
-                      : { color: "#f59e0b" };
+                      ? "#ef4444"
+                      : "#f59e0b";
 
                   const trajet =
                     livraison.sourceCity && livraison.destinationCity
@@ -228,54 +186,23 @@ export default async function ChauffeurPage() {
                       : "Trajet non disponible";
 
                   return (
-                    <div
-                      key={livraison.id}
-                      style={{
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        borderRadius: "12px",
-                        padding: "14px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: "12px",
-                          flexWrap: "wrap",
-                        }}
-                      >
+                    <div key={livraison.id} style={deliveryCard}>
+                      <div style={deliveryTop}>
                         <div>
-                          <div
-                            style={{
-                              fontWeight: "bold",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            {trajet}
-                          </div>
-                          <div style={{ opacity: 0.8, fontSize: "14px" }}>
+                          <strong style={deliveryRoute}>{trajet}</strong>
+
+                          <div style={deliveryMeta}>
                             {livraison.cargo || "Cargo inconnu"} •{" "}
                             {livraison.truck || "Camion inconnu"}
                           </div>
                         </div>
 
                         <div style={{ textAlign: "right" }}>
-                          <div
-                            style={{
-                              fontWeight: "bold",
-                              ...statutStyle,
-                            }}
-                          >
-                            {statutLabel}
+                          <div style={{ ...statusPill, color: statutColor }}>
+                            ● {statutLabel}
                           </div>
-                          <div
-                            style={{
-                              opacity: 0.8,
-                              fontSize: "14px",
-                              marginTop: "4px",
-                            }}
-                          >
+
+                          <div style={dateText}>
                             {new Date(livraison.createdAt).toLocaleString(
                               "fr-FR"
                             )}
@@ -284,38 +211,34 @@ export default async function ChauffeurPage() {
                       </div>
 
                       {livraison.status === "TERMINEE" && (
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "18px",
-                            flexWrap: "wrap",
-                            marginTop: "12px",
-                            fontSize: "14px",
-                            opacity: 0.95,
-                          }}
-                        >
-                          <span>
-                            💰 Brut :{" "}
-                            {(livraison.income ?? 0).toLocaleString("fr-FR")} €
-                          </span>
-                          <span>
-                            👤 Chauffeur :{" "}
-                            {(livraison.gainChauffeur ?? 0).toLocaleString(
+                        <div style={moneyGrid}>
+                          <MoneyLine
+                            label="Brut"
+                            value={`${(livraison.income ?? 0).toLocaleString(
                               "fr-FR"
-                            )}{" "}
-                            €
-                          </span>
-                          <span>
-                            🏢 Société :{" "}
-                            {(livraison.gainSociete ?? 0).toLocaleString(
+                            )} €`}
+                          />
+
+                          <MoneyLine
+                            label="Chauffeur"
+                            value={`${(
+                              livraison.gainChauffeur ?? 0
+                            ).toLocaleString("fr-FR")} €`}
+                          />
+
+                          <MoneyLine
+                            label="Société"
+                            value={`${(
+                              livraison.gainSociete ?? 0
+                            ).toLocaleString("fr-FR")} €`}
+                          />
+
+                          <MoneyLine
+                            label="Charges"
+                            value={`${(livraison.charges ?? 0).toLocaleString(
                               "fr-FR"
-                            )}{" "}
-                            €
-                          </span>
-                          <span>
-                            🏛️ Charges :{" "}
-                            {(livraison.charges ?? 0).toLocaleString("fr-FR")} €
-                          </span>
+                            )} €`}
+                          />
                         </div>
                       )}
                     </div>
@@ -325,34 +248,52 @@ export default async function ChauffeurPage() {
             )}
           </section>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <Link href="/profil" style={btn}>
-              Retour au profil
-            </Link>
+          <aside style={sidePanel}>
+            <h2 style={sectionTitle}>Actions rapides</h2>
 
-            <Link href="/societe" style={btnBlue}>
-              Retour société
-            </Link>
+            <div style={quickActions}>
+              <Link href="/finance-perso" style={btnGreen}>
+                💰 Finance perso
+              </Link>
 
-            <Link href="/camions/acheter" style={btnBlue}>
-              Achat camion
-            </Link>
+              <Link href="/camions/acheter" style={btnBlue}>
+                🚛 Acheter un camion
+              </Link>
 
-            <Link href="/camions/parking" style={btnBlue}>
-              Parking
-            </Link>
+              <Link href="/camions/parking" style={btnBlue}>
+                🅿️ Parking
+              </Link>
 
-            <Link href="/finance-perso" style={btnGreen}>
-              💰 Finance perso
-            </Link>
-          </div>
-        </div>
+              <Link href="/profil/modifier" style={btn}>
+                ✏️ Modifier profil
+              </Link>
+            </div>
+
+            <div style={driverCard}>
+              <div style={smallText}>Résumé chauffeur</div>
+
+              <InfoLine
+                label="Entreprise"
+                value={entrepriseActuelle?.nom || "Aucune"}
+              />
+
+              <InfoLine
+                label="Rôle"
+                value={membershipActif?.role || "Aucun rôle"}
+              />
+
+              <InfoLine
+                label="Jeu"
+                value={user.jeuPrincipal || "Non renseigné"}
+              />
+
+              <InfoLine
+                label="Micro"
+                value={user.micro ? "Oui" : "Non"}
+              />
+            </div>
+          </aside>
+        </section>
       </div>
     </main>
   );
@@ -362,62 +303,368 @@ function StatCard({
   title,
   value,
   color,
+  icon,
 }: {
   title: string;
   value: string;
   color: string;
+  icon: string;
 }) {
   return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: "12px",
-        padding: "16px",
-      }}
-    >
-      <div style={{ opacity: 0.7, marginBottom: "8px" }}>{title}</div>
-      <div style={{ fontWeight: "bold", fontSize: "1.25rem", color }}>
-        {value}
-      </div>
+    <div style={statCard}>
+      <div style={statIcon}>{icon}</div>
+      <div style={{ opacity: 0.68, marginBottom: "8px" }}>{title}</div>
+      <div style={{ fontWeight: 900, fontSize: "1.35rem", color }}>{value}</div>
     </div>
   );
 }
 
-function Tag({ children }: { children: React.ReactNode }) {
+function Tag({ children }: { children: ReactNode }) {
+  return <span style={tag}>{children}</span>;
+}
+
+function EmptyText({ children }: { children: ReactNode }) {
+  return <div style={emptyText}>{children}</div>;
+}
+
+function MoneyLine({ label, value }: { label: string; value: string }) {
   return (
-    <span
-      style={{
-        background: "rgba(255,255,255,0.1)",
-        padding: "5px 10px",
-        borderRadius: "10px",
-      }}
-    >
-      {children}
-    </span>
+    <div style={moneyLine}>
+      <span style={{ opacity: 0.65 }}>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 
-function EmptyText({ children }: { children: React.ReactNode }) {
-  return <div style={{ opacity: 0.7 }}>{children}</div>;
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={infoLine}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
 }
 
-const btn: React.CSSProperties = {
-  padding: "10px 20px",
+const page: CSSProperties = {
+  minHeight: "100vh",
+  backgroundImage: "url('/truck.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundAttachment: "fixed",
+  color: "white",
+  padding: "24px",
+  position: "relative",
+};
+
+const overlay: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background:
+    "linear-gradient(135deg, rgba(0,0,0,0.88), rgba(8,20,38,0.72), rgba(0,0,0,0.92))",
+  zIndex: 0,
+};
+
+const topActions: CSSProperties = {
+  position: "absolute",
+  top: "24px",
+  right: "24px",
+  zIndex: 5,
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+};
+
+const topButtonBlue: CSSProperties = {
+  padding: "12px 18px",
+  borderRadius: "999px",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 900,
+  background: "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(14,165,233,0.75))",
+  border: "1px solid rgba(255,255,255,0.25)",
+  boxShadow: "0 15px 35px rgba(0,0,0,0.45)",
+  backdropFilter: "blur(10px)",
+};
+
+const topButtonDark: CSSProperties = {
+  ...topButtonBlue,
+  background: "rgba(0,0,0,0.55)",
+};
+
+const container: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  maxWidth: "1320px",
+  margin: "0 auto",
+  display: "grid",
+  gap: "22px",
+  paddingTop: "62px",
+};
+
+const hero: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "24px",
+  alignItems: "center",
+  padding: "28px",
+  borderRadius: "28px",
+  background:
+    "linear-gradient(135deg, rgba(255,255,255,0.13), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.16)",
+  boxShadow: "0 25px 70px rgba(0,0,0,0.52)",
+  backdropFilter: "blur(13px)",
+};
+
+const heroLeft: CSSProperties = {
+  display: "flex",
+  gap: "22px",
+  alignItems: "center",
+  flexWrap: "wrap",
+};
+
+const avatarBox: CSSProperties = {
+  width: "112px",
+  height: "112px",
+  borderRadius: "28px",
+  overflow: "hidden",
+  display: "grid",
+  placeItems: "center",
   background: "rgba(255,255,255,0.1)",
-  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.22)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.55)",
+};
+
+const avatar: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+};
+
+const smallText: CSSProperties = {
+  opacity: 0.72,
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  fontSize: "0.78rem",
+  fontWeight: 900,
+};
+
+const title: CSSProperties = {
+  margin: "8px 0 12px",
+  fontSize: "clamp(2rem, 4vw, 3.7rem)",
+  lineHeight: 1,
+};
+
+const tags: CSSProperties = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+};
+
+const tag: CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(255,255,255,0.1)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  fontWeight: 800,
+  fontSize: "0.85rem",
+};
+
+const heroMoney: CSSProperties = {
+  minWidth: "240px",
+  padding: "20px",
+  borderRadius: "22px",
+  background: "rgba(0,0,0,0.38)",
+  border: "1px solid rgba(255,255,255,0.13)",
+  textAlign: "right",
+};
+
+const moneyLabel: CSSProperties = {
+  display: "block",
+  opacity: 0.7,
+  marginBottom: "8px",
+};
+
+const moneyValue: CSSProperties = {
+  fontSize: "2rem",
+  color: "#22c55e",
+};
+
+const statsGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+  gap: "14px",
+};
+
+const statCard: CSSProperties = {
+  padding: "18px",
+  borderRadius: "22px",
+  background: "rgba(0,0,0,0.52)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.35)",
+  backdropFilter: "blur(10px)",
+};
+
+const statIcon: CSSProperties = {
+  width: "42px",
+  height: "42px",
+  borderRadius: "14px",
+  display: "grid",
+  placeItems: "center",
+  marginBottom: "12px",
+  background: "rgba(255,255,255,0.09)",
+  border: "1px solid rgba(255,255,255,0.12)",
+};
+
+const contentGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1.4fr 0.6fr",
+  gap: "22px",
+  alignItems: "start",
+};
+
+const cardLarge: CSSProperties = {
+  padding: "22px",
+  borderRadius: "26px",
+  background: "rgba(0,0,0,0.55)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 18px 50px rgba(0,0,0,0.42)",
+  backdropFilter: "blur(10px)",
+};
+
+const sidePanel: CSSProperties = {
+  ...cardLarge,
+  display: "grid",
+  gap: "18px",
+};
+
+const sectionHeader: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "16px",
+  marginBottom: "18px",
+};
+
+const sectionTitle: CSSProperties = {
+  margin: "4px 0 0",
+  fontSize: "1.45rem",
+};
+
+const badge: CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(255,255,255,0.09)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  fontWeight: 800,
+};
+
+const deliveryList: CSSProperties = {
+  display: "grid",
+  gap: "13px",
+  maxHeight: "560px",
+  overflowY: "auto",
+  paddingRight: "8px",
+  scrollbarWidth: "thin",
+};
+
+const deliveryCard: CSSProperties = {
+  padding: "16px",
+  borderRadius: "18px",
+  background:
+    "linear-gradient(135deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035))",
+  border: "1px solid rgba(255,255,255,0.1)",
+};
+
+const deliveryTop: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "14px",
+  flexWrap: "wrap",
+};
+
+const deliveryRoute: CSSProperties = {
+  display: "block",
+  marginBottom: "5px",
+  fontSize: "1rem",
+};
+
+const deliveryMeta: CSSProperties = {
+  opacity: 0.78,
+  fontSize: "0.9rem",
+};
+
+const statusPill: CSSProperties = {
+  fontWeight: 900,
+};
+
+const dateText: CSSProperties = {
+  opacity: 0.72,
+  fontSize: "0.82rem",
+  marginTop: "5px",
+};
+
+const moneyGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: "10px",
+  marginTop: "14px",
+};
+
+const moneyLine: CSSProperties = {
+  padding: "10px",
+  borderRadius: "13px",
+  background: "rgba(0,0,0,0.28)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  display: "grid",
+  gap: "4px",
+};
+
+const quickActions: CSSProperties = {
+  display: "grid",
+  gap: "10px",
+};
+
+const driverCard: CSSProperties = {
+  padding: "16px",
+  borderRadius: "18px",
+  background: "rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.09)",
+};
+
+const infoLine: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "11px 0",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+};
+
+const emptyText: CSSProperties = {
+  opacity: 0.7,
+  padding: "20px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const btn: CSSProperties = {
+  padding: "12px 16px",
+  background: "rgba(255,255,255,0.1)",
+  borderRadius: "14px",
   textDecoration: "none",
   color: "white",
+  fontWeight: 900,
+  border: "1px solid rgba(255,255,255,0.14)",
+  textAlign: "center",
 };
 
-const btnBlue: React.CSSProperties = {
+const btnBlue: CSSProperties = {
   ...btn,
-  background: "rgba(0,100,255,0.6)",
+  background: "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(59,130,246,0.65))",
 };
 
-const btnGreen: React.CSSProperties = {
+const btnGreen: CSSProperties = {
   ...btn,
   background: "linear-gradient(135deg, #16a34a, #22c55e)",
-  boxShadow: "0 0 12px rgba(34,197,94,0.5)",
-  fontWeight: "bold",
+  boxShadow: "0 0 16px rgba(34,197,94,0.45)",
 };

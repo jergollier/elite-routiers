@@ -48,17 +48,9 @@ async function envoyerWebhookLivraison(params: {
         ? `${sourceCity} → ${destinationCity}`
         : "Trajet inconnu";
 
-    const message = [
-      "📦 **Livraison terminée**",
-      `🏢 Société : **${entrepriseNom}**`,
-      `👤 Chauffeur : **${chauffeur}**`,
-      `🚛 Camion : **${truck || "Inconnu"}**`,
-      `🗺️ Trajet : **${trajet}**`,
-      `📦 Marchandise : **${cargo || "Inconnue"}**`,
-      `📏 Distance réelle : **${Math.round(distanceReelleKm || 0)} km**`,
-      `💰 Gain société : **${Number(gainSociete || 0).toLocaleString("fr-FR")} €**`,
-      `💵 Gain chauffeur : **${Number(gainChauffeur || 0).toLocaleString("fr-FR")} €**`,
-    ].join("\n");
+    const distance = Math.round(distanceReelleKm || 0);
+    const societe = Number(gainSociete || 0).toLocaleString("fr-FR");
+    const chauffeurGain = Number(gainChauffeur || 0).toLocaleString("fr-FR");
 
     const response = await fetch(webhookUrl, {
       method: "POST",
@@ -66,7 +58,64 @@ async function envoyerWebhookLivraison(params: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        content: message,
+        username: "Elite Routiers",
+        avatar_url: "https://elite-routiers.vercel.app/truck.jpg",
+        embeds: [
+          {
+            title: "✅ Livraison terminée",
+            description: `Une mission vient d’être validée pour **${entrepriseNom}**.`,
+            color: 0x22c55e,
+            thumbnail: {
+              url: "https://elite-routiers.vercel.app/truck.jpg",
+            },
+            fields: [
+              {
+                name: "🏢 Société",
+                value: `**${entrepriseNom}**`,
+                inline: true,
+              },
+              {
+                name: "👤 Chauffeur",
+                value: `**${chauffeur}**`,
+                inline: true,
+              },
+              {
+                name: "🚛 Camion",
+                value: `**${truck || "Inconnu"}**`,
+                inline: true,
+              },
+              {
+                name: "🗺️ Trajet",
+                value: `**${trajet}**`,
+                inline: false,
+              },
+              {
+                name: "📦 Marchandise",
+                value: `**${cargo || "Inconnue"}**`,
+                inline: true,
+              },
+              {
+                name: "📏 Distance réelle",
+                value: `**${distance} km**`,
+                inline: true,
+              },
+              {
+                name: "💰 Gain société",
+                value: `**${societe} €**`,
+                inline: true,
+              },
+              {
+                name: "💵 Gain chauffeur",
+                value: `**${chauffeurGain} €**`,
+                inline: true,
+              },
+            ],
+            footer: {
+              text: "Elite Routiers • Système automatique de livraison",
+            },
+            timestamp: new Date().toISOString(),
+          },
+        ],
       }),
     });
 
@@ -163,10 +212,28 @@ export async function POST(request: Request) {
       });
     }
 
-    const distanceReelle = Math.max(
-      0,
-      Math.round(endOdometerKm - livraison.startOdometerKm)
-    );
+    function normaliserDistanceKm(distanceBrute: number, kmPrevu?: number | null) {
+  if (!Number.isFinite(distanceBrute) || distanceBrute <= 0) return 0;
+
+  let distance = Math.round(distanceBrute);
+
+  if (distance > 3000) {
+    distance = Math.round(distance / 1000);
+  }
+
+  const prevu = kmPrevu ?? 0;
+
+  // Sécurité : si la télémétrie donne beaucoup trop haut,
+  // on reprend le km prévu de la mission.
+  if (prevu > 0 && distance > prevu * 3) {
+    return prevu;
+  }
+
+  return distance;
+}
+
+    const distanceBrute = endOdometerKm - livraison.startOdometerKm;
+    const distanceReelle = normaliserDistanceKm(distanceBrute, livraison.kmPrevu);
 
     const user = await prisma.user.findUnique({
       where: { steamId },

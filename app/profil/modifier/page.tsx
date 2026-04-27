@@ -157,10 +157,13 @@ export default async function ModifierProfilPage() {
 
   return (
     <main style={mainStyle}>
+      <div style={overlayStyle} />
+      <div style={radialOverlayStyle} />
+
       <div style={pageStyle}>
         <div style={topButtonRowStyle}>
           <Link href="/profil" style={profileButtonStyle}>
-            👤 Mon profil
+            ← Retour profil
           </Link>
         </div>
 
@@ -471,15 +474,37 @@ function Stat({ value, label }: { value: string; label: string }) {
 const mainStyle: CSSProperties = {
   minHeight: "100vh",
   backgroundImage:
-    "linear-gradient(90deg, rgba(0,0,0,0.78), rgba(0,0,0,0.42), rgba(0,0,0,0.82)), url('/truck.jpg')",
+    "linear-gradient(180deg, rgba(3,7,18,0.15), rgba(3,7,18,0.55) 520px), url('/truck.jpg')",
   backgroundSize: "cover",
-  backgroundPosition: "center",
+  backgroundPosition: "center top",
   backgroundAttachment: "fixed",
   color: "white",
   padding: "22px",
+  position: "relative",
+  fontFamily: "Arial, sans-serif",
+};
+
+const overlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "linear-gradient(135deg, rgba(3,7,18,0.25), rgba(8,13,28,0.20), rgba(3,7,18,0.35))",
+  zIndex: 0,
+};
+
+const radialOverlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "radial-gradient(circle at 52% 0%, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at 80% 18%, rgba(37,99,235,0.12), transparent 25%)",
+  zIndex: 0,
 };
 
 const pageStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
   maxWidth: "1250px",
   margin: "0 auto",
 };
@@ -493,12 +518,13 @@ const topButtonRowStyle: CSSProperties = {
 const profileButtonStyle: CSSProperties = {
   color: "white",
   textDecoration: "none",
-  fontWeight: 900,
-  padding: "12px 20px",
-  borderRadius: "10px",
+  fontWeight: 950,
+  padding: "12px 18px",
+  borderRadius: "999px",
   background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-  border: "1px solid rgba(147,197,253,0.65)",
-  boxShadow: "0 0 22px rgba(37,99,235,0.55)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
+  backdropFilter: "blur(12px)",
 };
 
 const formStyle: CSSProperties = {
@@ -512,11 +538,11 @@ const heroStyle: CSSProperties = {
   alignItems: "center",
   gap: "25px",
   padding: "32px",
-  borderRadius: "22px",
-  background: "rgba(15, 18, 24, 0.72)",
-  border: "1px solid rgba(255,255,255,0.22)",
-  backdropFilter: "blur(14px)",
-  boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
+  borderRadius: "30px",
+  background: "rgba(8,13,28,0.22)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
 const heroLeftStyle: CSSProperties = {
@@ -528,10 +554,10 @@ const heroLeftStyle: CSSProperties = {
 const avatarStyle: CSSProperties = {
   width: "112px",
   height: "112px",
-  borderRadius: "24px",
+  borderRadius: "26px",
   objectFit: "cover",
-  border: "1px solid rgba(255,255,255,0.35)",
-  boxShadow: "0 12px 35px rgba(0,0,0,0.55)",
+  border: "1px solid rgba(147,197,253,0.26)",
+  boxShadow: "0 0 30px rgba(37,99,235,0.22)",
   background: "rgba(255,255,255,0.08)",
 };
 
@@ -539,22 +565,24 @@ const kickerStyle: CSSProperties = {
   textTransform: "uppercase",
   letterSpacing: "0.12em",
   fontSize: "0.82rem",
-  fontWeight: 900,
-  color: "rgba(255,255,255,0.72)",
+  fontWeight: 950,
+  color: "#60a5fa",
+  textShadow: "0 4px 14px rgba(0,0,0,0.9)",
 };
 
 const titleStyle: CSSProperties = {
   margin: "8px 0 6px",
   fontSize: "3rem",
   lineHeight: 1,
-  fontWeight: 900,
-  textShadow: "0 3px 18px rgba(0,0,0,0.55)",
+  fontWeight: 950,
+  letterSpacing: "-0.05em",
+  textShadow: "0 6px 24px rgba(0,0,0,0.95)",
 };
 
 const subtitleStyle: CSSProperties = {
   margin: "0 0 16px",
-  color: "rgba(255,255,255,0.68)",
-  fontWeight: 600,
+  color: "rgba(255,255,255,0.82)",
+  fontWeight: 700,
 };
 
 const tagRowStyle: CSSProperties = {
@@ -564,12 +592,13 @@ const tagRowStyle: CSSProperties = {
 };
 
 const tagStyle: CSSProperties = {
-  padding: "7px 13px",
+  padding: "8px 12px",
   borderRadius: "999px",
-  background: "rgba(255,255,255,0.12)",
-  border: "1px solid rgba(255,255,255,0.22)",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#dbeafe",
   fontWeight: 900,
-  fontSize: "0.82rem",
+  fontSize: "0.85rem",
 };
 
 const statsStyle: CSSProperties = {
@@ -584,14 +613,15 @@ const statBoxStyle: CSSProperties = {
   display: "grid",
   placeItems: "center",
   borderRadius: "18px",
-  background: "rgba(12,12,16,0.72)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.065)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.22)",
 };
 
 const statValueStyle: CSSProperties = {
   fontSize: "1.75rem",
   lineHeight: 1,
+  fontWeight: 950,
 };
 
 const statLabelStyle: CSSProperties = {
@@ -603,11 +633,11 @@ const statLabelStyle: CSSProperties = {
 
 const panelStyle: CSSProperties = {
   padding: "18px",
-  borderRadius: "22px",
-  background: "rgba(5,7,12,0.72)",
-  border: "1px solid rgba(255,255,255,0.17)",
-  backdropFilter: "blur(14px)",
-  boxShadow: "0 22px 70px rgba(0,0,0,0.55)",
+  borderRadius: "26px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
 const splitStyle: CSSProperties = {
@@ -618,39 +648,40 @@ const splitStyle: CSSProperties = {
 
 const cardStyle: CSSProperties = {
   padding: "20px",
-  borderRadius: "18px",
-  background: "rgba(255,255,255,0.035)",
-  border: "1px solid rgba(255,255,255,0.10)",
+  borderRadius: "20px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
 };
 
 const cardTitleStyle: CSSProperties = {
   margin: "0 0 22px",
   fontSize: "1.28rem",
-  fontWeight: 900,
+  fontWeight: 950,
 };
 
 const sectionTitleStyle: CSSProperties = {
   margin: "0 0 18px",
   fontSize: "1.35rem",
+  fontWeight: 950,
 };
 
 const fieldLabelStyle: CSSProperties = {
   marginBottom: "8px",
-  color: "rgba(255,255,255,0.7)",
-  fontWeight: 800,
+  color: "rgba(255,255,255,0.78)",
+  fontWeight: 850,
   fontSize: "0.92rem",
 };
 
 const inputStyle: CSSProperties = {
   width: "100%",
   height: "48px",
-  borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.16)",
-  background: "rgba(255,255,255,0.065)",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.18)",
+  background: "rgba(255,255,255,0.10)",
   color: "white",
   padding: "0 14px",
   outline: "none",
-  fontWeight: 800,
+  fontWeight: 850,
   boxSizing: "border-box",
 };
 
@@ -658,18 +689,19 @@ const readOnlyStyle: CSSProperties = {
   ...inputStyle,
   display: "flex",
   alignItems: "center",
+  background: "rgba(255,255,255,0.075)",
 };
 
 const textareaStyle: CSSProperties = {
   width: "100%",
   minHeight: "115px",
-  borderRadius: "10px",
-  border: "1px solid rgba(255,255,255,0.16)",
-  background: "rgba(255,255,255,0.065)",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.18)",
+  background: "rgba(255,255,255,0.10)",
   color: "white",
   padding: "14px",
   outline: "none",
-  fontWeight: 700,
+  fontWeight: 750,
   fontFamily: "inherit",
   resize: "vertical",
   boxSizing: "border-box",
@@ -698,10 +730,10 @@ const choiceItemStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "10px",
-  borderRadius: "10px",
+  borderRadius: "12px",
   padding: "0 14px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.085)",
+  border: "1px solid rgba(255,255,255,0.16)",
   color: "white",
   fontWeight: 900,
   cursor: "pointer",
@@ -710,20 +742,20 @@ const choiceItemStyle: CSSProperties = {
 const checkboxGridStyle: CSSProperties = {
   display: "grid",
   gap: "1px",
-  borderRadius: "12px",
+  borderRadius: "14px",
   overflow: "hidden",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.10)",
 };
 
 const checkboxItemStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "10px",
-  minHeight: "36px",
+  minHeight: "38px",
   padding: "0 12px",
-  background: "rgba(255,255,255,0.065)",
+  background: "rgba(255,255,255,0.085)",
   borderBottom: "1px solid rgba(255,255,255,0.06)",
-  fontWeight: 800,
+  fontWeight: 850,
 };
 
 const actionsStyle: CSSProperties = {
@@ -731,32 +763,33 @@ const actionsStyle: CSSProperties = {
   justifyContent: "flex-end",
   gap: "14px",
   padding: "18px",
-  borderRadius: "16px",
-  background: "rgba(5,7,12,0.72)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  backdropFilter: "blur(14px)",
+  borderRadius: "20px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
 const cancelButtonStyle: CSSProperties = {
   minWidth: "180px",
   textAlign: "center",
   padding: "13px 22px",
-  borderRadius: "10px",
+  borderRadius: "12px",
   color: "white",
   textDecoration: "none",
-  fontWeight: 900,
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.20)",
+  fontWeight: 950,
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.18)",
 };
 
 const saveButtonStyle: CSSProperties = {
   minWidth: "230px",
   padding: "13px 22px",
-  borderRadius: "10px",
+  borderRadius: "12px",
   color: "white",
-  fontWeight: 900,
+  fontWeight: 950,
   background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-  border: "1px solid rgba(147,197,253,0.65)",
-  boxShadow: "0 0 24px rgba(37,99,235,0.45)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
   cursor: "pointer",
 };

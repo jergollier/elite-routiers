@@ -89,21 +89,18 @@ export async function GET(request: NextRequest): Promise<Response> {
       },
     });
 
-    const response = NextResponse.redirect(`${baseUrl}`);
+    const response = NextResponse.redirect(`${baseUrl}/societe`);
 
-    response.cookies.set("steamId", steamId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
+    const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 60 * 60 * 24 * 30, // 30 jours
+};
 
-    response.cookies.set("userId", user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
+response.cookies.set("steamId", steamId, cookieOptions);
+response.cookies.set("userId", user.id, cookieOptions);
 
     return response;
   } catch (error) {

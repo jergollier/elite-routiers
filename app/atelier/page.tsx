@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 
 const ROLES_AUTORISES_ATELIER = [
@@ -447,7 +446,7 @@ export default async function AtelierPage() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#080b10" }}>
-      <Menu />
+      
 
       <div
         style={{

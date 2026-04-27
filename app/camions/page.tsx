@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import Menu from "@/app/components/Menu";
+
 
 const ROLES_VENTE = ["DIRECTEUR", "SOUS_DIRECTEUR"];
 
@@ -116,8 +116,7 @@ export default async function CamionsPage() {
       <div style={{ position: "absolute", inset: 0, background: "rgba(0, 0, 0, 0.68)" }} />
 
       <div style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex" }}>
-        <Menu />
-
+        
         <div style={{ flex: 1, padding: "24px", minWidth: 0 }}>
           <section
             style={{

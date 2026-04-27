@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 import { MarqueCamion, RoleEntreprise } from "@prisma/client";
 
@@ -278,7 +277,7 @@ export default async function ModifierCamionPage({ params }: Props) {
           display: "flex",
         }}
       >
-        <Menu />
+        
 
         <div
           style={{

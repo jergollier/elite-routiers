@@ -1,9 +1,11 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { villesETS2, villesATS } from "@/app/data/villes";
+
+export const dynamic = "force-dynamic";
 
 export default async function CreerEntreprisePage() {
   const cookieStore = await cookies();
@@ -21,12 +23,8 @@ export default async function CreerEntreprisePage() {
   if (!user) redirect("/");
 
   const membershipActif = await prisma.entrepriseMembre.findUnique({
-    where: {
-      userId: user.id,
-    },
-    include: {
-      entreprise: true,
-    },
+    where: { userId: user.id },
+    include: { entreprise: true },
   });
 
   const societeActuelle = membershipActif?.entreprise ?? null;
@@ -60,42 +58,56 @@ export default async function CreerEntreprisePage() {
 
   return (
     <main style={mainStyle}>
-      <div style={pageOverlayStyle} />
+      <div style={overlayStyle} />
+      <div style={radialOverlayStyle} />
 
       <div style={pageStyle}>
-        <header style={headerStyle}>
+        <div style={topButtonRowStyle}>
+          <Link href="/societe" style={profileButtonStyle}>
+            ← Retour aux sociétés
+          </Link>
+        </div>
+
+        <section style={heroStyle}>
           <div>
-            <div style={brandStyle}>🚛 ELITE ROUTIERS</div>
-            <h1 style={heroTitleStyle}>Créer une entreprise</h1>
-            <p style={heroTextStyle}>
+            <div style={kickerStyle}>Elite Routiers • Création société</div>
+
+            <h1 style={titleStyle}>Créer une entreprise</h1>
+
+            <p style={subtitleStyle}>
               Lance ta société, choisis ta maison mère et construis ton réseau
               de chauffeurs.
             </p>
+
+            <div style={tagRowStyle}>
+              <Tag>1 société maximum</Tag>
+              <Tag>Recrutement configurable</Tag>
+              <Tag>Bannière personnalisée</Tag>
+            </div>
           </div>
 
-          <Link href="/societe" style={backButtonStyle}>
-            ← Retour aux sociétés
-          </Link>
-        </header>
+          <div style={statsStyle}>
+            <Stat value="3" label="Lettres max" />
+            <Stat value="4 Mo" label="Bannière" />
+            <Stat value="ETS2 / ATS" label="Jeux" />
+          </div>
+        </section>
 
-        <div style={contentStyle}>
-          {creationBloquee ? (
-            <section style={blockedPanelStyle}>
+        {creationBloquee ? (
+          <section style={panelStyle}>
+            <div style={blockedPanelStyle}>
               <div style={blockedIconStyle}>⛔</div>
 
               <div>
-                <div style={smallTitleStyle}>Accès refusé</div>
-                <h2 style={panelTitleStyle}>{blocageTitre}</h2>
+                <div style={kickerStyle}>Accès refusé</div>
+                <h2 style={sectionTitleStyle}>{blocageTitre}</h2>
               </div>
 
               <div style={alertBoxStyle}>
-                <div style={{ fontWeight: 900, marginBottom: "8px" }}>
-                  Action refusée
-                </div>
-
-                <div style={{ opacity: 0.92, lineHeight: 1.6 }}>
+                <strong>Action refusée</strong>
+                <p style={{ margin: "8px 0 0", lineHeight: 1.6 }}>
                   {blocageMessage}
-                </div>
+                </p>
               </div>
 
               <p style={blockedTextStyle}>
@@ -103,52 +115,28 @@ export default async function CreerEntreprisePage() {
                 société et en créer une autre en même temps.
               </p>
 
-              <div style={buttonRowStyle}>
-                <Link href={blocageLien} style={buttonPrimaryStyle}>
+              <div style={actionsInlineStyle}>
+                <Link href={blocageLien} style={blueButtonStyle}>
                   {blocageTexteLien}
                 </Link>
 
-                <Link href="/societe" style={buttonSecondaryStyle}>
+                <Link href="/societe" style={cancelButtonStyle}>
                   Retour aux sociétés
                 </Link>
               </div>
-            </section>
-          ) : (
-            <form
-              action="/api/entreprise"
-              method="POST"
-              encType="multipart/form-data"
-              style={formPanelStyle}
-            >
-              <section style={introCardStyle}>
-                <div>
-                  <div style={smallTitleStyle}>Nouvelle société</div>
-                  <h2 style={panelTitleStyle}>Identité de l’entreprise</h2>
-                  <p style={panelTextStyle}>
-                    Renseigne les informations principales qui seront visibles
-                    par les chauffeurs.
-                  </p>
-                </div>
-
-                <div style={miniStatsStyle}>
-                  <div style={miniStatStyle}>
-                    <strong>3</strong>
-                    <span>Lettres max</span>
-                  </div>
-
-                  <div style={miniStatStyle}>
-                    <strong>4 Mo</strong>
-                    <span>Bannière max</span>
-                  </div>
-                </div>
-              </section>
-
-              <div style={gridStyle}>
-                <section style={cardStyle}>
-                  <h3 style={cardTitleStyle}>🏢 Informations générales</h3>
-
-                  <div>
-                    <label style={labelStyle}>Nom de la société</label>
+            </div>
+          </section>
+        ) : (
+          <form
+            action="/api/entreprise"
+            method="POST"
+            encType="multipart/form-data"
+            style={formStyle}
+          >
+            <section style={panelStyle}>
+              <div style={splitStyle}>
+                <Card title="🏢 Informations générales">
+                  <Field label="Nom de la société">
                     <input
                       name="nom"
                       type="text"
@@ -156,10 +144,9 @@ export default async function CreerEntreprisePage() {
                       style={inputStyle}
                       placeholder="Ex : Elite Cargo"
                     />
-                  </div>
+                  </Field>
 
-                  <div>
-                    <label style={labelStyle}>Abréviation (3 lettres)</label>
+                  <Field label="Abréviation (3 lettres)">
                     <input
                       name="abreviation"
                       type="text"
@@ -168,16 +155,10 @@ export default async function CreerEntreprisePage() {
                       style={inputStyle}
                       placeholder="Ex : ECR"
                     />
-                  </div>
+                  </Field>
 
-                  <div>
-                    <label style={labelStyle}>Jeu principal</label>
-                    <select
-                      name="jeu"
-                      required
-                      style={selectStyle}
-                      defaultValue=""
-                    >
+                  <Field label="Jeu principal">
+                    <select name="jeu" required style={selectStyle} defaultValue="">
                       <option value="" style={optionStyle}>
                         Choisir un jeu
                       </option>
@@ -191,10 +172,9 @@ export default async function CreerEntreprisePage() {
                         Les deux
                       </option>
                     </select>
-                  </div>
+                  </Field>
 
-                  <div>
-                    <label style={labelStyle}>Type de transport</label>
+                  <Field label="Type de transport">
                     <select
                       name="typeTransport"
                       required
@@ -226,10 +206,9 @@ export default async function CreerEntreprisePage() {
                         Bétail
                       </option>
                     </select>
-                  </div>
+                  </Field>
 
-                  <div>
-                    <label style={labelStyle}>Recrutement</label>
+                  <Field label="Recrutement">
                     <select
                       name="recrutement"
                       style={selectStyle}
@@ -242,14 +221,11 @@ export default async function CreerEntreprisePage() {
                         Fermé
                       </option>
                     </select>
-                  </div>
-                </section>
+                  </Field>
+                </Card>
 
-                <section style={cardStyle}>
-                  <h3 style={cardTitleStyle}>🗺️ Maisons mères</h3>
-
-                  <div>
-                    <label style={labelStyle}>Maison mère ETS2</label>
+                <Card title="🗺️ Maisons mères">
+                  <Field label="Maison mère ETS2">
                     <select name="villeETS2" style={selectStyle} defaultValue="">
                       <option value="" style={optionStyle}>
                         Aucune ville ETS2
@@ -267,10 +243,9 @@ export default async function CreerEntreprisePage() {
                         ))}
                       </optgroup>
                     </select>
-                  </div>
+                  </Field>
 
-                  <div>
-                    <label style={labelStyle}>Maison mère ATS</label>
+                  <Field label="Maison mère ATS">
                     <select name="villeATS" style={selectStyle} defaultValue="">
                       <option value="" style={optionStyle}>
                         Aucune ville ATS
@@ -288,7 +263,7 @@ export default async function CreerEntreprisePage() {
                         ))}
                       </optgroup>
                     </select>
-                  </div>
+                  </Field>
 
                   <div style={infoBoxStyle}>
                     <strong>Important</strong>
@@ -297,283 +272,338 @@ export default async function CreerEntreprisePage() {
                     </span>
                   </div>
 
-                  <div>
-                    <label style={labelStyle}>Description</label>
+                  <Field label="Description">
                     <textarea
                       name="description"
                       required
                       style={textareaStyle}
                       placeholder="Présente ta société, ton style de conduite, tes objectifs..."
                     />
-                  </div>
-                </section>
+                  </Field>
+                </Card>
               </div>
+            </section>
 
-              <section style={bannerPanelStyle}>
-                <div style={bannerHeaderStyle}>
-                  <div>
-                    <div style={smallTitleStyle}>Image publique</div>
-                    <h2 style={panelTitleStyle}>Bannière de la société</h2>
-                  </div>
-
-                  <div style={formatBadgeStyle}>1500 x 500 px conseillé</div>
+            <section style={panelStyle}>
+              <div style={sectionHeaderStyle}>
+                <div>
+                  <h2 style={sectionTitleStyle}>🖼️ Bannière de la société</h2>
+                  <p style={sectionSubtitleStyle}>
+                    Image publique visible sur la fiche de ta société.
+                  </p>
                 </div>
 
-                <div style={bannerGridStyle}>
-                  <div>
-                    <div style={formatBoxStyle}>
-                      <div style={formatTitleStyle}>Format recommandé</div>
-                      <div style={formatLineStyle}>
-                        Taille conseillée : <strong>1500 x 500 px</strong>
-                      </div>
-                      <div style={formatLineStyle}>
-                        Ratio conseillé : <strong>3:1</strong>
-                      </div>
-                      <div style={formatLineStyle}>
-                        Formats acceptés : <strong>JPG, PNG, WEBP</strong>
-                      </div>
-                      <div style={formatLineStyle}>
-                        Poids maximum : <strong>4 Mo</strong>
-                      </div>
-                      <div style={formatHintStyle}>
-                        Utilise une image large horizontale pour un rendu propre
-                        sur le site.
-                      </div>
+                <span style={countStyle}>1500 x 500 px conseillé</span>
+              </div>
+
+              <div style={bannerGridStyle}>
+                <Card title="📁 Importer une bannière">
+                  <div style={formatBoxStyle}>
+                    <div style={formatTitleStyle}>Format recommandé</div>
+
+                    <div style={formatLineStyle}>
+                      Taille conseillée : <strong>1500 x 500 px</strong>
                     </div>
 
-                    <input
-                      name="banniereFile"
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                      style={fileInputStyle}
-                    />
+                    <div style={formatLineStyle}>
+                      Ratio conseillé : <strong>3:1</strong>
+                    </div>
 
-                    <p style={helpTextStyle}>
-                      Le joueur ajoute directement son image ici. La bannière
-                      sera ensuite enregistrée par le serveur.
-                    </p>
+                    <div style={formatLineStyle}>
+                      Formats acceptés : <strong>JPG, PNG, WEBP</strong>
+                    </div>
+
+                    <div style={formatLineStyle}>
+                      Poids maximum : <strong>4 Mo</strong>
+                    </div>
+
+                    <div style={formatHintStyle}>
+                      Utilise une image large horizontale pour un rendu propre
+                      sur le site.
+                    </div>
                   </div>
 
-                  <div style={previewStyle}>
-                    <div>
-                      <div style={previewTitleStyle}>
-                        Aperçu du style de bannière
-                      </div>
-                      <div style={previewTextStyle}>
-                        Format large horizontal recommandé
-                      </div>
+                  <input
+                    name="banniereFile"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                    style={fileInputStyle}
+                  />
+
+                  <p style={helpTextStyle}>
+                    Le joueur ajoute directement son image ici. La bannière sera
+                    ensuite enregistrée par le serveur.
+                  </p>
+                </Card>
+
+                <div style={previewStyle}>
+                  <div>
+                    <div style={previewTitleStyle}>
+                      Aperçu du style de bannière
+                    </div>
+                    <div style={previewTextStyle}>
+                      Format large horizontal recommandé
                     </div>
                   </div>
                 </div>
-              </section>
-
-              <div style={actionsStyle}>
-                <Link href="/societe" style={buttonSecondaryStyle}>
-                  Annuler
-                </Link>
-
-                <button type="submit" style={submitButtonStyle}>
-                  Créer l&apos;entreprise
-                </button>
               </div>
-            </form>
-          )}
-        </div>
+            </section>
+
+            <div style={actionsStyle}>
+              <Link href="/societe" style={cancelButtonStyle}>
+                ✕ Annuler
+              </Link>
+
+              <button type="submit" style={blueButtonStyle}>
+                Créer l&apos;entreprise
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </main>
   );
 }
 
+function Card({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div style={cardStyle}>
+      <h3 style={cardTitleStyle}>{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div style={{ marginBottom: "18px" }}>
+      <div style={fieldLabelStyle}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function Tag({ children }: { children: ReactNode }) {
+  return <span style={tagStyle}>{children}</span>;
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div style={statBoxStyle}>
+      <strong style={statValueStyle}>{value}</strong>
+      <span style={statLabelStyle}>{label}</span>
+    </div>
+  );
+}
+
 const mainStyle: CSSProperties = {
   minHeight: "100vh",
-  position: "relative",
-  color: "white",
   backgroundImage:
-    "linear-gradient(90deg, rgba(0,0,0,0.88), rgba(0,0,0,0.55), rgba(0,0,0,0.88)), url('/truck.jpg')",
+    "linear-gradient(180deg, rgba(3,7,18,0.15), rgba(3,7,18,0.55) 520px), url('/truck.jpg')",
   backgroundSize: "cover",
-  backgroundPosition: "center",
+  backgroundPosition: "center top",
   backgroundAttachment: "fixed",
+  color: "white",
+  padding: "22px",
+  position: "relative",
+  fontFamily: "Arial, sans-serif",
 };
 
-const pageOverlayStyle: CSSProperties = {
-  position: "absolute",
+const overlayStyle: CSSProperties = {
+  position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,0.2)",
+  pointerEvents: "none",
+  background:
+    "linear-gradient(135deg, rgba(3,7,18,0.25), rgba(8,13,28,0.20), rgba(3,7,18,0.35))",
+  zIndex: 0,
+};
+
+const radialOverlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "radial-gradient(circle at 52% 0%, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at 80% 18%, rgba(37,99,235,0.12), transparent 25%)",
+  zIndex: 0,
 };
 
 const pageStyle: CSSProperties = {
   position: "relative",
   zIndex: 1,
-  minHeight: "100vh",
-  padding: "24px",
-};
-
-const headerStyle: CSSProperties = {
-  maxWidth: "1250px",
-  margin: "0 auto 24px",
-  minHeight: "138px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "24px",
-  padding: "30px",
-  borderRadius: "30px",
-  background:
-    "linear-gradient(135deg, rgba(0,0,0,0.42), rgba(255,255,255,0.08))",
-  border: "1px solid rgba(255,255,255,0.18)",
-  backdropFilter: "blur(16px)",
-  boxShadow: "0 26px 90px rgba(0,0,0,0.6)",
-};
-
-const brandStyle: CSSProperties = {
-  color: "#bfdbfe",
-  fontSize: "1rem",
-  letterSpacing: "0.18em",
-  textTransform: "uppercase",
-  fontWeight: 900,
-};
-
-const heroTitleStyle: CSSProperties = {
-  margin: "10px 0 8px",
-  fontSize: "3.2rem",
-  lineHeight: 1,
-  fontWeight: 900,
-  textShadow: "0 5px 25px rgba(0,0,0,0.65)",
-};
-
-const heroTextStyle: CSSProperties = {
-  margin: 0,
-  maxWidth: "650px",
-  color: "rgba(255,255,255,0.72)",
-  fontSize: "1rem",
-  fontWeight: 600,
-};
-
-const backButtonStyle: CSSProperties = {
-  padding: "12px 18px",
-  borderRadius: "999px",
-  background: "rgba(255,255,255,0.09)",
-  border: "1px solid rgba(255,255,255,0.16)",
-  color: "white",
-  textDecoration: "none",
-  fontWeight: 900,
-  whiteSpace: "nowrap",
-};
-
-const contentStyle: CSSProperties = {
   maxWidth: "1250px",
   margin: "0 auto",
-  display: "flex",
-  justifyContent: "center",
-};
-
-const formPanelStyle: CSSProperties = {
-  width: "100%",
   display: "grid",
   gap: "22px",
 };
 
-const introCardStyle: CSSProperties = {
+const topButtonRowStyle: CSSProperties = {
   display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "20px",
-  padding: "24px",
-  borderRadius: "26px",
-  background: "rgba(0,0,0,0.42)",
-  border: "1px solid rgba(255,255,255,0.15)",
-  backdropFilter: "blur(16px)",
-  boxShadow: "0 22px 70px rgba(0,0,0,0.52)",
-};
-
-const smallTitleStyle: CSSProperties = {
-  color: "#93c5fd",
-  textTransform: "uppercase",
-  letterSpacing: "0.13em",
-  fontSize: "0.76rem",
-  fontWeight: 900,
-};
-
-const panelTitleStyle: CSSProperties = {
-  margin: "6px 0 8px",
-  fontSize: "2rem",
-  lineHeight: 1,
-};
-
-const panelTextStyle: CSSProperties = {
-  margin: 0,
-  color: "rgba(255,255,255,0.72)",
-  fontWeight: 650,
-};
-
-const miniStatsStyle: CSSProperties = {
-  display: "flex",
+  justifyContent: "flex-end",
   gap: "12px",
   flexWrap: "wrap",
 };
 
-const miniStatStyle: CSSProperties = {
-  width: "115px",
-  minHeight: "76px",
+const profileButtonStyle: CSSProperties = {
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 950,
+  padding: "12px 18px",
+  borderRadius: "999px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
+  backdropFilter: "blur(12px)",
+};
+
+const formStyle: CSSProperties = {
+  display: "grid",
+  gap: "22px",
+};
+
+const heroStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "25px",
+  padding: "32px",
+  borderRadius: "30px",
+  background: "rgba(8,13,28,0.22)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const kickerStyle: CSSProperties = {
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  fontSize: "0.82rem",
+  fontWeight: 950,
+  color: "#60a5fa",
+  textShadow: "0 4px 14px rgba(0,0,0,0.9)",
+};
+
+const titleStyle: CSSProperties = {
+  margin: "8px 0 6px",
+  fontSize: "3rem",
+  lineHeight: 1,
+  fontWeight: 950,
+  letterSpacing: "-0.05em",
+  textShadow: "0 6px 24px rgba(0,0,0,0.95)",
+};
+
+const subtitleStyle: CSSProperties = {
+  margin: "0 0 16px",
+  color: "rgba(255,255,255,0.82)",
+  fontWeight: 700,
+};
+
+const tagRowStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+};
+
+const tagStyle: CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#dbeafe",
+  fontWeight: 900,
+  fontSize: "0.85rem",
+};
+
+const statsStyle: CSSProperties = {
+  display: "flex",
+  gap: "14px",
+  flexWrap: "wrap",
+};
+
+const statBoxStyle: CSSProperties = {
+  width: "110px",
+  minHeight: "86px",
   display: "grid",
   placeItems: "center",
   borderRadius: "18px",
-  background: "rgba(0,0,0,0.42)",
-  border: "1px solid rgba(255,255,255,0.13)",
-  fontWeight: 900,
+  background: "rgba(255,255,255,0.065)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.22)",
 };
 
-const gridStyle: CSSProperties = {
+const statValueStyle: CSSProperties = {
+  fontSize: "1.5rem",
+  lineHeight: 1,
+  fontWeight: 950,
+  textAlign: "center",
+};
+
+const statLabelStyle: CSSProperties = {
+  fontSize: "0.78rem",
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 800,
+  marginTop: "-16px",
+  textAlign: "center",
+};
+
+const panelStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "26px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const splitStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: "22px",
 };
 
 const cardStyle: CSSProperties = {
-  display: "grid",
-  gap: "18px",
-  padding: "24px",
-  borderRadius: "26px",
-  background: "rgba(0,0,0,0.42)",
-  border: "1px solid rgba(255,255,255,0.15)",
-  backdropFilter: "blur(16px)",
-  boxShadow: "0 22px 70px rgba(0,0,0,0.52)",
+  padding: "20px",
+  borderRadius: "20px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
 };
 
 const cardTitleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "1.35rem",
+  margin: "0 0 22px",
+  fontSize: "1.28rem",
+  fontWeight: 950,
 };
 
-const labelStyle: CSSProperties = {
-  display: "block",
+const fieldLabelStyle: CSSProperties = {
   marginBottom: "8px",
-  fontWeight: 900,
   color: "rgba(255,255,255,0.78)",
+  fontWeight: 850,
+  fontSize: "0.92rem",
 };
 
 const inputStyle: CSSProperties = {
   width: "100%",
-  padding: "13px 14px",
-  borderRadius: "13px",
-  border: "1px solid rgba(255,255,255,0.16)",
-  background: "rgba(255,255,255,0.075)",
+  height: "48px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.18)",
+  background: "rgba(255,255,255,0.10)",
   color: "white",
+  padding: "0 14px",
   outline: "none",
+  fontWeight: 850,
   boxSizing: "border-box",
-  fontWeight: 800,
 };
 
 const selectStyle: CSSProperties = {
   width: "100%",
-  padding: "13px 14px",
-  borderRadius: "13px",
-  border: "1px solid rgba(255,255,255,0.16)",
+  height: "48px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.18)",
   backgroundColor: "#ffffff",
   color: "#000000",
+  padding: "0 14px",
   outline: "none",
+  fontWeight: 850,
   boxSizing: "border-box",
-  fontWeight: 800,
 };
 
 const optionStyle: CSSProperties = {
@@ -582,10 +612,18 @@ const optionStyle: CSSProperties = {
 };
 
 const textareaStyle: CSSProperties = {
-  ...inputStyle,
+  width: "100%",
   minHeight: "132px",
-  resize: "vertical",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.18)",
+  background: "rgba(255,255,255,0.10)",
+  color: "white",
+  padding: "14px",
+  outline: "none",
+  fontWeight: 750,
   fontFamily: "inherit",
+  resize: "vertical",
+  boxSizing: "border-box",
 };
 
 const infoBoxStyle: CSSProperties = {
@@ -596,38 +634,43 @@ const infoBoxStyle: CSSProperties = {
   background: "rgba(37,99,235,0.14)",
   border: "1px solid rgba(147,197,253,0.22)",
   color: "rgba(255,255,255,0.88)",
-};
-
-const bannerPanelStyle: CSSProperties = {
-  padding: "24px",
-  borderRadius: "26px",
-  background: "rgba(0,0,0,0.42)",
-  border: "1px solid rgba(255,255,255,0.15)",
-  backdropFilter: "blur(16px)",
-  boxShadow: "0 22px 70px rgba(0,0,0,0.52)",
-};
-
-const bannerHeaderStyle: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "16px",
-  flexWrap: "wrap",
   marginBottom: "18px",
 };
 
-const formatBadgeStyle: CSSProperties = {
-  padding: "10px 14px",
-  borderRadius: "999px",
+const sectionHeaderStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "14px",
+  alignItems: "flex-start",
+  marginBottom: "18px",
+};
+
+const sectionTitleStyle: CSSProperties = {
+  margin: "0 0 6px",
+  fontSize: "1.7rem",
+  fontWeight: 950,
+};
+
+const sectionSubtitleStyle: CSSProperties = {
+  margin: 0,
+  color: "rgba(255,255,255,0.68)",
+  fontWeight: 750,
+};
+
+const countStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.72)",
+  fontSize: "13px",
   background: "rgba(255,255,255,0.08)",
-  border: "1px solid rgba(255,255,255,0.14)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: "999px",
+  padding: "8px 12px",
   fontWeight: 900,
 };
 
 const bannerGridStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "0.9fr 1.1fr",
-  gap: "20px",
+  gridTemplateColumns: "0.95fr 1.05fr",
+  gap: "22px",
 };
 
 const formatBoxStyle: CSSProperties = {
@@ -640,40 +683,41 @@ const formatBoxStyle: CSSProperties = {
 };
 
 const formatTitleStyle: CSSProperties = {
-  fontWeight: 900,
+  fontWeight: 950,
   marginBottom: "8px",
   fontSize: "15px",
 };
 
 const formatLineStyle: CSSProperties = {
   fontSize: "14px",
-  opacity: 0.92,
+  color: "rgba(255,255,255,0.88)",
 };
 
 const formatHintStyle: CSSProperties = {
   marginTop: "8px",
   fontSize: "14px",
-  opacity: 0.78,
+  color: "rgba(255,255,255,0.72)",
 };
 
 const fileInputStyle: CSSProperties = {
   width: "100%",
   padding: "13px",
-  borderRadius: "13px",
-  border: "1px solid rgba(255,255,255,0.16)",
-  background: "rgba(255,255,255,0.075)",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.18)",
+  background: "rgba(255,255,255,0.10)",
   color: "white",
   outline: "none",
   boxSizing: "border-box",
-  fontWeight: 800,
+  fontWeight: 850,
 };
 
 const helpTextStyle: CSSProperties = {
   marginTop: "9px",
   marginBottom: 0,
   fontSize: "13px",
-  opacity: 0.82,
+  color: "rgba(255,255,255,0.72)",
   lineHeight: 1.5,
+  fontWeight: 700,
 };
 
 const previewStyle: CSSProperties = {
@@ -692,74 +736,67 @@ const previewStyle: CSSProperties = {
 
 const previewTitleStyle: CSSProperties = {
   fontSize: "1.3rem",
-  fontWeight: 900,
+  fontWeight: 950,
 };
 
 const previewTextStyle: CSSProperties = {
   fontSize: "0.9rem",
-  opacity: 0.82,
+  color: "rgba(255,255,255,0.82)",
   marginTop: "4px",
+  fontWeight: 800,
 };
 
 const actionsStyle: CSSProperties = {
   display: "flex",
   justifyContent: "flex-end",
+  gap: "14px",
+  padding: "18px",
+  borderRadius: "20px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+  flexWrap: "wrap",
+};
+
+const actionsInlineStyle: CSSProperties = {
+  display: "flex",
   gap: "12px",
   flexWrap: "wrap",
-  padding: "18px",
-  borderRadius: "22px",
-  background: "rgba(0,0,0,0.42)",
-  border: "1px solid rgba(255,255,255,0.14)",
-  backdropFilter: "blur(16px)",
 };
 
-const buttonPrimaryStyle: CSSProperties = {
-  padding: "14px 18px",
-  borderRadius: "13px",
-  border: "1px solid rgba(147,197,253,0.55)",
-  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+const cancelButtonStyle: CSSProperties = {
+  minWidth: "160px",
+  textAlign: "center",
+  padding: "13px 22px",
+  borderRadius: "12px",
   color: "white",
-  fontWeight: 900,
-  cursor: "pointer",
   textDecoration: "none",
-  display: "inline-flex",
-  alignItems: "center",
-  boxShadow: "0 0 22px rgba(37,99,235,0.34)",
-};
-
-const buttonSecondaryStyle: CSSProperties = {
-  padding: "14px 18px",
-  borderRadius: "13px",
-  border: "1px solid rgba(255,255,255,0.14)",
+  fontWeight: 950,
   background: "rgba(255,255,255,0.08)",
-  color: "white",
-  fontWeight: 900,
+  border: "1px solid rgba(255,255,255,0.18)",
   cursor: "pointer",
-  textDecoration: "none",
-  display: "inline-flex",
-  alignItems: "center",
 };
 
-const submitButtonStyle: CSSProperties = {
-  padding: "14px 22px",
-  borderRadius: "13px",
-  border: "1px solid rgba(147,197,253,0.55)",
-  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+const blueButtonStyle: CSSProperties = {
+  minWidth: "210px",
+  textAlign: "center",
+  padding: "13px 22px",
+  borderRadius: "12px",
   color: "white",
-  fontWeight: 900,
+  textDecoration: "none",
+  fontWeight: 950,
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
   cursor: "pointer",
-  boxShadow: "0 0 24px rgba(37,99,235,0.38)",
 };
 
 const blockedPanelStyle: CSSProperties = {
-  width: "100%",
-  maxWidth: "900px",
-  padding: "28px",
-  borderRadius: "28px",
-  background: "rgba(0,0,0,0.42)",
-  border: "1px solid rgba(255,255,255,0.15)",
-  backdropFilter: "blur(16px)",
-  boxShadow: "0 26px 90px rgba(0,0,0,0.58)",
+  padding: "20px",
+  borderRadius: "20px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
   display: "grid",
   gap: "18px",
 };
@@ -780,16 +817,12 @@ const alertBoxStyle: CSSProperties = {
   borderRadius: "18px",
   background: "rgba(239,68,68,0.12)",
   border: "1px solid rgba(239,68,68,0.30)",
+  color: "rgba(255,255,255,0.88)",
 };
 
 const blockedTextStyle: CSSProperties = {
   margin: 0,
-  opacity: 0.9,
+  color: "rgba(255,255,255,0.82)",
   lineHeight: 1.6,
-};
-
-const buttonRowStyle: CSSProperties = {
-  display: "flex",
-  gap: "12px",
-  flexWrap: "wrap",
+  fontWeight: 750,
 };

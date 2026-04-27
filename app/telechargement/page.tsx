@@ -1,5 +1,5 @@
 export default function TelechargementPage() {
-  const version = "1.0.0";
+  const version = "1.0.5";
 
   return (
     <main
@@ -26,7 +26,7 @@ export default function TelechargementPage() {
             marginBottom: "10px",
           }}
         >
-          Télécharger le Tacky Elite Routiers
+          Télécharger Elite Routiers
         </h1>
 
         <div style={{ opacity: 0.7, marginBottom: "25px" }}>
@@ -42,6 +42,12 @@ export default function TelechargementPage() {
             padding: "25px",
           }}
         >
+          {/* ================= TACKY ================= */}
+
+          <h2 style={{ fontSize: "24px", marginBottom: "10px" }}>
+            Tacky Elite Routiers
+          </h2>
+
           <p style={{ marginBottom: "20px", lineHeight: 1.6 }}>
             Le <strong>Tacky Elite Routiers</strong> envoie automatiquement vos
             données de conduite vers le site et permet un suivi en temps réel
@@ -49,7 +55,7 @@ export default function TelechargementPage() {
           </p>
 
           <a
-            href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/Elite%20Routier%20Tacky%20Setup%201.0.0.exe"
+            href="https://evsucubtev4fgabq.public.blob.vercel-storage.com/Elite%20Routier%20Tacky%20Setup%201.0.5.exe"
             style={{
               display: "inline-block",
               padding: "14px 24px",
@@ -62,7 +68,7 @@ export default function TelechargementPage() {
               boxShadow: "0 0 20px rgba(34,197,94,0.4)",
             }}
           >
-            Télécharger le Tacky
+            📥 Télécharger le Tacky
           </a>
 
           <div
@@ -83,9 +89,61 @@ export default function TelechargementPage() {
             </ul>
           </div>
 
+          {/* ================= SEPARATION ================= */}
+
+          <hr style={{ margin: "40px 0", opacity: 0.2 }} />
+
+          {/* ================= PLUGIN ================= */}
+
+          <h2 style={{ fontSize: "24px", marginBottom: "10px" }}>
+            Plugin Elite Routiers
+          </h2>
+
+          <p style={{ marginBottom: "20px", opacity: 0.85 }}>
+            Permet d’envoyer automatiquement les données du jeu (livraisons,
+            carburant, infractions…) vers le site.
+          </p>
+
+          <a
+            href="/downloads/Plugin-Elite-Routiers.zip"
+            download
+            style={{
+              display: "inline-block",
+              padding: "14px 24px",
+              background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+              borderRadius: "12px",
+              color: "white",
+              fontWeight: "bold",
+              textDecoration: "none",
+              fontSize: "16px",
+              boxShadow: "0 0 20px rgba(37,99,235,0.4)",
+            }}
+          >
+            🔌 Télécharger le Plugin
+          </a>
+
           <div
             style={{
               marginTop: "20px",
+              fontSize: "14px",
+              opacity: 0.85,
+              lineHeight: 1.6,
+            }}
+          >
+            <p style={{ fontWeight: "bold" }}>Installation :</p>
+            <ul>
+              <li>Télécharger le fichier ZIP</li>
+              <li>Extraire le contenu</li>
+              <li>Lancer l'installateur (.exe)</li>
+              <li>Suivre les instructions</li>
+            </ul>
+          </div>
+
+          {/* ================= INFO ================= */}
+
+          <div
+            style={{
+              marginTop: "25px",
               padding: "15px",
               borderRadius: "12px",
               background: "rgba(59,130,246,0.12)",

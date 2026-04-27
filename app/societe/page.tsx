@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import type { CSSProperties } from "react";
-import Menu from "@/app/components/Menu";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateCuveSite, recalculerPrixCuveSite } from "@/lib/fuel-market";
@@ -24,9 +23,7 @@ export default async function SocietePage() {
         orderBy: { createdAt: "desc" },
         include: {
           _count: {
-            select: {
-              membres: true,
-            },
+            select: { membres: true },
           },
         },
       }),
@@ -36,8 +33,9 @@ export default async function SocietePage() {
           id: true,
           username: true,
           avatar: true,
+          lastOnlineAt: true,
         },
-        take: 12,
+        take: 50,
       }),
     ]);
 
@@ -63,6 +61,13 @@ export default async function SocietePage() {
     erreurChargement = "Impossible de charger les sociétés depuis la base.";
   }
 
+  const entreprisesOuvertes = entreprises.filter((e) => e.recrutement).length;
+
+  const totalChauffeursEntreprises = entreprises.reduce(
+    (total, entreprise) => total + (entreprise._count?.membres ?? 0),
+    0
+  );
+
   const couleurCuveSite =
     cuveSite.pourcentage <= 20
       ? "#ef4444"
@@ -70,165 +75,146 @@ export default async function SocietePage() {
       ? "#f97316"
       : cuveSite.pourcentage <= 60
       ? "#f59e0b"
-      : cuveSite.pourcentage <= 80
-      ? "#22c55e"
-      : "#16a34a";
-
-  const entreprisesOuvertes = entreprises.filter((e) => e.recrutement).length;
+      : "#22c55e";
 
   return (
     <main style={mainStyle}>
-      <div style={backgroundGlowStyle} />
+      <div style={pageOverlayStyle} />
 
       <div style={pageStyle}>
-        <header style={headerStyle}>
-          <div>
-            <div style={brandStyle}>🚛 ELITE ROUTIERS</div>
-            <h1 style={heroTitleStyle}>Accueil des sociétés</h1>
-            <p style={heroTextStyle}>
-              Trouve une entreprise, suis l’activité du réseau et prends la route
-              avec ta flotte.
-            </p>
-          </div>
-
-          <div style={headerRightStyle}>
-            <div style={topStatStyle}>
-              <strong>{entreprises.length}</strong>
-              <span>Entreprises</span>
-            </div>
-
-            <div style={topStatStyle}>
-              <strong>{entreprisesOuvertes}</strong>
-              <span>Recrutent</span>
-            </div>
-
-            <div style={topStatStyle}>
-              <strong>{chauffeurs.length}</strong>
-              <span>Chauffeurs</span>
-            </div>
-
-            <div style={steamBadgeStyle}>
-              <span style={steamDotStyle} />
-              Connexion Steam OK
-            </div>
-          </div>
-        </header>
-
         <div style={layoutStyle}>
-          <Menu />
-
-          <section style={centerPanelStyle}>
-            <div style={sectionHeaderStyle}>
+          <aside style={leftMenuStyle}>
+            <div style={menuHeaderStyle}>
+              <div style={menuLogoStyle}>ER</div>
               <div>
-                <div style={smallTitleStyle}>Réseau Elite Routiers</div>
-                <h2 style={sectionTitleStyle}>Entreprises</h2>
-              </div>
-
-              <div style={buttonGroupStyle}>
-                <Link href="/societe/classement" style={buttonBlue}>
-                  🏆 Classement
-                </Link>
-
-                <Link href="/societe/create" style={buttonDark}>
-                  + Créer une entreprise
-                </Link>
+                <div style={menuTitleStyle}>Elite Routiers</div>
+                <div style={menuSubStyle}>Accueil société</div>
               </div>
             </div>
 
-            <div style={fuelPanelStyle}>
-              <div style={fuelHeaderStyle}>
-                <div>
-                  <div style={fuelTitleStyle}>⛽ Cuve Elite Routiers</div>
-                  <div style={fuelSubtitleStyle}>
-                    Réserve centrale du site pour alimenter les sociétés
+            <nav style={navStyle}>
+              <MenuLink href="/societe" icon="🏠" label="Accueil" active />
+              <MenuLink href="/profil" icon="👤" label="Profil" />
+              <MenuLink href="/mon-entreprise" icon="🏢" label="Mon entreprise" />
+              <MenuLink href="/parametres" icon="⚙️" label="Paramètres" />
+              <MenuLink href="/telechargement" icon="📥" label="Télécharger Tacky" />
+              <MenuLink
+                href="/telechargement"
+                icon="🔌"
+                label="Télécharger Plugin"
+              />
+            </nav>
+
+            <div style={menuBottomCardStyle}>
+              <div style={menuTruckImageStyle} />
+              <div style={menuBottomTitleStyle}>Sur la route</div>
+              <div style={menuBottomTextStyle}>
+                Rejoins une société, consulte les chauffeurs et lance ton aventure.
+              </div>
+            </div>
+          </aside>
+
+          <section style={centerStyle}>
+            <section style={networkPanelStyle}>
+              <div style={networkContentStyle}>
+                <div style={networkLeftStyle}>
+                  <div style={blueLabelStyle}>Réseau entreprise</div>
+
+                  <h2 style={networkTitleStyle}>Entreprises du site</h2>
+
+                  <p style={networkTextStyle}>
+                    Découvre les sociétés actives, consulte leur recrutement et
+                    choisis celle qui correspond à ton style de conduite.
+                  </p>
+
+                  <div style={networkButtonsStyle}>
+                    <Link href="/societe/create" style={primaryButtonStyle}>
+                      + Créer une entreprise
+                    </Link>
+
+                    <Link href="/societe/classement" style={secondaryButtonStyle}>
+                      🏆 Classement
+                    </Link>
                   </div>
                 </div>
 
-                <div style={fuelPriceStyle}>
-                  Tarif actuel :{" "}
-                  <span style={{ color: "#22c55e" }}>
-                    {cuveSite.prixActuelLitre.toFixed(2)} €/L
-                  </span>
+                <div style={networkRightStyle}>
+                  <div style={steamBadgeLargeStyle}>
+                    <span style={steamDotStyle} />
+                    Connexion Steam OK
+                  </div>
                 </div>
               </div>
 
-              <div style={fuelInfoGridStyle}>
-                <div style={fuelInfoCard}>
-                  <div style={fuelInfoLabel}>Stock actuel</div>
-                  <div style={fuelInfoValue}>
-                    {cuveSite.stockActuel.toLocaleString("fr-FR")} L
-                  </div>
-                </div>
-
-                <div style={fuelInfoCard}>
-                  <div style={fuelInfoLabel}>Capacité max</div>
-                  <div style={fuelInfoValue}>
-                    {cuveSite.capaciteMax.toLocaleString("fr-FR")} L
-                  </div>
-                </div>
-
-                <div style={fuelInfoCard}>
-                  <div style={fuelInfoLabel}>Remplissage</div>
-                  <div style={fuelInfoValue}>{cuveSite.pourcentage}%</div>
-                </div>
-              </div>
-
-              <div style={fuelProgressStyle}>
-                <div
-                  style={{
-                    width: `${cuveSite.pourcentage}%`,
-                    height: "100%",
-                    borderRadius: "999px",
-                    background: `linear-gradient(90deg, ${couleurCuveSite}, ${couleurCuveSite})`,
-                    boxShadow: `0 0 18px ${couleurCuveSite}`,
-                    transition: "width 0.3s ease",
-                  }}
+              <div style={networkStatsStyle}>
+                <NetworkStat
+                  icon="🏢"
+                  value={entreprises.length}
+                  label="Sociétés créées"
+                  color="#3b82f6"
+                />
+                <NetworkStat
+                  icon="👥"
+                  value={entreprisesOuvertes}
+                  label="Recrutement ouvert"
+                  color="#22c55e"
+                />
+                <NetworkStat
+                  icon="🚛"
+                  value={totalChauffeursEntreprises}
+                  label="Chauffeurs en société"
+                  color="#a855f7"
                 />
               </div>
+            </section>
 
-              <div style={fuelMessageStyle}>
-                {cuveSite.pourcentage <= 20
-                  ? "Stock critique : le prix du litre est au plus haut."
-                  : cuveSite.pourcentage <= 40
-                  ? "Stock bas : le carburant reste cher."
-                  : cuveSite.pourcentage <= 60
-                  ? "Stock moyen : tarif équilibré."
-                  : cuveSite.pourcentage <= 80
-                  ? "Bon niveau de stock : tarif avantageux."
-                  : "Cuve presque pleine : tarif au plus bas."}
+            <section style={companiesPanelStyle}>
+              <div style={companiesHeaderStyle}>
+                <div>
+                  <div style={blueLabelStyle}>Liste des entreprises</div>
+                  <h2 style={companiesTitleStyle}>Sociétés disponibles</h2>
+                </div>
+
+                <Link href="/societe/create" style={smallCreateButtonStyle}>
+                  + Nouvelle société
+                </Link>
               </div>
-            </div>
 
-            {erreurChargement ? (
-              <div style={errorStyle}>{erreurChargement}</div>
-            ) : (
-              <div style={companyGridStyle}>
-                {entreprises.map((entreprise) => (
-                  <article key={entreprise.id} style={companyCardStyle}>
-                    <div
-                      style={{
-                        ...companyImageStyle,
-                        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.78)), url('${
-                          entreprise.banniere || "/truck.jpg"
-                        }')`,
-                      }}
-                    >
-                      <div style={companyAbbrStyle}>
-                        [{entreprise.abreviation}]
+              {erreurChargement ? (
+                <div style={errorStyle}>{erreurChargement}</div>
+              ) : (
+                <div style={companyGridStyle}>
+                  {entreprises.map((entreprise) => (
+                    <article key={entreprise.id} style={companyCardStyle}>
+                      <div
+                        style={{
+                          ...companyImageStyle,
+                          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.78)), url('${
+                            entreprise.banniere || "/truck.jpg"
+                          }')`,
+                        }}
+                      >
+                        <div style={companyTagStyle}>
+                          {entreprise.abreviation}
+                        </div>
                       </div>
-                    </div>
 
-                    <div style={companyContentStyle}>
-                      <div>
+                      <div style={companyBodyStyle}>
                         <h3 style={companyNameStyle}>{entreprise.nom}</h3>
 
-                        <div style={companyStatusStyle}>
+                        <div
+                          style={{
+                            ...companyStatusStyle,
+                            color: entreprise.recrutement
+                              ? "#4ade80"
+                              : "#f87171",
+                          }}
+                        >
                           <span
                             style={{
-                              width: "10px",
-                              height: "10px",
+                              width: "9px",
+                              height: "9px",
                               borderRadius: "50%",
-                              display: "inline-block",
                               background: entreprise.recrutement
                                 ? "#22c55e"
                                 : "#ef4444",
@@ -237,84 +223,157 @@ export default async function SocietePage() {
                                 : "0 0 10px #ef4444",
                             }}
                           />
-                          <span>
-                            Recrutement :{" "}
-                            {entreprise.recrutement ? "Ouvert" : "Fermé"}
-                          </span>
+                          Recrutement{" "}
+                          {entreprise.recrutement ? "ouvert" : "fermé"}
                         </div>
 
                         <div style={companyMembersStyle}>
-                          🚛 Chauffeurs : {entreprise._count?.membres ?? 0}
+                          🚛 {entreprise._count?.membres ?? 0} chauffeurs
+                        </div>
+
+                        <div style={companyActionsStyle}>
+                          <Link
+                            href={`/entreprise/${entreprise.id}`}
+                            style={viewButtonStyle}
+                          >
+                            Voir
+                          </Link>
+
+                          {entreprise.recrutement ? (
+                            <Link
+                              href={`/entreprise/${entreprise.id}/postuler`}
+                              style={applyButtonStyle}
+                            >
+                              Postuler
+                            </Link>
+                          ) : (
+                            <div style={closedButtonStyle}>Fermé</div>
+                          )}
                         </div>
                       </div>
+                    </article>
+                  ))}
 
-                      <div style={companyActionsStyle}>
-                        <Link
-                          href={`/entreprise/${entreprise.id}`}
-                          style={companyViewButtonStyle}
-                        >
-                          Voir
-                        </Link>
-
-                        {entreprise.recrutement ? (
-                          <Link
-                            href={`/entreprise/${entreprise.id}/postuler`}
-                            style={companyApplyButtonStyle}
-                          >
-                            Postuler
-                          </Link>
-                        ) : (
-                          <div style={companyClosedButtonStyle}>
-                            Recrutement fermé
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                ))}
-
-                {entreprises.length === 0 && (
-                  <div style={emptyCompanyStyle}>
-                    Aucune entreprise pour le moment.
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-
-          <aside style={rightPanelStyle}>
-            <div style={rightHeaderStyle}>
-              <div style={smallTitleStyle}>Communauté</div>
-              <h2 style={driversTitleStyle}>Chauffeurs du site</h2>
-            </div>
-
-            <div style={driversListStyle}>
-              {chauffeurs.map((chauffeur) => {
-                const nomAffiche =
-                  chauffeur.username?.trim() || "Chauffeur sans pseudo";
-
-                return (
-                  <div key={chauffeur.id} style={driverCardStyle}>
-                    <img
-                      src={chauffeur.avatar || "/truck.jpg"}
-                      alt={nomAffiche}
-                      style={driverAvatarStyle}
-                    />
-
-                    <div style={driverInfoStyle}>
-                      <div style={driverNameStyle}>{nomAffiche}</div>
-                      <div style={driverSubStyle}>Chauffeur Elite Routiers</div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {chauffeurs.length === 0 && (
-                <div style={emptyDriverStyle}>
-                  Aucun chauffeur inscrit pour le moment.
+                  {entreprises.length === 0 && (
+                    <div style={emptyStyle}>Aucune entreprise pour le moment.</div>
+                  )}
                 </div>
               )}
-            </div>
+
+              <div style={createBannerStyle}>
+                <div style={createIconStyle}>🏢</div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={createTitleStyle}>
+                    Tu souhaites créer ta propre société ?
+                  </div>
+                  <div style={createTextStyle}>
+                    Lance ton entreprise, recrute des chauffeurs et construis ta
+                    flotte.
+                  </div>
+                </div>
+
+                <Link href="/societe/create" style={primaryButtonStyle}>
+                  Créer
+                </Link>
+              </div>
+            </section>
+          </section>
+
+          <aside style={rightColumnStyle}>
+            <section style={rightPanelStyle}>
+              <div style={rightHeaderStyle}>
+                <div style={blueLabelStyle}>Communauté</div>
+                <h2 style={rightTitleStyle}>Chauffeurs du site</h2>
+              </div>
+
+              <div style={driversListStyle}>
+                {chauffeurs.map((chauffeur) => {
+                  const nomAffiche =
+                    chauffeur.username?.trim() || "Chauffeur sans pseudo";
+
+                  const connecteAuJeu =
+                    chauffeur.lastOnlineAt &&
+                    Date.now() - new Date(chauffeur.lastOnlineAt).getTime() < 2 * 60 * 1000;
+
+                  return (
+                    <div key={chauffeur.id} style={driverCardStyle}>
+                      <div style={avatarWrapStyle}>
+                        <img
+                          src={chauffeur.avatar || "/truck.jpg"}
+                          alt={nomAffiche}
+                          style={driverAvatarStyle}
+                        />
+                        <span
+                          style={{
+                            ...onlineDotStyle,
+                            background: connecteAuJeu ? "#22c55e" : "#ef4444",
+                            boxShadow: connecteAuJeu
+                              ? "0 0 9px #22c55e"
+                              : "0 0 9px #ef4444",
+                          }}
+                        />
+                      </div>
+
+                      <div style={driverInfoStyle}>
+                        <strong>{nomAffiche}</strong>
+                        <span>
+                          {connecteAuJeu
+                            ? "Connecté au jeu"
+                            : "Non connecté au jeu"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {chauffeurs.length === 0 && (
+                  <div style={emptyDriverStyle}>Aucun chauffeur inscrit.</div>
+                )}
+              </div>
+
+              <Link href="/chauffeurs" style={allDriversButtonStyle}>
+                Voir tous les chauffeurs
+              </Link>
+            </section>
+
+            <section style={fuelSmallPanelStyle}>
+              <div style={blueLabelStyle}>Cuve du site</div>
+              <h2 style={fuelSmallTitleStyle}>Carburant central</h2>
+
+              <div style={fuelSmallPriceStyle}>
+                {cuveSite.prixActuelLitre.toFixed(2)} €/L
+              </div>
+
+              <div style={fuelSmallInfoGridStyle}>
+                <div style={fuelSmallInfoStyle}>
+                  <span>Stock</span>
+                  <strong>{cuveSite.stockActuel.toLocaleString("fr-FR")} L</strong>
+                </div>
+
+                <div style={fuelSmallInfoStyle}>
+                  <span>Capacité</span>
+                  <strong>{cuveSite.capaciteMax.toLocaleString("fr-FR")} L</strong>
+                </div>
+              </div>
+
+              <div style={fuelSmallBarBgStyle}>
+                <div
+                  style={{
+                    width: `${cuveSite.pourcentage}%`,
+                    height: "100%",
+                    borderRadius: "999px",
+                    background: couleurCuveSite,
+                    boxShadow: `0 0 18px ${couleurCuveSite}`,
+                  }}
+                />
+              </div>
+
+              <div style={fuelSmallFooterStyle}>
+                <span style={{ color: couleurCuveSite }}>●</span>{" "}
+                {cuveSite.pourcentage}% rempli
+              </div>
+            </section>
           </aside>
         </div>
       </div>
@@ -322,449 +381,671 @@ export default async function SocietePage() {
   );
 }
 
+function MenuLink({
+  href,
+  icon,
+  label,
+  active = false,
+}: {
+  href: string;
+  icon: string;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <Link href={href} style={active ? navActiveStyle : navItemStyle}>
+      <span>{icon}</span>
+      <span>{label}</span>
+    </Link>
+  );
+}
+
+function NetworkStat({
+  icon,
+  value,
+  label,
+  color,
+}: {
+  icon: string;
+  value: number;
+  label: string;
+  color: string;
+}) {
+  return (
+    <div style={networkStatStyle}>
+      <div
+        style={{
+          ...networkIconStyle,
+          border: `1px solid ${color}`,
+          color,
+          boxShadow: `0 0 18px ${color}44`,
+        }}
+      >
+        {icon}
+      </div>
+
+      <div>
+        <strong style={networkStatNumberStyle}>{value}</strong>
+        <span style={networkStatLabelStyle}>{label}</span>
+      </div>
+    </div>
+  );
+}
+
 const mainStyle: CSSProperties = {
   minHeight: "100vh",
-  position: "relative",
   color: "white",
   backgroundImage:
-    "linear-gradient(90deg, rgba(0,0,0,0.88), rgba(0,0,0,0.55), rgba(0,0,0,0.88)), url('/truck.jpg')",
+    "linear-gradient(180deg, rgba(3,7,18,0.04), rgba(3,7,18,0.84) 520px), url('/truck.jpg')",
   backgroundSize: "cover",
-  backgroundPosition: "center",
+  backgroundPosition: "center top",
   backgroundAttachment: "fixed",
+  fontFamily: "Arial, sans-serif",
 };
 
-const backgroundGlowStyle: CSSProperties = {
-  position: "absolute",
+const pageOverlayStyle: CSSProperties = {
+  position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,0.2)",
+  pointerEvents: "none",
+  background:
+    "radial-gradient(circle at 52% 0%, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at 80% 18%, rgba(37,99,235,0.12), transparent 25%)",
 };
 
 const pageStyle: CSSProperties = {
   position: "relative",
   zIndex: 1,
-  minHeight: "100vh",
-  padding: "24px",
+  maxWidth: "1780px",
+  margin: "0 auto",
+  padding: "24px 24px 54px",
 };
 
-const headerStyle: CSSProperties = {
-  maxWidth: "1720px",
-  margin: "0 auto 24px",
-  minHeight: "145px",
+const layoutStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "250px minmax(0, 1fr) 300px",
+  gap: "22px",
+  alignItems: "start",
+};
+
+const leftMenuStyle: CSSProperties = {
+  borderRadius: "28px",
+  padding: "18px",
+  background: "rgba(8,13,28,0.56)",
+  border: "1px solid rgba(148,163,184,0.24)",
+  boxShadow: "0 28px 90px rgba(0,0,0,0.42)",
+  backdropFilter: "blur(18px)",
+};
+
+const menuHeaderStyle: CSSProperties = {
   display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "24px",
-  padding: "30px",
-  borderRadius: "30px",
-  background:
-    "linear-gradient(135deg, rgba(15,23,42,0.88), rgba(15,23,42,0.58))",
-  border: "1px solid rgba(255,255,255,0.18)",
-  backdropFilter: "blur(16px)",
-  boxShadow: "0 26px 90px rgba(0,0,0,0.6)",
-};
-
-const brandStyle: CSSProperties = {
-  color: "#93c5fd",
-  fontSize: "1rem",
-  letterSpacing: "0.18em",
-  textTransform: "uppercase",
-  fontWeight: 900,
-};
-
-const heroTitleStyle: CSSProperties = {
-  margin: "10px 0 8px",
-  fontSize: "3.4rem",
-  lineHeight: 1,
-  fontWeight: 900,
-  textShadow: "0 5px 25px rgba(0,0,0,0.65)",
-};
-
-const heroTextStyle: CSSProperties = {
-  margin: 0,
-  maxWidth: "650px",
-  color: "rgba(255,255,255,0.72)",
-  fontSize: "1rem",
-  fontWeight: 600,
-};
-
-const headerRightStyle: CSSProperties = {
-  display: "flex",
-  justifyContent: "flex-end",
   alignItems: "center",
   gap: "12px",
+  padding: "8px 8px 18px",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+  marginBottom: "14px",
+};
+
+const menuLogoStyle: CSSProperties = {
+  width: "46px",
+  height: "46px",
+  display: "grid",
+  placeItems: "center",
+  borderRadius: "14px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  fontWeight: 950,
+  boxShadow: "0 0 24px rgba(37,99,235,0.45)",
+};
+
+const menuTitleStyle: CSSProperties = {
+  fontWeight: 950,
+  fontSize: "1rem",
+};
+
+const menuSubStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.52)",
+  fontSize: "0.76rem",
+  fontWeight: 800,
+};
+
+const navStyle: CSSProperties = {
+  display: "grid",
+  gap: "7px",
+};
+
+const navItemStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  padding: "11px 12px",
+  borderRadius: "14px",
+  color: "rgba(255,255,255,0.74)",
+  textDecoration: "none",
+  fontWeight: 850,
+  fontSize: "0.92rem",
+};
+
+const navActiveStyle: CSSProperties = {
+  ...navItemStyle,
+  color: "white",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.32)",
+};
+
+const menuBottomCardStyle: CSSProperties = {
+  marginTop: "18px",
+  padding: "14px",
+  borderRadius: "22px",
+  background: "rgba(15,23,42,0.48)",
+  border: "1px solid rgba(255,255,255,0.1)",
+};
+
+const menuTruckImageStyle: CSSProperties = {
+  height: "86px",
+  borderRadius: "16px",
+  backgroundImage:
+    "linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.62)), url('/truck.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  marginBottom: "12px",
+};
+
+const menuBottomTitleStyle: CSSProperties = {
+  fontWeight: 950,
+};
+
+const menuBottomTextStyle: CSSProperties = {
+  marginTop: "5px",
+  color: "rgba(255,255,255,0.66)",
+  fontSize: "0.78rem",
+  lineHeight: 1.45,
+  fontWeight: 700,
+};
+
+const centerStyle: CSSProperties = {
+  display: "grid",
+  gap: "20px",
+};
+
+const networkPanelStyle: CSSProperties = {
+  minHeight: "420px",
+  padding: "28px",
+  borderRadius: "30px",
+  backgroundImage:
+    "linear-gradient(90deg, rgba(3,7,18,0.44), rgba(3,7,18,0.06), rgba(3,7,18,0.34)), url('/societe.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  border: "1px solid rgba(147,197,253,0.3)",
+  boxShadow: "0 30px 90px rgba(0,0,0,0.46)",
+};
+
+const networkContentStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "20px",
+};
+
+const networkLeftStyle: CSSProperties = {
+  maxWidth: "560px",
+};
+
+const blueLabelStyle: CSSProperties = {
+  color: "#60a5fa",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  fontSize: "0.78rem",
+  fontWeight: 950,
+  textShadow: "0 4px 14px rgba(0,0,0,0.9)",
+};
+
+const networkTitleStyle: CSSProperties = {
+  margin: "12px 0 12px",
+  fontSize: "3.25rem",
+  lineHeight: 0.95,
+  fontWeight: 950,
+  letterSpacing: "-0.06em",
+  textShadow: "0 6px 24px rgba(0,0,0,0.95)",
+};
+
+const networkTextStyle: CSSProperties = {
+  margin: 0,
+  color: "rgba(255,255,255,0.92)",
+  fontSize: "1.02rem",
+  lineHeight: 1.55,
+  fontWeight: 800,
+  textShadow: "0 5px 16px rgba(0,0,0,0.95)",
+};
+
+const networkButtonsStyle: CSSProperties = {
+  display: "flex",
+  gap: "10px",
+  marginTop: "20px",
   flexWrap: "wrap",
 };
 
-const topStatStyle: CSSProperties = {
-  width: "112px",
-  minHeight: "82px",
-  display: "grid",
-  placeItems: "center",
-  borderRadius: "20px",
-  background: "rgba(0,0,0,0.42)",
-  border: "1px solid rgba(255,255,255,0.14)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
-  fontWeight: 900,
+const networkRightStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
 };
 
 const steamBadgeStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "9px",
-  padding: "12px 16px",
+  gap: "10px",
+  padding: "14px 18px",
   borderRadius: "999px",
-  background: "rgba(34,197,94,0.13)",
-  border: "1px solid rgba(34,197,94,0.32)",
-  color: "#bbf7d0",
-  fontWeight: 900,
+  background: "rgba(22,163,74,0.38)",
+  border: "1px solid rgba(74,222,128,0.54)",
+  color: "#dcfce7",
+  fontWeight: 950,
+  boxShadow: "0 0 30px rgba(34,197,94,0.24)",
+  backdropFilter: "blur(12px)",
+};
+
+const steamBadgeLargeStyle: CSSProperties = {
+  ...steamBadgeStyle,
 };
 
 const steamDotStyle: CSSProperties = {
-  width: "10px",
-  height: "10px",
+  width: "11px",
+  height: "11px",
   borderRadius: "50%",
   background: "#22c55e",
   boxShadow: "0 0 12px #22c55e",
 };
 
-const layoutStyle: CSSProperties = {
-  maxWidth: "1720px",
-  margin: "0 auto",
+const networkStatsStyle: CSSProperties = {
+  marginTop: "76px",
   display: "grid",
-  gridTemplateColumns: "260px minmax(0, 1fr) 310px",
-  gap: "22px",
-  alignItems: "start",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "15px",
 };
 
-const centerPanelStyle: CSSProperties = {
-  borderRadius: "30px",
-  padding: "24px",
-  background: "rgba(0,0,0,0.42)",
-  border: "1px solid rgba(255,255,255,0.15)",
-  backdropFilter: "blur(16px)",
-  boxShadow: "0 26px 90px rgba(0,0,0,0.58)",
-};
-
-const sectionHeaderStyle: CSSProperties = {
-  display: "flex",background:
-  "linear-gradient(135deg, rgba(0,0,0,0.42), rgba(255,255,255,0.08))",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "16px",
-  flexWrap: "wrap",
-  marginBottom: "22px",
-};
-
-const smallTitleStyle: CSSProperties = {
-  color: "#93c5fd",
-  textTransform: "uppercase",
-  letterSpacing: "0.13em",
-  fontSize: "0.76rem",
-  fontWeight: 900,
-};
-
-const sectionTitleStyle: CSSProperties = {
-  margin: "6px 0 0",
-  fontSize: "2.2rem",
-  lineHeight: 1,
-};
-
-const buttonGroupStyle: CSSProperties = {
+const networkStatStyle: CSSProperties = {
+  minHeight: "92px",
   display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-};
-
-const fuelPanelStyle: CSSProperties = {
-  marginBottom: "24px",
-  padding: "22px",
-  borderRadius: "24px",
-  background:
-    "linear-gradient(135deg, rgba(0,0,0,0.42), rgba(0,0,0,0.24))",
+  alignItems: "center",
+  gap: "14px",
+  padding: "17px",
+  borderRadius: "20px",
+  background: "rgba(8,13,28,0.5)",
   border: "1px solid rgba(255,255,255,0.14)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+  backdropFilter: "blur(12px)",
 };
 
-const fuelHeaderStyle: CSSProperties = {
+const networkIconStyle: CSSProperties = {
+  width: "50px",
+  height: "50px",
+  display: "grid",
+  placeItems: "center",
+  borderRadius: "15px",
+  background: "rgba(255,255,255,0.08)",
+  fontSize: "1.28rem",
+  flexShrink: 0,
+};
+
+const networkStatNumberStyle: CSSProperties = {
+  display: "block",
+  fontSize: "1.75rem",
+  lineHeight: 1,
+  fontWeight: 950,
+};
+
+const networkStatLabelStyle: CSSProperties = {
+  display: "block",
+  marginTop: "5px",
+  color: "rgba(255,255,255,0.72)",
+  fontSize: "0.78rem",
+  fontWeight: 800,
+};
+
+const primaryButtonStyle: CSSProperties = {
+  padding: "12px 16px",
+  borderRadius: "13px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 950,
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
+};
+
+const secondaryButtonStyle: CSSProperties = {
+  padding: "12px 16px",
+  borderRadius: "13px",
+  background: "rgba(255,255,255,0.12)",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 950,
+  border: "1px solid rgba(255,255,255,0.16)",
+  backdropFilter: "blur(10px)",
+};
+
+const companiesPanelStyle: CSSProperties = {
+  padding: "24px",
+  borderRadius: "26px",
+  background: "rgba(8,13,28,0.56)",
+  border: "1px solid rgba(148,163,184,0.22)",
+  boxShadow: "0 24px 70px rgba(0,0,0,0.38)",
+  backdropFilter: "blur(18px)",
+};
+
+const companiesHeaderStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: "14px",
-  flexWrap: "wrap",
   marginBottom: "16px",
 };
 
-const fuelTitleStyle: CSSProperties = {
-  fontSize: "1.55rem",
-  fontWeight: 900,
+const companiesTitleStyle: CSSProperties = {
+  margin: "7px 0 0",
+  fontSize: "1.8rem",
+  fontWeight: 950,
 };
 
-const fuelSubtitleStyle: CSSProperties = {
-  marginTop: "4px",
-  fontSize: "0.9rem",
-  color: "rgba(255,255,255,0.66)",
-  fontWeight: 700,
-};
-
-const fuelPriceStyle: CSSProperties = {
-  padding: "12px 16px",
-  borderRadius: "15px",
-  background: "rgba(255,255,255,0.075)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  fontWeight: 900,
-};
-
-const fuelInfoGridStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "12px",
-  marginBottom: "15px",
-};
-
-const fuelInfoCard: CSSProperties = {
-  background: "rgba(255,255,255,0.065)",
-  borderRadius: "16px",
-  padding: "15px",
-  border: "1px solid rgba(255,255,255,0.10)",
-};
-
-const fuelInfoLabel: CSSProperties = {
-  fontSize: "0.75rem",
-  color: "rgba(255,255,255,0.62)",
-  marginBottom: "7px",
-  fontWeight: 800,
-};
-
-const fuelInfoValue: CSSProperties = {
-  fontSize: "1.25rem",
-  fontWeight: 900,
-};
-
-const fuelProgressStyle: CSSProperties = {
-  width: "100%",
-  height: "17px",
-  borderRadius: "999px",
-  background: "rgba(255,255,255,0.08)",
-  overflow: "hidden",
-  border: "1px solid rgba(255,255,255,0.10)",
-};
-
-const fuelMessageStyle: CSSProperties = {
-  marginTop: "11px",
-  color: "rgba(255,255,255,0.75)",
-  fontSize: "0.9rem",
-  fontWeight: 700,
+const smallCreateButtonStyle: CSSProperties = {
+  padding: "11px 14px",
+  borderRadius: "12px",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#dbeafe",
+  textDecoration: "none",
+  fontWeight: 950,
 };
 
 const companyGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: "17px",
+  gap: "14px",
 };
 
 const companyCardStyle: CSSProperties = {
-  minHeight: "318px",
   overflow: "hidden",
-  display: "flex",
-  flexDirection: "column",
-  borderRadius: "22px",
-  background: "rgba(8,13,24,0.86)",
-  border: "1px solid rgba(255,255,255,0.13)",
-  boxShadow: "0 20px 52px rgba(0,0,0,0.42)",
+  borderRadius: "18px",
+  background: "rgba(15,23,42,0.62)",
+  border: "1px solid rgba(148,163,184,0.22)",
 };
 
 const companyImageStyle: CSSProperties = {
-  height: "128px",
+  height: "135px",
   backgroundSize: "cover",
   backgroundPosition: "center",
   position: "relative",
 };
 
-const companyAbbrStyle: CSSProperties = {
+const companyTagStyle: CSSProperties = {
   position: "absolute",
-  left: "13px",
-  bottom: "13px",
-  padding: "6px 11px",
+  left: "12px",
+  bottom: "12px",
+  padding: "6px 10px",
   borderRadius: "999px",
-  background: "rgba(0,0,0,0.6)",
-  border: "1px solid rgba(255,255,255,0.18)",
-  fontWeight: 900,
-  fontSize: "0.78rem",
+  background: "rgba(37,99,235,0.7)",
+  border: "1px solid rgba(147,197,253,0.4)",
+  fontWeight: 950,
+  fontSize: "0.72rem",
 };
 
-const companyContentStyle: CSSProperties = {
-  padding: "15px",
-  display: "flex",
-  flexDirection: "column",
-  flex: 1,
+const companyBodyStyle: CSSProperties = {
+  padding: "14px",
 };
 
 const companyNameStyle: CSSProperties = {
   margin: "0 0 10px",
-  fontSize: "1.17rem",
+  fontSize: "1.02rem",
   lineHeight: 1.15,
+  fontWeight: 950,
 };
 
 const companyStatusStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "8px",
-  fontSize: "0.86rem",
+  gap: "7px",
+  fontSize: "0.78rem",
   fontWeight: 900,
-  marginBottom: "9px",
 };
 
 const companyMembersStyle: CSSProperties = {
-  color: "rgba(255,255,255,0.76)",
-  fontSize: "0.9rem",
-  fontWeight: 700,
+  marginTop: "9px",
+  color: "rgba(255,255,255,0.74)",
+  fontSize: "0.82rem",
+  fontWeight: 800,
 };
 
 const companyActionsStyle: CSSProperties = {
-  marginTop: "auto",
+  marginTop: "14px",
   display: "grid",
+  gridTemplateColumns: "1fr 1.25fr",
   gap: "8px",
 };
 
-const companyViewButtonStyle: CSSProperties = {
+const viewButtonStyle: CSSProperties = {
   textAlign: "center",
-  padding: "10px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.08)",
+  padding: "9px",
+  borderRadius: "10px",
+  background: "rgba(255,255,255,0.07)",
   border: "1px solid rgba(255,255,255,0.12)",
   color: "white",
   textDecoration: "none",
   fontWeight: 900,
 };
 
-const companyApplyButtonStyle: CSSProperties = {
+const applyButtonStyle: CSSProperties = {
   textAlign: "center",
-  padding: "10px",
-  borderRadius: "12px",
+  padding: "9px",
+  borderRadius: "10px",
   background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-  border: "1px solid rgba(147,197,253,0.55)",
   color: "white",
   textDecoration: "none",
   fontWeight: 900,
-  boxShadow: "0 0 20px rgba(37,99,235,0.34)",
 };
 
-const companyClosedButtonStyle: CSSProperties = {
+const closedButtonStyle: CSSProperties = {
   textAlign: "center",
-  padding: "10px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.07)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  color: "rgba(255,255,255,0.6)",
+  padding: "9px",
+  borderRadius: "10px",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  color: "rgba(255,255,255,0.45)",
   fontWeight: 900,
-  cursor: "not-allowed",
+};
+
+const createBannerStyle: CSSProperties = {
+  marginTop: "22px",
+  display: "flex",
+  alignItems: "center",
+  gap: "16px",
+  padding: "16px",
+  borderRadius: "18px",
+  background: "rgba(15,23,42,0.52)",
+  border: "1px solid rgba(148,163,184,0.18)",
+};
+
+const createIconStyle: CSSProperties = {
+  width: "46px",
+  height: "46px",
+  display: "grid",
+  placeItems: "center",
+  borderRadius: "14px",
+  background: "rgba(37,99,235,0.16)",
+  color: "#60a5fa",
+  fontSize: "1.4rem",
+};
+
+const createTitleStyle: CSSProperties = {
+  fontWeight: 950,
+};
+
+const createTextStyle: CSSProperties = {
+  marginTop: "4px",
+  color: "rgba(255,255,255,0.66)",
+  fontSize: "0.84rem",
+  fontWeight: 750,
+};
+
+const rightColumnStyle: CSSProperties = {
+  display: "grid",
+  gap: "16px",
 };
 
 const rightPanelStyle: CSSProperties = {
-  borderRadius: "30px",
-  padding: "21px",
-  background: "rgba(2,6,23,0.74)",
-  border: "1px solid rgba(255,255,255,0.15)",
-  backdropFilter: "blur(16px)",
-  boxShadow: "0 26px 90px rgba(0,0,0,0.58)",
+  padding: "20px",
+  borderRadius: "28px",
+  background: "rgba(8,13,28,0.56)",
+  border: "1px solid rgba(148,163,184,0.22)",
+  boxShadow: "0 28px 90px rgba(0,0,0,0.42)",
+  backdropFilter: "blur(18px)",
 };
 
 const rightHeaderStyle: CSSProperties = {
-  marginBottom: "16px",
+  marginBottom: "18px",
 };
 
-const driversTitleStyle: CSSProperties = {
-  margin: "6px 0 0",
-  fontSize: "1.45rem",
+const rightTitleStyle: CSSProperties = {
+  margin: "7px 0 0",
+  fontSize: "1.35rem",
+  fontWeight: 950,
 };
 
 const driversListStyle: CSSProperties = {
   display: "grid",
-  gap: "11px",
+  gap: "13px",
+  maxHeight: "244px",
+  overflowY: "auto",
+  paddingRight: "4px",
 };
 
 const driverCardStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "11px",
-  padding: "11px",
-  borderRadius: "16px",
+  gap: "12px",
+  padding: "9px",
+  borderRadius: "15px",
   background: "rgba(255,255,255,0.065)",
-  border: "1px solid rgba(255,255,255,0.10)",
+  border: "1px solid rgba(255,255,255,0.08)",
 };
 
-const driverAvatarStyle: CSSProperties = {
-  width: "46px",
-  height: "46px",
-  borderRadius: "50%",
-  objectFit: "cover",
-  border: "1px solid rgba(255,255,255,0.18)",
+const avatarWrapStyle: CSSProperties = {
+  position: "relative",
+  width: "44px",
+  height: "44px",
   flexShrink: 0,
 };
 
+const driverAvatarStyle: CSSProperties = {
+  width: "44px",
+  height: "44px",
+  borderRadius: "50%",
+  objectFit: "cover",
+  border: "1px solid rgba(255,255,255,0.18)",
+};
+
+const onlineDotStyle: CSSProperties = {
+  position: "absolute",
+  right: 0,
+  bottom: "2px",
+  width: "11px",
+  height: "11px",
+  borderRadius: "50%",
+};
+
 const driverInfoStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
+  display: "grid",
+  gap: "3px",
   minWidth: 0,
+  fontSize: "0.84rem",
 };
 
-const driverNameStyle: CSSProperties = {
-  fontWeight: 900,
-  fontSize: "0.92rem",
-  whiteSpace: "nowrap",
+const allDriversButtonStyle: CSSProperties = {
+  display: "block",
+  textAlign: "center",
+  marginTop: "18px",
+  padding: "12px",
+  borderRadius: "13px",
+  background: "rgba(255,255,255,0.07)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 950,
+};
+
+const fuelSmallPanelStyle: CSSProperties = {
+  padding: "20px",
+  borderRadius: "28px",
+  background: "rgba(8,13,28,0.56)",
+  border: "1px solid rgba(148,163,184,0.22)",
+  boxShadow: "0 28px 90px rgba(0,0,0,0.42)",
+  backdropFilter: "blur(18px)",
+};
+
+const fuelSmallTitleStyle: CSSProperties = {
+  margin: "7px 0 10px",
+  fontSize: "1.25rem",
+  fontWeight: 950,
+};
+
+const fuelSmallPriceStyle: CSSProperties = {
+  display: "inline-flex",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(37,99,235,0.18)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#dbeafe",
+  fontWeight: 950,
+  marginBottom: "14px",
+};
+
+const fuelSmallInfoGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: "8px",
+  marginBottom: "14px",
+};
+
+const fuelSmallInfoStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "8px",
+  padding: "10px",
+  borderRadius: "13px",
+  background: "rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  fontSize: "0.82rem",
+};
+
+const fuelSmallBarBgStyle: CSSProperties = {
+  height: "15px",
+  borderRadius: "999px",
+  background: "rgba(255,255,255,0.08)",
   overflow: "hidden",
-  textOverflow: "ellipsis",
 };
 
-const driverSubStyle: CSSProperties = {
-  color: "rgba(255,255,255,0.56)",
-  fontSize: "0.76rem",
-  fontWeight: 700,
+const fuelSmallFooterStyle: CSSProperties = {
+  marginTop: "10px",
+  fontWeight: 900,
+  color: "rgba(255,255,255,0.78)",
+  fontSize: "0.85rem",
 };
 
 const errorStyle: CSSProperties = {
-  textAlign: "center",
-  padding: "22px",
+  padding: "18px",
+  borderRadius: "14px",
   background: "rgba(239,68,68,0.15)",
   border: "1px solid rgba(239,68,68,0.35)",
-  borderRadius: "16px",
   color: "#fecaca",
   fontWeight: 900,
 };
 
-const emptyCompanyStyle: CSSProperties = {
+const emptyStyle: CSSProperties = {
   gridColumn: "1 / -1",
+  padding: "22px",
   textAlign: "center",
-  padding: "24px",
+  borderRadius: "14px",
   background: "rgba(255,255,255,0.06)",
-  borderRadius: "16px",
-  border: "1px solid rgba(255,255,255,0.10)",
 };
 
 const emptyDriverStyle: CSSProperties = {
-  textAlign: "center",
   padding: "16px",
-  background: "rgba(255,255,255,0.06)",
   borderRadius: "14px",
-};
-
-const buttonBlue: CSSProperties = {
-  padding: "11px 16px",
-  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-  borderRadius: "13px",
-  color: "white",
-  textDecoration: "none",
-  fontWeight: 900,
-  border: "1px solid rgba(147,197,253,0.55)",
-  boxShadow: "0 0 18px rgba(37,99,235,0.3)",
-};
-
-const buttonDark: CSSProperties = {
-  padding: "11px 16px",
-  background: "rgba(255,255,255,0.08)",
-  borderRadius: "13px",
-  color: "white",
-  textDecoration: "none",
-  fontWeight: 900,
-  border: "1px solid rgba(255,255,255,0.14)",
+  background: "rgba(255,255,255,0.06)",
+  textAlign: "center",
 };

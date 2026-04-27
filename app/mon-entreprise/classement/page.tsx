@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -68,6 +68,18 @@ type ClassementRow = {
   scoreTotal: number;
 };
 
+type InfoPanelEntreprise = {
+  nom: string;
+  jeu: string;
+  typeTransport: string;
+  owner: {
+    username: string | null;
+  };
+  _count: {
+    membres: number;
+  };
+};
+
 export default async function ClassementInternePage() {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
@@ -81,17 +93,13 @@ export default async function ClassementInternePage() {
   if (!user) redirect("/");
 
   const membership = await prisma.entrepriseMembre.findUnique({
-    where: {
-      userId: user.id,
-    },
+    where: { userId: user.id },
   });
 
   if (!membership) redirect("/societe");
 
   const entreprise = await prisma.entreprise.findUnique({
-    where: {
-      id: membership.entrepriseId,
-    },
+    where: { id: membership.entrepriseId },
     include: {
       owner: true,
       _count: {
@@ -165,96 +173,135 @@ export default async function ClassementInternePage() {
   return (
     <main style={mainStyle}>
       <div style={overlayStyle} />
+      <div style={radialOverlayStyle} />
 
       <div style={pageStyle}>
-        <header style={topBarStyle}>
-          <div>
-            <div style={topLabelStyle}>Elite Routiers</div>
-            <h1 style={topTitleStyle}>Classement société</h1>
-          </div>
+        <div style={topButtonRowStyle}>
+          <Link href="/mon-entreprise" style={profileButtonStyle}>
+            ← Retour entreprise
+          </Link>
 
-          <div style={topActionsStyle}>
-            <Link href="/mon-entreprise" style={secondaryButtonStyle}>
-              ← Retour entreprise
-            </Link>
-
-            <Link href="/societe" style={secondaryButtonStyle}>
-              🏠 Accueil
-            </Link>
-          </div>
-        </header>
+          <Link href="/societe" style={secondaryTopButtonStyle}>
+            🏠 Accueil
+          </Link>
+        </div>
 
         <section style={heroStyle}>
-          <img
-            src={entreprise.banniere || "/truck.jpg"}
-            alt="Bannière entreprise"
-            style={heroImageStyle}
-          />
+          <div style={heroLeftStyle}>
+            <img
+              src={entreprise.banniere || "/truck.jpg"}
+              alt="Bannière entreprise"
+              style={companyImageStyle}
+            />
 
-          <div style={heroGradientStyle} />
-
-          <div style={heroContentStyle}>
             <div>
-              <div style={badgeStyle}>Classement interne</div>
+              <div style={kickerStyle}>Elite Routiers • Classement interne</div>
 
-              <h2 style={heroTitleStyle}>
+              <h1 style={titleStyle}>
                 {entreprise.nom}{" "}
                 <span style={abbrStyle}>[{entreprise.abreviation}]</span>
-              </h2>
+              </h1>
 
-              <p style={heroSubtitleStyle}>
+              <p style={subtitleStyle}>
                 {formatJeu(entreprise.jeu)} •{" "}
                 {formatTypeTransport(entreprise.typeTransport)} • Directeur :{" "}
                 {entreprise.owner.username || "Utilisateur Steam"}
               </p>
-            </div>
 
-            <div style={heroStatsStyle}>
-              <HeroStat label="Membres" value={entreprise._count.membres.toString()} />
-              <HeroStat label="Camions" value={entreprise._count.camions.toString()} />
-              <HeroStat label="Livraisons" value={totalLivraisons.toString()} />
-              <HeroStat label="Kilomètres" value={formatKm(totalKm)} />
+              <div style={tagRowStyle}>
+                <Tag>{entreprise._count.membres} membre(s)</Tag>
+                <Tag>{entreprise._count.camions} camion(s)</Tag>
+                <Tag>{totalLivraisons} livraison(s)</Tag>
+              </div>
             </div>
+          </div>
+
+          <div style={walletStyle}>
+            <span style={walletLabelStyle}>Meilleur score</span>
+            <strong style={walletValueStyle}>
+              {topGeneral[0]?.scoreTotal.toString() || "0"}
+            </strong>
+            <span style={walletHintStyle}>
+              {topGeneral[0]?.username || "Aucun chauffeur"}
+            </span>
           </div>
         </section>
 
-        <section style={statsGridStyle}>
-          <StatCard label="Argent total gagné" value={formatMoney(totalArgent)} detail="par les chauffeurs" />
-          <StatCard label="Distance totale" value={formatKm(totalKm)} detail="parcourue en mission" />
-          <StatCard label="Livraisons terminées" value={totalLivraisons.toString()} detail="toutes périodes" />
-          <StatCard label="Meilleur score" value={topGeneral[0]?.scoreTotal.toString() || "0"} detail={topGeneral[0]?.username || "Aucun chauffeur"} />
+        <section style={panelStyle}>
+          <div style={statsGridStyle}>
+            <BigStat
+              title="Argent total gagné"
+              value={formatMoney(totalArgent)}
+              detail="Par les chauffeurs"
+              color="#22c55e"
+              icon="💶"
+            />
+
+            <BigStat
+              title="Distance totale"
+              value={formatKm(totalKm)}
+              detail="Parcourue en mission"
+              color="#60a5fa"
+              icon="🛣️"
+            />
+
+            <BigStat
+              title="Livraisons terminées"
+              value={totalLivraisons.toString()}
+              detail="Toutes périodes"
+              color="#f59e0b"
+              icon="📦"
+            />
+
+            <BigStat
+              title="Meilleur score"
+              value={topGeneral[0]?.scoreTotal.toString() || "0"}
+              detail={topGeneral[0]?.username || "Aucun chauffeur"}
+              color="#fcd34d"
+              icon="🏆"
+            />
+          </div>
         </section>
 
-        <section style={podiumBoxStyle}>
+        <section style={panelStyle}>
           <div style={sectionHeaderStyle}>
             <div>
-              <h2 style={sectionTitleStyle}>Podium des chauffeurs</h2>
-              <p style={sectionTextStyle}>
+              <h2 style={sectionTitleStyle}>🏆 Podium des chauffeurs</h2>
+              <p style={sectionSubtitleStyle}>
                 Les meilleurs chauffeurs selon le score global de la société.
               </p>
             </div>
+
+            <span style={countStyle}>{podium.length} chauffeur(s)</span>
           </div>
 
           <div style={podiumGridStyle}>
             {podium.length > 0 ? (
               podium.map((chauffeur, index) => (
-                <PodiumCard key={chauffeur.userId} chauffeur={chauffeur} rank={index + 1} />
+                <PodiumCard
+                  key={chauffeur.userId}
+                  chauffeur={chauffeur}
+                  rank={index + 1}
+                />
               ))
             ) : (
-              <div style={emptyCardStyle}>Aucun chauffeur à afficher.</div>
+              <Empty>Aucun chauffeur à afficher.</Empty>
             )}
           </div>
         </section>
 
         <section style={mainGridStyle}>
-          <div style={bigBoxStyle}>
+          <section style={panelStyle}>
             <div style={sectionHeaderStyle}>
               <div>
-                <h2 style={sectionTitleStyle}>Classement général</h2>
-                <p style={sectionTextStyle}>
-                  Score calculé avec argent, kilomètres, livraisons, infractions et accidents.
+                <h2 style={sectionTitleStyle}>📋 Classement général</h2>
+                <p style={sectionSubtitleStyle}>
+                  Score calculé avec argent, kilomètres, livraisons,
+                  infractions et accidents.
                 </p>
               </div>
+
+              <span style={countStyle}>{topGeneral.length} ligne(s)</span>
             </div>
 
             <div style={tableWrapperStyle}>
@@ -282,7 +329,7 @@ export default async function ClassementInternePage() {
                     </tr>
                   ) : (
                     topGeneral.map((chauffeur, index) => (
-                      <tr key={chauffeur.userId}>
+                      <tr key={chauffeur.userId} style={trStyle}>
                         <td style={tdStyle}>
                           <strong>#{index + 1}</strong>
                         </td>
@@ -296,7 +343,9 @@ export default async function ClassementInternePage() {
 
                         <td style={tdStyle}>{formatRole(chauffeur.role)}</td>
                         <td style={tdScoreStyle}>{chauffeur.scoreTotal}</td>
-                        <td style={tdMoneyStyle}>{formatMoney(chauffeur.argentGagne)}</td>
+                        <td style={tdMoneyStyle}>
+                          {formatMoney(chauffeur.argentGagne)}
+                        </td>
                         <td style={tdStyle}>{formatKm(chauffeur.kilometres)}</td>
                         <td style={tdStyle}>{chauffeur.livraisons}</td>
                         <td style={tdWarningStyle}>{chauffeur.infractions}</td>
@@ -307,15 +356,13 @@ export default async function ClassementInternePage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
 
           <aside style={sideColumnStyle}>
             <InfoPanel entreprise={entreprise} />
 
             {topGeneral[0] && (
-              <div style={boxStyle}>
-                <h2 style={sectionTitleSmallStyle}>Meilleur chauffeur</h2>
-
+              <Card title="⭐ Meilleur chauffeur">
                 <div style={bestDriverStyle}>
                   <Avatar src={topGeneral[0].avatar} size={58} />
 
@@ -329,49 +376,38 @@ export default async function ClassementInternePage() {
                   </div>
                 </div>
 
-                <div style={infoLineStyle}>
-                  <span style={labelStyle}>Score</span>
-                  <strong>{topGeneral[0].scoreTotal}</strong>
-                </div>
-
-                <div style={infoLineStyle}>
-                  <span style={labelStyle}>Argent</span>
-                  <strong>{formatMoney(topGeneral[0].argentGagne)}</strong>
-                </div>
-
-                <div style={infoLineStyle}>
-                  <span style={labelStyle}>Kilomètres</span>
-                  <strong>{formatKm(topGeneral[0].kilometres)}</strong>
-                </div>
-              </div>
+                <InfoLine label="Score" value={topGeneral[0].scoreTotal.toString()} />
+                <InfoLine label="Argent" value={formatMoney(topGeneral[0].argentGagne)} />
+                <InfoLine label="Kilomètres" value={formatKm(topGeneral[0].kilometres)} />
+              </Card>
             )}
           </aside>
         </section>
 
         <section style={cardsGridStyle}>
           <RankingMiniTable
-            title="Top argent gagné"
+            title="💶 Top argent gagné"
             rows={topArgent}
             valueKey="argentGagne"
             formatValue={formatMoney}
           />
 
           <RankingMiniTable
-            title="Top kilomètres"
+            title="🛣️ Top kilomètres"
             rows={topKilometres}
             valueKey="kilometres"
             formatValue={formatKm}
           />
 
           <RankingMiniTable
-            title="Plus d’infractions"
+            title="⚠️ Plus d’infractions"
             rows={topInfractions}
             valueKey="infractions"
             formatValue={(value) => String(value)}
           />
 
           <RankingMiniTable
-            title="Plus d’accidents"
+            title="💥 Plus d’accidents"
             rows={topAccidents}
             valueKey="accidents"
             formatValue={(value) => String(value)}
@@ -400,29 +436,54 @@ function Avatar({ src, size = 40 }: { src: string | null; size?: number }) {
   );
 }
 
-function HeroStat({ label, value }: { label: string; value: string }) {
+function Tag({ children }: { children: ReactNode }) {
+  return <span style={tagStyle}>{children}</span>;
+}
+
+function Empty({ children }: { children: ReactNode }) {
+  return <div style={emptyCardStyle}>{children}</div>;
+}
+
+function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div style={heroStatStyle}>
-      <span style={labelStyle}>{label}</span>
-      <strong style={heroStatValueStyle}>{value}</strong>
+    <div style={cardStyle}>
+      <h3 style={cardTitleStyle}>{title}</h3>
+      {children}
     </div>
   );
 }
 
-function StatCard({
-  label,
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={infoLineStyle}>
+      <span style={labelStyle}>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function BigStat({
+  title,
   value,
   detail,
+  color,
+  icon,
 }: {
-  label: string;
+  title: string;
   value: string;
   detail: string;
+  color: string;
+  icon: string;
 }) {
   return (
-    <div style={statCardStyle}>
-      <span style={labelStyle}>{label}</span>
-      <strong style={statCardValueStyle}>{value}</strong>
-      <small style={smallTextStyle}>{detail}</small>
+    <div style={bigStatStyle}>
+      <div style={bigStatTopStyle}>
+        <span style={bigIconStyle}>{icon}</span>
+        <span style={bigStatTitleStyle}>{title}</span>
+      </div>
+
+      <strong style={{ ...bigStatValueStyle, color }}>{value}</strong>
+      <span style={bigStatDetailStyle}>{detail}</span>
     </div>
   );
 }
@@ -463,36 +524,18 @@ function PodiumCard({
   );
 }
 
-function InfoPanel({ entreprise }: { entreprise: any }) {
+function InfoPanel({ entreprise }: { entreprise: InfoPanelEntreprise }) {
   return (
-    <div style={boxStyle}>
-      <h2 style={sectionTitleSmallStyle}>Infos rapides</h2>
-
-      <div style={infoLineStyle}>
-        <span style={labelStyle}>Entreprise</span>
-        <strong>{entreprise.nom}</strong>
-      </div>
-
-      <div style={infoLineStyle}>
-        <span style={labelStyle}>Directeur</span>
-        <strong>{entreprise.owner.username || "Utilisateur Steam"}</strong>
-      </div>
-
-      <div style={infoLineStyle}>
-        <span style={labelStyle}>Jeu</span>
-        <strong>{formatJeu(entreprise.jeu)}</strong>
-      </div>
-
-      <div style={infoLineStyle}>
-        <span style={labelStyle}>Transport</span>
-        <strong>{formatTypeTransport(entreprise.typeTransport)}</strong>
-      </div>
-
-      <div style={infoLineStyle}>
-        <span style={labelStyle}>Membres</span>
-        <strong>{entreprise._count.membres}</strong>
-      </div>
-    </div>
+    <Card title="ℹ️ Infos rapides">
+      <InfoLine label="Entreprise" value={entreprise.nom} />
+      <InfoLine
+        label="Directeur"
+        value={entreprise.owner.username || "Utilisateur Steam"}
+      />
+      <InfoLine label="Jeu" value={formatJeu(entreprise.jeu)} />
+      <InfoLine label="Transport" value={formatTypeTransport(entreprise.typeTransport)} />
+      <InfoLine label="Membres" value={entreprise._count.membres.toString()} />
+    </Card>
   );
 }
 
@@ -508,253 +551,314 @@ function RankingMiniTable({
   formatValue: (value: number) => string;
 }) {
   return (
-    <div style={boxStyle}>
-      <h2 style={sectionTitleSmallStyle}>{title}</h2>
+    <section style={panelStyle}>
+      <Card title={title}>
+        <div style={miniRankingListStyle}>
+          {rows.length === 0 ? (
+            <Empty>Aucun chauffeur trouvé.</Empty>
+          ) : (
+            rows.slice(0, 5).map((chauffeur, index) => (
+              <div
+                key={`${valueKey}-${chauffeur.userId}`}
+                style={miniRankingRowStyle}
+              >
+                <div style={miniRankStyle}>#{index + 1}</div>
 
-      <div style={miniRankingListStyle}>
-        {rows.length === 0 ? (
-          <div style={emptyCardStyle}>Aucun chauffeur trouvé.</div>
-        ) : (
-          rows.slice(0, 5).map((chauffeur, index) => (
-            <div key={`${valueKey}-${chauffeur.userId}`} style={miniRankingRowStyle}>
-              <div style={miniRankStyle}>#{index + 1}</div>
+                <Avatar src={chauffeur.avatar} size={36} />
 
-              <Avatar src={chauffeur.avatar} size={36} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={miniDriverNameStyle}>{chauffeur.username}</div>
+                  <div style={smallTextStyle}>{formatRole(chauffeur.role)}</div>
+                </div>
 
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={miniDriverNameStyle}>{chauffeur.username}</div>
-                <div style={smallTextStyle}>{formatRole(chauffeur.role)}</div>
+                <strong style={miniValueStyle}>
+                  {formatValue(chauffeur[valueKey])}
+                </strong>
               </div>
-
-              <strong style={miniValueStyle}>
-                {formatValue(chauffeur[valueKey])}
-              </strong>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+            ))
+          )}
+        </div>
+      </Card>
+    </section>
   );
 }
 
 const mainStyle: CSSProperties = {
   minHeight: "100vh",
-  backgroundImage: "url('/truck.jpg')",
+  backgroundImage:
+    "linear-gradient(180deg, rgba(3,7,18,0.15), rgba(3,7,18,0.55) 520px), url('/truck.jpg')",
   backgroundSize: "cover",
-  backgroundPosition: "center",
-  backgroundRepeat: "no-repeat",
-  position: "relative",
+  backgroundPosition: "center top",
+  backgroundAttachment: "fixed",
   color: "white",
+  padding: "22px",
+  position: "relative",
+  fontFamily: "Arial, sans-serif",
 };
 
 const overlayStyle: CSSProperties = {
-  position: "absolute",
+  position: "fixed",
   inset: 0,
+  pointerEvents: "none",
   background:
-    "radial-gradient(circle at top left, rgba(37,99,235,0.22), transparent 34%), radial-gradient(circle at top right, rgba(245,158,11,0.12), transparent 28%), rgba(0,0,0,0.72)",
+    "linear-gradient(135deg, rgba(3,7,18,0.25), rgba(8,13,28,0.20), rgba(3,7,18,0.35))",
+  zIndex: 0,
+};
+
+const radialOverlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "radial-gradient(circle at 52% 0%, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at 80% 18%, rgba(37,99,235,0.12), transparent 25%)",
+  zIndex: 0,
 };
 
 const pageStyle: CSSProperties = {
   position: "relative",
   zIndex: 1,
-  minHeight: "100vh",
-  padding: "22px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "20px",
-};
-
-const topBarStyle: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "16px",
-  flexWrap: "wrap",
-};
-
-const topLabelStyle: CSSProperties = {
-  fontSize: "12px",
-  fontWeight: 900,
-  textTransform: "uppercase",
-  letterSpacing: "0.14em",
-  opacity: 0.72,
-};
-
-const topTitleStyle: CSSProperties = {
-  margin: "4px 0 0",
-  fontSize: "30px",
-  lineHeight: 1,
-};
-
-const topActionsStyle: CSSProperties = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-};
-
-const secondaryButtonStyle: CSSProperties = {
-  padding: "12px 16px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.13)",
-  background: "rgba(255,255,255,0.09)",
-  color: "white",
-  fontWeight: 900,
-  textDecoration: "none",
-  display: "inline-flex",
-  alignItems: "center",
-  backdropFilter: "blur(8px)",
-};
-
-const heroStyle: CSSProperties = {
-  position: "relative",
-  minHeight: "290px",
-  borderRadius: "24px",
-  overflow: "hidden",
-  background: "rgba(0,0,0,0.55)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  boxShadow: "0 24px 80px rgba(0,0,0,0.48)",
-};
-
-const heroImageStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-};
-
-const heroGradientStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background:
-    "linear-gradient(90deg, rgba(0,0,0,0.90), rgba(0,0,0,0.48), rgba(0,0,0,0.14)), linear-gradient(to top, rgba(0,0,0,0.90), transparent)",
-};
-
-const heroContentStyle: CSSProperties = {
-  position: "relative",
-  zIndex: 2,
-  minHeight: "290px",
-  padding: "28px",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
+  maxWidth: "1450px",
+  margin: "0 auto",
+  display: "grid",
   gap: "22px",
 };
 
-const badgeStyle: CSSProperties = {
-  width: "fit-content",
-  padding: "8px 13px",
-  borderRadius: "999px",
-  background: "rgba(245,158,11,0.16)",
-  border: "1px solid rgba(245,158,11,0.40)",
-  color: "#fcd34d",
-  fontSize: "12px",
-  fontWeight: 900,
+const topButtonRowStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "12px",
+  flexWrap: "wrap",
 };
 
-const heroTitleStyle: CSSProperties = {
-  margin: "14px 0 8px",
-  fontSize: "42px",
+const profileButtonStyle: CSSProperties = {
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 950,
+  padding: "12px 18px",
+  borderRadius: "999px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
+  backdropFilter: "blur(12px)",
+};
+
+const secondaryTopButtonStyle: CSSProperties = {
+  ...profileButtonStyle,
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const heroStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "25px",
+  padding: "32px",
+  borderRadius: "30px",
+  background: "rgba(8,13,28,0.22)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const heroLeftStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "22px",
+  flexWrap: "wrap",
+};
+
+const companyImageStyle: CSSProperties = {
+  width: "180px",
+  height: "112px",
+  borderRadius: "26px",
+  objectFit: "cover",
+  border: "1px solid rgba(147,197,253,0.26)",
+  boxShadow: "0 0 30px rgba(37,99,235,0.22)",
+  background: "rgba(255,255,255,0.08)",
+};
+
+const kickerStyle: CSSProperties = {
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  fontSize: "0.82rem",
+  fontWeight: 950,
+  color: "#60a5fa",
+  textShadow: "0 4px 14px rgba(0,0,0,0.9)",
+};
+
+const titleStyle: CSSProperties = {
+  margin: "8px 0 6px",
+  fontSize: "3rem",
   lineHeight: 1,
   fontWeight: 950,
+  letterSpacing: "-0.05em",
+  textShadow: "0 6px 24px rgba(0,0,0,0.95)",
 };
 
 const abbrStyle: CSSProperties = {
   color: "#93c5fd",
 };
 
-const heroSubtitleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "15px",
-  opacity: 0.9,
+const subtitleStyle: CSSProperties = {
+  margin: "0 0 16px",
+  color: "rgba(255,255,255,0.82)",
+  fontWeight: 700,
 };
 
-const heroStatsStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: "12px",
-  maxWidth: "920px",
+const tagRowStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
 };
 
-const heroStatStyle: CSSProperties = {
-  padding: "14px",
-  borderRadius: "16px",
-  background: "rgba(0,0,0,0.48)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  backdropFilter: "blur(8px)",
+const tagStyle: CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#dbeafe",
+  fontWeight: 900,
+  fontSize: "0.85rem",
 };
 
-const heroStatValueStyle: CSSProperties = {
-  display: "block",
-  fontSize: "20px",
+const walletStyle: CSSProperties = {
+  minWidth: "270px",
+  borderRadius: "22px",
+  padding: "20px",
+  background:
+    "linear-gradient(135deg, rgba(245,158,11,0.20), rgba(245,158,11,0.07))",
+  border: "1px solid rgba(245,158,11,0.28)",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  boxShadow: "0 0 24px rgba(245,158,11,0.18)",
+};
+
+const walletLabelStyle: CSSProperties = {
+  opacity: 0.78,
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  fontWeight: 900,
+};
+
+const walletValueStyle: CSSProperties = {
+  fontSize: "34px",
+  color: "#fcd34d",
+  marginTop: "8px",
+};
+
+const walletHintStyle: CSSProperties = {
+  opacity: 0.7,
+  fontSize: "13px",
+  marginTop: "6px",
+  fontWeight: 800,
+};
+
+const panelStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "26px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
 const statsGridStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: "16px",
+  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+  gap: "14px",
 };
 
-const statCardStyle: CSSProperties = {
+const bigStatStyle: CSSProperties = {
   padding: "18px",
   borderRadius: "18px",
-  background: "rgba(0,0,0,0.46)",
-  border: "1px solid rgba(255,255,255,0.09)",
-  backdropFilter: "blur(7px)",
-  boxShadow: "0 18px 45px rgba(0,0,0,0.26)",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.22)",
 };
 
-const statCardValueStyle: CSSProperties = {
+const bigStatTopStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  marginBottom: "12px",
+};
+
+const bigIconStyle: CSSProperties = {
+  width: "38px",
+  height: "38px",
+  borderRadius: "13px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.25)",
+};
+
+const bigStatTitleStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 850,
+};
+
+const bigStatValueStyle: CSSProperties = {
   display: "block",
-  margin: "6px 0 4px",
-  fontSize: "24px",
+  fontSize: "25px",
+  marginBottom: "6px",
+  fontWeight: 950,
 };
 
-const podiumBoxStyle: CSSProperties = {
-  ...statCardStyle,
+const bigStatDetailStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.62)",
+  fontSize: "13px",
+  fontWeight: 750,
 };
 
 const sectionHeaderStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "16px",
+  gap: "14px",
   alignItems: "flex-start",
-  marginBottom: "16px",
+  marginBottom: "18px",
 };
 
 const sectionTitleStyle: CSSProperties = {
   margin: 0,
-  fontSize: "24px",
+  fontSize: "1.35rem",
   fontWeight: 950,
 };
 
-const sectionTitleSmallStyle: CSSProperties = {
-  margin: "0 0 14px",
-  fontSize: "20px",
-  fontWeight: 950,
-};
-
-const sectionTextStyle: CSSProperties = {
+const sectionSubtitleStyle: CSSProperties = {
   margin: "6px 0 0",
+  color: "rgba(255,255,255,0.68)",
+  fontWeight: 750,
+};
+
+const countStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.72)",
   fontSize: "13px",
-  opacity: 0.76,
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: "999px",
+  padding: "8px 12px",
+  fontWeight: 900,
 };
 
 const podiumGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
   gap: "16px",
-  alignItems: "stretch",
 };
 
 const podiumCardStyle: CSSProperties = {
   padding: "20px",
   borderRadius: "20px",
-  background:
-    "linear-gradient(135deg, rgba(255,255,255,0.11), rgba(255,255,255,0.045))",
-  border: "1px solid rgba(255,255,255,0.11)",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
   textAlign: "center",
-  boxShadow: "0 20px 55px rgba(0,0,0,0.30)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.22)",
 };
 
 const podiumRankStyle: CSSProperties = {
@@ -765,6 +869,7 @@ const podiumRankStyle: CSSProperties = {
 const podiumNameStyle: CSSProperties = {
   margin: "12px 0 4px",
   fontSize: "19px",
+  fontWeight: 950,
 };
 
 const podiumScoreStyle: CSSProperties = {
@@ -781,19 +886,14 @@ const podiumDetailsStyle: CSSProperties = {
   gap: "10px",
   flexWrap: "wrap",
   fontSize: "12px",
-  opacity: 0.85,
+  color: "rgba(255,255,255,0.78)",
 };
 
 const mainGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) 330px",
-  gap: "20px",
+  gap: "22px",
   alignItems: "start",
-};
-
-const bigBoxStyle: CSSProperties = {
-  ...statCardStyle,
-  minWidth: 0,
 };
 
 const sideColumnStyle: CSSProperties = {
@@ -802,26 +902,32 @@ const sideColumnStyle: CSSProperties = {
   gap: "16px",
 };
 
-const boxStyle: CSSProperties = {
-  background: "rgba(0,0,0,0.46)",
-  borderRadius: "18px",
-  padding: "18px",
-  border: "1px solid rgba(255,255,255,0.09)",
-  backdropFilter: "blur(7px)",
-  boxShadow: "0 18px 45px rgba(0,0,0,0.24)",
+const cardStyle: CSSProperties = {
+  padding: "20px",
+  borderRadius: "20px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+};
+
+const cardTitleStyle: CSSProperties = {
+  margin: "0 0 18px",
+  fontSize: "1.18rem",
+  fontWeight: 950,
 };
 
 const labelStyle: CSSProperties = {
   display: "block",
   fontSize: "12px",
-  opacity: 0.72,
+  color: "rgba(255,255,255,0.68)",
   marginBottom: "5px",
+  fontWeight: 800,
 };
 
 const smallTextStyle: CSSProperties = {
   margin: 0,
   fontSize: "12px",
-  opacity: 0.72,
+  color: "rgba(255,255,255,0.68)",
+  fontWeight: 750,
 };
 
 const infoLineStyle: CSSProperties = {
@@ -829,7 +935,7 @@ const infoLineStyle: CSSProperties = {
   justifyContent: "space-between",
   gap: "12px",
   padding: "11px 0",
-  borderBottom: "1px solid rgba(255,255,255,0.07)",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
 };
 
 const bestDriverStyle: CSSProperties = {
@@ -861,8 +967,8 @@ const avatarImageStyle: CSSProperties = {
 
 const tableWrapperStyle: CSSProperties = {
   overflowX: "auto",
-  borderRadius: "16px",
-  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "18px",
+  border: "1px solid rgba(255,255,255,0.10)",
 };
 
 const tableStyle: CSSProperties = {
@@ -874,19 +980,25 @@ const tableStyle: CSSProperties = {
 
 const thStyle: CSSProperties = {
   textAlign: "left",
-  padding: "14px 16px",
-  background: "rgba(255,255,255,0.07)",
-  borderBottom: "1px solid rgba(255,255,255,0.08)",
-  fontSize: "13px",
+  padding: "14px 12px",
+  fontSize: "14px",
+  borderBottom: "1px solid rgba(255,255,255,0.12)",
+  color: "rgba(255,255,255,0.78)",
+  fontWeight: 950,
   whiteSpace: "nowrap",
 };
 
 const tdStyle: CSSProperties = {
-  padding: "14px 16px",
-  borderBottom: "1px solid rgba(255,255,255,0.065)",
+  padding: "14px 12px",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
   fontSize: "14px",
-  opacity: 0.95,
+  color: "rgba(255,255,255,0.86)",
+  fontWeight: 750,
   whiteSpace: "nowrap",
+};
+
+const trStyle: CSSProperties = {
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
 };
 
 const tdScoreStyle: CSSProperties = {
@@ -898,19 +1010,19 @@ const tdScoreStyle: CSSProperties = {
 const tdMoneyStyle: CSSProperties = {
   ...tdStyle,
   color: "#86efac",
-  fontWeight: 900,
+  fontWeight: 950,
 };
 
 const tdWarningStyle: CSSProperties = {
   ...tdStyle,
   color: "#fcd34d",
-  fontWeight: 900,
+  fontWeight: 950,
 };
 
 const tdDangerStyle: CSSProperties = {
   ...tdStyle,
   color: "#fca5a5",
-  fontWeight: 900,
+  fontWeight: 950,
 };
 
 const driverCellStyle: CSSProperties = {
@@ -920,9 +1032,10 @@ const driverCellStyle: CSSProperties = {
 };
 
 const emptyTdStyle: CSSProperties = {
-  padding: "20px",
+  padding: "26px",
   textAlign: "center",
-  opacity: 0.75,
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 850,
 };
 
 const cardsGridStyle: CSSProperties = {
@@ -943,8 +1056,8 @@ const miniRankingRowStyle: CSSProperties = {
   gap: "10px",
   padding: "10px",
   borderRadius: "14px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.075)",
+  border: "1px solid rgba(255,255,255,0.10)",
 };
 
 const miniRankStyle: CSSProperties = {
@@ -954,13 +1067,14 @@ const miniRankStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "rgba(255,255,255,0.08)",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.25)",
   fontWeight: 950,
   flexShrink: 0,
 };
 
 const miniDriverNameStyle: CSSProperties = {
-  fontWeight: 900,
+  fontWeight: 950,
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -972,9 +1086,12 @@ const miniValueStyle: CSSProperties = {
 };
 
 const emptyCardStyle: CSSProperties = {
-  padding: "16px",
-  borderRadius: "14px",
-  background: "rgba(255,255,255,0.07)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  opacity: 0.85,
+  padding: "26px",
+  borderRadius: "18px",
+  textAlign: "center",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 800,
+  lineHeight: 1.6,
 };

@@ -1,8 +1,10 @@
+import type { CSSProperties, ReactNode } from "react";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{
@@ -33,42 +35,28 @@ export default async function EntreprisePage({ params }: PageProps) {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
 
-  if (!steamId) {
-    redirect("/");
-  }
+  if (!steamId) redirect("/");
 
   const { id } = await params;
   const entrepriseId = Number(id);
 
-  if (!entrepriseId || Number.isNaN(entrepriseId)) {
-    notFound();
-  }
+  if (!entrepriseId || Number.isNaN(entrepriseId)) notFound();
 
   const entreprise = await prisma.entreprise.findUnique({
-    where: {
-      id: entrepriseId,
-    },
+    where: { id: entrepriseId },
     include: {
       owner: true,
       membres: {
-        include: {
-          user: true,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
+        include: { user: true },
+        orderBy: { createdAt: "asc" },
       },
       _count: {
-        select: {
-          membres: true,
-        },
+        select: { membres: true },
       },
     },
   });
 
-  if (!entreprise) {
-    notFound();
-  }
+  if (!entreprise) notFound();
 
   const directeurs = entreprise.membres.filter(
     (membre) => membre.role === "DIRECTEUR"
@@ -90,545 +78,205 @@ export default async function EntreprisePage({ params }: PageProps) {
     (membre) => membre.role === "CHAUFFEUR"
   ).length;
 
-  const argentSociete = (entreprise as { argent?: number | null }).argent ?? 0;
+  const argentSociete = entreprise.argent ?? 0;
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundImage: "url('/truck.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        position: "relative",
-        color: "white",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.65)",
-        }}
-      />
+    <main style={mainStyle}>
+      <div style={overlayStyle} />
+      <div style={radialOverlayStyle} />
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <header
-          style={{
-            height: "80px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 24px",
-            borderBottom: "1px solid rgba(255,255,255,0.15)",
-            background: "rgba(0,0,0,0.35)",
-            backdropFilter: "blur(6px)",
-          }}
-        >
-          <div style={{ fontSize: "28px", fontWeight: "bold" }}>
-            Elite Routiers
+      <div style={pageStyle}>
+        <div style={topButtonRowStyle}>
+          <Link href="/societe" style={profileButtonStyle}>
+            ← Retour
+          </Link>
+
+          {entreprise.recrutement ? (
+            <Link
+              href={`/entreprise/${entreprise.id}/postuler`}
+              style={greenButtonStyle}
+            >
+              Postuler
+            </Link>
+          ) : (
+            <span style={closedButtonStyle}>Recrutement fermé</span>
+          )}
+        </div>
+
+        <section style={heroStyle}>
+          <div style={heroLeftStyle}>
+            <img
+              src={entreprise.banniere || "/truck.jpg"}
+              alt="Bannière entreprise"
+              style={companyImageStyle}
+            />
+
+            <div>
+              <div style={kickerStyle}>Elite Routiers • Fiche société</div>
+
+              <h1 style={titleStyle}>{entreprise.nom}</h1>
+
+              <p style={subtitleStyle}>
+                [{entreprise.abreviation}] •{" "}
+                {entreprise.jeu || "Jeu non renseigné"} •{" "}
+                {entreprise.typeTransport || "Transport non renseigné"}
+              </p>
+
+              <div style={tagRowStyle}>
+                <Tag>{entreprise._count.membres} membre(s)</Tag>
+                <Tag>{entreprise.owner?.username || "Directeur inconnu"}</Tag>
+                <Tag>
+                  {entreprise.recrutement
+                    ? "Recrutement ouvert"
+                    : "Recrutement fermé"}
+                </Tag>
+              </div>
+            </div>
           </div>
 
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              flexWrap: "wrap",
+              ...walletStyle,
+              background: entreprise.recrutement
+                ? "linear-gradient(135deg, rgba(34,197,94,0.20), rgba(34,197,94,0.07))"
+                : "linear-gradient(135deg, rgba(239,68,68,0.20), rgba(239,68,68,0.07))",
+              border: entreprise.recrutement
+                ? "1px solid rgba(34,197,94,0.28)"
+                : "1px solid rgba(239,68,68,0.28)",
+              boxShadow: entreprise.recrutement
+                ? "0 0 24px rgba(34,197,94,0.18)"
+                : "0 0 24px rgba(239,68,68,0.18)",
             }}
           >
-            <Link
-              href="/societe"
+            <span style={walletLabelStyle}>Recrutement</span>
+            <strong
               style={{
-                padding: "10px 16px",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "white",
-                textDecoration: "none",
-                fontWeight: "bold",
+                ...walletValueStyle,
+                color: entreprise.recrutement ? "#22c55e" : "#ef4444",
               }}
             >
-              ← Retour
-            </Link>
-
-            {entreprise.recrutement ? (
-              <Link
-                href={`/entreprise/${entreprise.id}/postuler`}
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: "10px",
-                  background: "#2563eb",
-                  color: "white",
-                  textDecoration: "none",
-                  fontWeight: "bold",
-                }}
-              >
-                Postuler
-              </Link>
-            ) : (
-              <div
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: "10px",
-                  background: "rgba(255,255,255,0.10)",
-                  color: "rgba(255,255,255,0.7)",
-                  fontWeight: "bold",
-                }}
-              >
-                Recrutement fermé
-              </div>
-            )}
+              {entreprise.recrutement ? "Ouvert" : "Fermé"}
+            </strong>
+            <span style={walletHintStyle}>Candidatures société</span>
           </div>
-        </header>
+        </section>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 320px",
-            gap: "20px",
-            padding: "20px",
-            flex: 1,
-          }}
-        >
-          
+        <section style={panelStyle}>
+          <div style={statsGridStyle}>
+            <BigStat
+              title="Argent société"
+              value={formatMoney(argentSociete)}
+              detail="Capital actuel"
+              color="#22c55e"
+              icon="💶"
+            />
 
-          <section
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "20px",
-            }}
-          >
-            <section
-              style={{
-                background: "rgba(0, 0, 0, 0.45)",
-                borderRadius: "18px",
-                overflow: "hidden",
-                backdropFilter: "blur(6px)",
-                boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div
-                style={{
-                  height: "260px",
-                  backgroundImage: `url('${entreprise.banniere || "/truck.jpg"}')`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                      "linear-gradient(to top, rgba(0,0,0,0.88), rgba(0,0,0,0.20))",
-                  }}
-                />
+            <BigStat
+              title="Membres"
+              value={entreprise._count.membres.toString()}
+              detail="Chauffeurs inscrits"
+              color="#60a5fa"
+              icon="👥"
+            />
 
-                <div
-                  style={{
-                    position: "absolute",
-                    left: "24px",
-                    bottom: "24px",
-                    right: "24px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-end",
-                    gap: "16px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div>
-                    <h1 style={{ margin: 0, fontSize: "40px" }}>
-                      {entreprise.nom}
-                    </h1>
+            <BigStat
+              title="Directeur"
+              value={entreprise.owner?.username || "Inconnu"}
+              detail="Fondateur / responsable"
+              color="#93c5fd"
+              icon="👑"
+            />
 
-                    <div
-                      style={{
-                        marginTop: "8px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div
-                        style={{
-                          padding: "8px 12px",
-                          borderRadius: "999px",
-                          background: "rgba(255,255,255,0.10)",
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          fontWeight: "bold",
-                          fontSize: "13px",
-                        }}
-                      >
-                        [{entreprise.abreviation}]
-                      </div>
+            <BigStat
+              title="Transport"
+              value={entreprise.typeTransport || "Non renseigné"}
+              detail="Spécialité"
+              color="#f59e0b"
+              icon="🚚"
+            />
+          </div>
+        </section>
 
-                      <div
-                        style={{
-                          padding: "8px 12px",
-                          borderRadius: "999px",
-                          background: "rgba(255,255,255,0.10)",
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          fontWeight: "bold",
-                          fontSize: "13px",
-                        }}
-                      >
-                        {entreprise.jeu || "Jeu non renseigné"}
-                      </div>
-
-                      <div
-                        style={{
-                          padding: "8px 12px",
-                          borderRadius: "999px",
-                          background: "rgba(255,255,255,0.10)",
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          fontWeight: "bold",
-                          fontSize: "13px",
-                        }}
-                      >
-                        {entreprise.typeTransport || "Transport non renseigné"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      background: "rgba(255,255,255,0.10)",
-                      padding: "10px 14px",
-                      borderRadius: "999px",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: "10px",
-                        height: "10px",
-                        borderRadius: "50%",
-                        display: "inline-block",
-                        background: entreprise.recrutement ? "#22c55e" : "#ef4444",
-                        boxShadow: entreprise.recrutement
-                          ? "0 0 8px #22c55e"
-                          : "0 0 8px #ef4444",
-                      }}
-                    />
-                    {entreprise.recrutement
-                      ? "Recrutement ouvert"
-                      : "Recrutement fermé"}
-                  </div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "24px",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                  gap: "16px",
-                }}
-              >
-                <div style={statBoxStyle}>
-                  <div style={statLabelStyle}>Argent société</div>
-                  <div style={{ ...statValueStyle, color: "#22c55e" }}>
-                    {formatMoney(argentSociete)}
-                  </div>
-                </div>
-
-                <div style={statBoxStyle}>
-                  <div style={statLabelStyle}>Membres</div>
-                  <div style={statValueStyle}>{entreprise._count.membres}</div>
-                </div>
-
-                <div style={statBoxStyle}>
-                  <div style={statLabelStyle}>Directeur</div>
-                  <div style={statValueStyle}>
-                    {entreprise.owner?.username || "Utilisateur Steam"}
-                  </div>
-                </div>
-
-                <div style={statBoxStyle}>
-                  <div style={statLabelStyle}>Transport</div>
-                  <div style={statValueStyle}>
-                    {entreprise.typeTransport || "Non renseigné"}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section
-              style={{
-                background: "rgba(0, 0, 0, 0.45)",
-                borderRadius: "18px",
-                padding: "24px",
-                backdropFilter: "blur(6px)",
-                boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <h2 style={{ marginTop: 0, marginBottom: "16px", fontSize: "28px" }}>
-                Présentation de la société
-              </h2>
-
-              <p
-                style={{
-                  margin: 0,
-                  lineHeight: 1.8,
-                  opacity: 0.92,
-                  whiteSpace: "pre-wrap",
-                }}
-              >
+        <section style={mainGridStyle}>
+          <section style={contentColumnStyle}>
+            <Panel title="📄 Présentation de la société">
+              <p style={descriptionStyle}>
                 {entreprise.description?.trim()
                   ? entreprise.description
                   : "Cette société n’a pas encore ajouté de présentation."}
               </p>
-            </section>
+            </Panel>
 
-            <section
-              style={{
-                background: "rgba(0, 0, 0, 0.45)",
-                borderRadius: "18px",
-                padding: "24px",
-                backdropFilter: "blur(6px)",
-                boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <h2 style={{ marginTop: 0, marginBottom: "18px", fontSize: "28px" }}>
-                Répartition des rôles
-              </h2>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-                  gap: "14px",
-                }}
-              >
-                <div style={roleStatStyle}>
-                  <div style={roleStatNumberStyle}>{directeurs}</div>
-                  <div style={roleStatLabelStyle}>Directeurs</div>
-                </div>
-
-                <div style={roleStatStyle}>
-                  <div style={roleStatNumberStyle}>{sousDirecteurs}</div>
-                  <div style={roleStatLabelStyle}>Sous-directeurs</div>
-                </div>
-
-                <div style={roleStatStyle}>
-                  <div style={roleStatNumberStyle}>{chefsEquipe}</div>
-                  <div style={roleStatLabelStyle}>Chefs d’équipe</div>
-                </div>
-
-                <div style={roleStatStyle}>
-                  <div style={roleStatNumberStyle}>{chefsAtelier}</div>
-                  <div style={roleStatLabelStyle}>Chefs d’atelier</div>
-                </div>
-
-                <div style={roleStatStyle}>
-                  <div style={roleStatNumberStyle}>{chauffeurs}</div>
-                  <div style={roleStatLabelStyle}>Chauffeurs</div>
-                </div>
+            <Panel title="🪪 Répartition des rôles">
+              <div style={rolesGridStyle}>
+                <RoleStat label="Directeurs" value={directeurs} />
+                <RoleStat label="Sous-directeurs" value={sousDirecteurs} />
+                <RoleStat label="Chefs d’équipe" value={chefsEquipe} />
+                <RoleStat label="Chefs d’atelier" value={chefsAtelier} />
+                <RoleStat label="Chauffeurs" value={chauffeurs} />
               </div>
-            </section>
+            </Panel>
 
-            <section
-              style={{
-                background: "rgba(0, 0, 0, 0.45)",
-                borderRadius: "18px",
-                padding: "24px",
-                backdropFilter: "blur(6px)",
-                boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <h2 style={{ marginTop: 0, marginBottom: "18px", fontSize: "28px" }}>
-                Membres de la société
-              </h2>
-
+            <Panel title="👥 Membres de la société">
               {entreprise.membres.length > 0 ? (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                    gap: "14px",
-                  }}
-                >
+                <div style={membersGridStyle}>
                   {entreprise.membres.map((membre) => (
-                    <div
-                      key={membre.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        padding: "14px",
-                        borderRadius: "12px",
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          minWidth: 0,
-                          flex: 1,
-                        }}
-                      >
+                    <div key={membre.id} style={memberCardStyle}>
+                      <div style={memberLeftStyle}>
                         <img
                           src={membre.user.avatar || "/truck.jpg"}
                           alt={membre.user.username || "Chauffeur"}
-                          style={{
-                            width: "48px",
-                            height: "48px",
-                            borderRadius: "50%",
-                            objectFit: "cover",
-                            border: "1px solid rgba(255,255,255,0.15)",
-                            flexShrink: 0,
-                          }}
+                          style={avatarStyle}
                         />
 
                         <div style={{ minWidth: 0 }}>
-                          <div
-                            style={{
-                              fontWeight: "bold",
-                              fontSize: "15px",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
+                          <div style={memberNameStyle}>
                             {membre.user.username || "Chauffeur sans pseudo"}
                           </div>
 
-                          <div
-                            style={{
-                              fontSize: "13px",
-                              opacity: 0.75,
-                              marginTop: "4px",
-                            }}
-                          >
+                          <div style={memberRoleSmallStyle}>
                             {formatRole(membre.role)}
                           </div>
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          padding: "7px 10px",
-                          borderRadius: "999px",
-                          background: "rgba(255,255,255,0.08)",
-                          border: "1px solid rgba(255,255,255,0.10)",
-                          fontSize: "12px",
-                          fontWeight: "bold",
-                          flexShrink: 0,
-                        }}
-                      >
+                      <span style={roleBadgeStyle}>
                         {formatRole(membre.role)}
-                      </div>
+                      </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div
-                  style={{
-                    padding: "16px",
-                    borderRadius: "12px",
-                    background: "rgba(255,255,255,0.05)",
-                    textAlign: "center",
-                  }}
-                >
-                  Aucun membre dans cette société pour le moment.
-                </div>
+                <Empty>Aucun membre dans cette société pour le moment.</Empty>
               )}
-            </section>
+            </Panel>
           </section>
 
-          <aside
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "20px",
-            }}
-          >
-            <div style={sideBoxStyle}>
-              <h2 style={{ marginTop: 0, marginBottom: "14px" }}>
-                Infos rapides
-              </h2>
+          <aside style={sideColumnStyle}>
+            <Panel title="ℹ️ Infos rapides">
+              <InfoLine label="Nom" value={entreprise.nom} />
+              <InfoLine label="Abréviation" value={`[${entreprise.abreviation}]`} />
+              <InfoLine
+                label="Directeur"
+                value={entreprise.owner?.username || "Utilisateur Steam"}
+              />
+              <InfoLine
+                label="Ville ETS2"
+                value={entreprise.villeETS2 || "Non renseignée"}
+              />
+              <InfoLine
+                label="Ville ATS"
+                value={entreprise.villeATS || "Non renseignée"}
+              />
+              <InfoLine label="Jeu" value={entreprise.jeu || "Non renseigné"} />
+              <InfoLine
+                label="Recrutement"
+                value={entreprise.recrutement ? "Ouvert" : "Fermé"}
+                color={entreprise.recrutement ? "#22c55e" : "#ef4444"}
+              />
+            </Panel>
 
-              <div style={infoLineStyle}>
-                <span style={labelStyle}>Nom</span>
-                <span style={valueStyle}>{entreprise.nom}</span>
-              </div>
-
-              <div style={infoLineStyle}>
-                <span style={labelStyle}>Abréviation</span>
-                <span style={valueStyle}>[{entreprise.abreviation}]</span>
-              </div>
-
-              <div style={infoLineStyle}>
-                <span style={labelStyle}>Directeur</span>
-                <span style={valueStyle}>
-                  {entreprise.owner?.username || "Utilisateur Steam"}
-                </span>
-              </div>
-
-              <div style={infoLineStyle}>
-                <span style={labelStyle}>Ville ETS2</span>
-                <span style={valueStyle}>
-                  {entreprise.villeETS2 || "Non renseignée"}
-                </span>
-              </div>
-
-              <div style={infoLineStyle}>
-                <span style={labelStyle}>Ville ATS</span>
-                <span style={valueStyle}>
-                  {entreprise.villeATS || "Non renseignée"}
-                </span>
-              </div>
-
-              <div style={infoLineStyle}>
-                <span style={labelStyle}>Jeu</span>
-                <span style={valueStyle}>
-                  {entreprise.jeu || "Non renseigné"}
-                </span>
-              </div>
-
-              <div style={infoLineStyle}>
-                <span style={labelStyle}>Recrutement</span>
-                <span
-                  style={{
-                    ...valueStyle,
-                    color: entreprise.recrutement ? "#22c55e" : "#ef4444",
-                  }}
-                >
-                  {entreprise.recrutement ? "Ouvert" : "Fermé"}
-                </span>
-              </div>
-            </div>
-
-            <div style={sideBoxStyle}>
-              <h2 style={{ marginTop: 0, marginBottom: "12px" }}>
-                Rejoindre cette société
-              </h2>
-
+            <Panel title="🚛 Rejoindre cette société">
               <p style={smallTextStyle}>
                 Regarde rapidement l’argent, les membres, le style de transport
                 et les infos générales avant d’envoyer ta candidature.
@@ -638,108 +286,499 @@ export default async function EntreprisePage({ params }: PageProps) {
                 {entreprise.recrutement ? (
                   <Link
                     href={`/entreprise/${entreprise.id}/postuler`}
-                    style={{
-                      display: "block",
-                      textAlign: "center",
-                      padding: "12px",
-                      background: "#2563eb",
-                      borderRadius: "10px",
-                      color: "white",
-                      textDecoration: "none",
-                      fontWeight: "bold",
-                    }}
+                    style={greenFullButtonStyle}
                   >
                     Postuler maintenant
                   </Link>
                 ) : (
-                  <div
-                    style={{
-                      display: "block",
-                      textAlign: "center",
-                      padding: "12px",
-                      background: "rgba(255,255,255,0.12)",
-                      borderRadius: "10px",
-                      color: "rgba(255,255,255,0.7)",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Recrutement fermé
-                  </div>
+                  <div style={closedFullButtonStyle}>Recrutement fermé</div>
                 )}
               </div>
-            </div>
+            </Panel>
           </aside>
-        </div>
+        </section>
       </div>
     </main>
   );
 }
 
-const statBoxStyle = {
-  background: "rgba(255,255,255,0.06)",
-  borderRadius: "14px",
-  padding: "16px",
-  border: "1px solid rgba(255,255,255,0.08)",
+function Tag({ children }: { children: ReactNode }) {
+  return <span style={tagStyle}>{children}</span>;
+}
+
+function Panel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section style={panelStyle}>
+      <h2 style={sectionTitleStyle}>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function Empty({ children }: { children: ReactNode }) {
+  return <div style={emptyStyle}>{children}</div>;
+}
+
+function RoleStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={roleStatStyle}>
+      <strong style={roleStatNumberStyle}>{value}</strong>
+      <span style={roleStatLabelStyle}>{label}</span>
+    </div>
+  );
+}
+
+function InfoLine({
+  label,
+  value,
+  color = "white",
+}: {
+  label: string;
+  value: string;
+  color?: string;
+}) {
+  return (
+    <div style={infoLineStyle}>
+      <span style={infoLabelStyle}>{label}</span>
+      <strong style={{ ...infoValueStyle, color }}>{value}</strong>
+    </div>
+  );
+}
+
+function BigStat({
+  title,
+  value,
+  detail,
+  color,
+  icon,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  color: string;
+  icon: string;
+}) {
+  return (
+    <div style={bigStatStyle}>
+      <div style={bigStatTopStyle}>
+        <span style={bigIconStyle}>{icon}</span>
+        <span style={bigStatTitleStyle}>{title}</span>
+      </div>
+
+      <strong style={{ ...bigStatValueStyle, color }}>{value}</strong>
+      <span style={bigStatDetailStyle}>{detail}</span>
+    </div>
+  );
+}
+
+const mainStyle: CSSProperties = {
+  minHeight: "100vh",
+  backgroundImage:
+    "linear-gradient(180deg, rgba(3,7,18,0.15), rgba(3,7,18,0.55) 520px), url('/truck.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center top",
+  backgroundAttachment: "fixed",
+  color: "white",
+  padding: "22px",
+  position: "relative",
+  fontFamily: "Arial, sans-serif",
 };
 
-const statLabelStyle = {
+const overlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "linear-gradient(135deg, rgba(3,7,18,0.25), rgba(8,13,28,0.20), rgba(3,7,18,0.35))",
+  zIndex: 0,
+};
+
+const radialOverlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "radial-gradient(circle at 52% 0%, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at 80% 18%, rgba(37,99,235,0.12), transparent 25%)",
+  zIndex: 0,
+};
+
+const pageStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  maxWidth: "1450px",
+  margin: "0 auto",
+  display: "grid",
+  gap: "22px",
+};
+
+const topButtonRowStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const profileButtonStyle: CSSProperties = {
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 950,
+  padding: "12px 18px",
+  borderRadius: "999px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
+  backdropFilter: "blur(12px)",
+};
+
+const greenButtonStyle: CSSProperties = {
+  ...profileButtonStyle,
+  background: "linear-gradient(135deg, #22c55e, #16a34a)",
+  border: "1px solid rgba(74,222,128,0.45)",
+  boxShadow: "0 0 24px rgba(34,197,94,0.28)",
+};
+
+const closedButtonStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 950,
+  padding: "12px 18px",
+  borderRadius: "999px",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(12px)",
+};
+
+const heroStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "25px",
+  padding: "32px",
+  borderRadius: "30px",
+  background: "rgba(8,13,28,0.22)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const heroLeftStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "22px",
+  flexWrap: "wrap",
+};
+
+const companyImageStyle: CSSProperties = {
+  width: "180px",
+  height: "112px",
+  borderRadius: "26px",
+  objectFit: "cover",
+  border: "1px solid rgba(147,197,253,0.26)",
+  boxShadow: "0 0 30px rgba(37,99,235,0.22)",
+  background: "rgba(255,255,255,0.08)",
+};
+
+const kickerStyle: CSSProperties = {
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  fontSize: "0.82rem",
+  fontWeight: 950,
+  color: "#60a5fa",
+  textShadow: "0 4px 14px rgba(0,0,0,0.9)",
+};
+
+const titleStyle: CSSProperties = {
+  margin: "8px 0 6px",
+  fontSize: "3rem",
+  lineHeight: 1,
+  fontWeight: 950,
+  letterSpacing: "-0.05em",
+  textShadow: "0 6px 24px rgba(0,0,0,0.95)",
+};
+
+const subtitleStyle: CSSProperties = {
+  margin: "0 0 16px",
+  color: "rgba(255,255,255,0.82)",
+  fontWeight: 700,
+};
+
+const tagRowStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+};
+
+const tagStyle: CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#dbeafe",
+  fontWeight: 900,
+  fontSize: "0.85rem",
+};
+
+const walletStyle: CSSProperties = {
+  minWidth: "270px",
+  borderRadius: "22px",
+  padding: "20px",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+};
+
+const walletLabelStyle: CSSProperties = {
+  opacity: 0.78,
   fontSize: "13px",
-  opacity: 0.75,
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  fontWeight: 900,
 };
 
-const statValueStyle = {
+const walletValueStyle: CSSProperties = {
+  fontSize: "34px",
   marginTop: "8px",
-  fontSize: "24px",
-  fontWeight: "bold",
 };
 
-const roleStatStyle = {
-  background: "rgba(255,255,255,0.06)",
-  borderRadius: "14px",
+const walletHintStyle: CSSProperties = {
+  opacity: 0.7,
+  fontSize: "13px",
+  marginTop: "6px",
+  fontWeight: 800,
+};
+
+const panelStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "26px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const statsGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+  gap: "14px",
+};
+
+const bigStatStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "18px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.22)",
+};
+
+const bigStatTopStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  marginBottom: "12px",
+};
+
+const bigIconStyle: CSSProperties = {
+  width: "38px",
+  height: "38px",
+  borderRadius: "13px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.25)",
+};
+
+const bigStatTitleStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 850,
+};
+
+const bigStatValueStyle: CSSProperties = {
+  display: "block",
+  fontSize: "25px",
+  marginBottom: "6px",
+  fontWeight: 950,
+};
+
+const bigStatDetailStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.62)",
+  fontSize: "13px",
+  fontWeight: 750,
+};
+
+const mainGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) 330px",
+  gap: "22px",
+  alignItems: "start",
+};
+
+const contentColumnStyle: CSSProperties = {
+  display: "grid",
+  gap: "22px",
+};
+
+const sideColumnStyle: CSSProperties = {
+  display: "grid",
+  gap: "22px",
+};
+
+const sectionTitleStyle: CSSProperties = {
+  margin: "0 0 18px",
+  fontSize: "1.35rem",
+  fontWeight: 950,
+};
+
+const descriptionStyle: CSSProperties = {
+  margin: 0,
+  lineHeight: 1.8,
+  color: "rgba(255,255,255,0.86)",
+  whiteSpace: "pre-wrap",
+  fontWeight: 750,
+};
+
+const rolesGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: "14px",
+};
+
+const roleStatStyle: CSSProperties = {
+  background: "rgba(255,255,255,0.075)",
+  borderRadius: "16px",
   padding: "18px 14px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  textAlign: "center" as const,
+  border: "1px solid rgba(255,255,255,0.10)",
+  textAlign: "center",
 };
 
-const roleStatNumberStyle = {
+const roleStatNumberStyle: CSSProperties = {
+  display: "block",
   fontSize: "28px",
-  fontWeight: "bold",
+  fontWeight: 950,
   marginBottom: "8px",
 };
 
-const roleStatLabelStyle = {
+const roleStatLabelStyle: CSSProperties = {
   fontSize: "13px",
-  opacity: 0.8,
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 800,
 };
 
-const sideBoxStyle = {
-  background: "rgba(0, 0, 0, 0.45)",
-  borderRadius: "18px",
-  padding: "20px",
-  backdropFilter: "blur(6px)",
-  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-  border: "1px solid rgba(255,255,255,0.08)",
+const membersGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(330px, 1fr))",
+  gap: "14px",
 };
 
-const infoLineStyle = {
+const memberCardStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "12px",
+  padding: "14px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.075)",
+  border: "1px solid rgba(255,255,255,0.10)",
+};
+
+const memberLeftStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  minWidth: 0,
+  flex: 1,
+};
+
+const avatarStyle: CSSProperties = {
+  width: "48px",
+  height: "48px",
+  borderRadius: "50%",
+  objectFit: "cover",
+  border: "1px solid rgba(255,255,255,0.15)",
+  flexShrink: 0,
+};
+
+const memberNameStyle: CSSProperties = {
+  fontWeight: 950,
+  fontSize: "15px",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const memberRoleSmallStyle: CSSProperties = {
+  fontSize: "13px",
+  color: "rgba(255,255,255,0.72)",
+  marginTop: "4px",
+  fontWeight: 750,
+};
+
+const roleBadgeStyle: CSSProperties = {
+  padding: "7px 10px",
+  borderRadius: "999px",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.25)",
+  color: "#dbeafe",
+  fontSize: "12px",
+  fontWeight: 950,
+  flexShrink: 0,
+};
+
+const infoLineStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   gap: "12px",
-  padding: "10px 0",
-  borderBottom: "1px solid rgba(255,255,255,0.06)",
+  padding: "11px 0",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
 };
 
-const labelStyle = {
-  opacity: 0.8,
+const infoLabelStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.68)",
+  fontWeight: 800,
 };
 
-const valueStyle = {
-  fontWeight: "bold",
-  textAlign: "right" as const,
+const infoValueStyle: CSSProperties = {
+  fontWeight: 950,
+  textAlign: "right",
 };
 
-const smallTextStyle = {
+const smallTextStyle: CSSProperties = {
   margin: 0,
   lineHeight: 1.6,
-  opacity: 0.9,
+  color: "rgba(255,255,255,0.82)",
+  fontWeight: 750,
+};
+
+const greenFullButtonStyle: CSSProperties = {
+  display: "block",
+  textAlign: "center",
+  padding: "13px",
+  background: "linear-gradient(135deg, #22c55e, #16a34a)",
+  border: "1px solid rgba(74,222,128,0.45)",
+  boxShadow: "0 0 24px rgba(34,197,94,0.28)",
+  borderRadius: "12px",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 950,
+};
+
+const closedFullButtonStyle: CSSProperties = {
+  display: "block",
+  textAlign: "center",
+  padding: "13px",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  borderRadius: "12px",
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 950,
+};
+
+const emptyStyle: CSSProperties = {
+  padding: "26px",
+  borderRadius: "18px",
+  textAlign: "center",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 800,
+  lineHeight: 1.6,
 };

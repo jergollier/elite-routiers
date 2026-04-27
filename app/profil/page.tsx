@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 export default async function ProfilPage() {
   const cookieStore = await cookies();
@@ -49,30 +51,35 @@ export default async function ProfilPage() {
       : "Non renseigné";
 
   return (
-    <main style={page}>
-      <div style={overlay} />
+    <main style={mainStyle}>
+      <div style={overlayStyle} />
+      <div style={radialOverlayStyle} />
 
-      <Link href="/societe" style={topButton}>
-        ← Société
-      </Link>
+      <div style={pageStyle}>
+        <div style={topButtonRowStyle}>
+          <Link href="/societe" style={profileButtonStyle}>
+            ← Société
+          </Link>
+        </div>
 
-      <div style={container}>
-        <section style={hero}>
-          <div style={heroLeft}>
-            <div style={avatarBox}>
-              {user.avatar ? (
-                <img src={user.avatar} alt="Avatar" style={avatar} />
-              ) : (
-                <span style={{ fontSize: "2.4rem" }}>🚛</span>
-              )}
-            </div>
+        <section style={heroStyle}>
+          <div style={heroLeftStyle}>
+            <img
+              src={user.avatar || "/truck.jpg"}
+              alt="Avatar chauffeur"
+              style={avatarStyle}
+            />
 
             <div>
-              <div style={smallText}>Elite Routiers • Profil chauffeur</div>
+              <div style={kickerStyle}>Elite Routiers • Profil chauffeur</div>
 
-              <h1 style={title}>{user.username || "Chauffeur"}</h1>
+              <h1 style={titleStyle}>{user.username || "Chauffeur"}</h1>
 
-              <div style={tags}>
+              <p style={subtitleStyle}>
+                Fiche chauffeur, préférences de conduite et DLC possédés.
+              </p>
+
+              <div style={tagRowStyle}>
                 <Tag>{entrepriseActuelle}</Tag>
                 <Tag>{roleActuel}</Tag>
                 <Tag>{user.jeuPrincipal || "Jeu non renseigné"}</Tag>
@@ -80,103 +87,103 @@ export default async function ProfilPage() {
             </div>
           </div>
 
-          <div style={heroRight}>
-            <StatBox label="DLC ETS2" value={dlcsETS2.length.toString()} />
-            <StatBox label="DLC ATS" value={dlcsATS.length.toString()} />
-            <StatBox label="Micro" value={user.micro ? "Oui" : "Non"} />
+          <div style={statsStyle}>
+            <Stat value={dlcsETS2.length.toString()} label="DLC ETS2" />
+            <Stat value={dlcsATS.length.toString()} label="DLC ATS" />
+            <Stat value={user.micro ? "Oui" : "Non"} label="Micro" />
           </div>
         </section>
 
-        <section style={grid2}>
-          <Card title="Identité chauffeur" icon="👤">
-            <InfoRow label="Pseudo Steam" value={user.username || "Non renseigné"} />
-            <InfoRow label="Âge" value={user.age?.toString() || "Non renseigné"} />
-            <InfoRow label="Région" value={user.region || "Non renseignée"} />
-            <InfoRow label="Steam ID" value={user.steamId} />
-          </Card>
+        <section style={panelStyle}>
+          <div style={splitStyle}>
+            <Card title="👤 Identité chauffeur">
+              <InfoRow label="Pseudo Steam" value={user.username || "Non renseigné"} />
+              <InfoRow label="Âge" value={user.age?.toString() || "Non renseigné"} />
+              <InfoRow label="Région" value={user.region || "Non renseignée"} />
+              <InfoRow label="Micro" value={user.micro ? "Oui" : "Non"} />
+            </Card>
 
-          <Card title="Entreprise actuelle" icon="🏢">
-            <InfoRow label="Entreprise" value={entrepriseActuelle} />
-            <InfoRow label="Rôle" value={roleActuel} />
-            <InfoRow label="Jeu principal" value={user.jeuPrincipal || "Non renseigné"} />
-            <InfoRow
-              label="Transport préféré"
-              value={user.typeTransportPrefere || "Non renseigné"}
-            />
-          </Card>
+            <Card title="🏢 Entreprise actuelle">
+              <InfoRow label="Entreprise" value={entrepriseActuelle} />
+              <InfoRow label="Rôle" value={roleActuel} />
+              <InfoRow label="Jeu principal" value={user.jeuPrincipal || "Non renseigné"} />
+              <InfoRow
+                label="Transport préféré"
+                value={user.typeTransportPrefere || "Non renseigné"}
+              />
+            </Card>
+          </div>
         </section>
 
-        <section style={gridMain}>
-          <Card title="Profil de conduite" icon="🛣️">
-            <InfoRow label="Style de conduite" value={styleConduiteAffichage} />
+        <section style={panelStyle}>
+          <div style={splitStyle}>
+            <Card title="🛣️ Profil de conduite">
+              <InfoRow label="Style de conduite" value={styleConduiteAffichage} />
 
-            <div style={descriptionBox}>
-              {user.descriptionChauffeur || "Aucune description renseignée."}
-            </div>
+              <div style={descriptionBoxStyle}>
+                {user.descriptionChauffeur || "Aucune description renseignée."}
+              </div>
 
-            <div style={actions}>
-              <Link href="/societe" style={btn}>
-                Retour
-              </Link>
+              <div style={actionsInlineStyle}>
+                <Link href="/societe" style={cancelButtonStyle}>
+                  ← Retour
+                </Link>
 
-              <Link href="/chauffeur" style={btnBlue}>
-                Espace chauffeur
-              </Link>
+                <Link href="/chauffeur" style={blueButtonStyle}>
+                  Espace chauffeur
+                </Link>
 
-              <Link href="/profil/modifier" style={btnGreen}>
-                Modifier le profil
-              </Link>
-            </div>
-          </Card>
+                <Link href="/profil/modifier" style={greenButtonStyle}>
+                  Modifier le profil
+                </Link>
+              </div>
+            </Card>
 
-          <Card title="DLC du joueur" icon="🧩">
-            <DlcBlock title="Euro Truck Simulator 2" items={dlcsETS2.map((d) => d.nomDlc)} />
-            <DlcBlock title="American Truck Simulator" items={dlcsATS.map((d) => d.nomDlc)} />
-          </Card>
+            <Card title="🧩 DLC du joueur">
+              <DlcBlock
+                title="🚛 Euro Truck Simulator 2"
+                items={dlcsETS2.map((d) => d.nomDlc)}
+              />
+
+              <DlcBlock
+                title="🇺🇸 American Truck Simulator"
+                items={dlcsATS.map((d) => d.nomDlc)}
+              />
+            </Card>
+          </div>
         </section>
       </div>
     </main>
   );
 }
 
-function Card({
-  title,
-  icon,
-  children,
-}: {
-  title: string;
-  icon: string;
-  children: ReactNode;
-}) {
+function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section style={card}>
-      <h2 style={cardTitle}>
-        <span>{icon}</span>
-        {title}
-      </h2>
+    <div style={cardStyle}>
+      <h3 style={cardTitleStyle}>{title}</h3>
       {children}
-    </section>
+    </div>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={infoRow}>
-      <span style={infoLabel}>{label}</span>
-      <strong style={infoValue}>{value}</strong>
+    <div style={infoRowStyle}>
+      <span style={infoLabelStyle}>{label}</span>
+      <strong style={infoValueStyle}>{value}</strong>
     </div>
   );
 }
 
 function Tag({ children }: { children: ReactNode }) {
-  return <span style={tag}>{children}</span>;
+  return <span style={tagStyle}>{children}</span>;
 }
 
-function StatBox({ label, value }: { label: string; value: string }) {
+function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div style={statBox}>
-      <strong style={statValue}>{value}</strong>
-      <span style={statLabel}>{label}</span>
+    <div style={statBoxStyle}>
+      <strong style={statValueStyle}>{value}</strong>
+      <span style={statLabelStyle}>{label}</span>
     </div>
   );
 }
@@ -184,250 +191,279 @@ function StatBox({ label, value }: { label: string; value: string }) {
 function DlcBlock({ title, items }: { title: string; items: string[] }) {
   return (
     <div style={{ marginBottom: "18px" }}>
-      <h3 style={dlcTitle}>{title}</h3>
+      <h3 style={dlcTitleStyle}>{title}</h3>
 
       {items.length > 0 ? (
-        <div style={dlcList}>
+        <div style={dlcListStyle}>
           {items.map((item) => (
-            <div key={item} style={dlcItem}>
+            <div key={item} style={dlcItemStyle}>
               ✓ {item}
             </div>
           ))}
         </div>
       ) : (
-        <div style={empty}>Aucun DLC renseigné</div>
+        <div style={emptyStyle}>Aucun DLC renseigné</div>
       )}
     </div>
   );
 }
 
-const page: React.CSSProperties = {
+const mainStyle: CSSProperties = {
   minHeight: "100vh",
-  backgroundImage: "url('/truck.jpg')",
+  backgroundImage:
+    "linear-gradient(180deg, rgba(3,7,18,0.15), rgba(3,7,18,0.55) 520px), url('/truck.jpg')",
   backgroundSize: "cover",
-  backgroundPosition: "center",
+  backgroundPosition: "center top",
   backgroundAttachment: "fixed",
   color: "white",
-  padding: "24px",
+  padding: "22px",
   position: "relative",
+  fontFamily: "Arial, sans-serif",
 };
 
-const overlay: React.CSSProperties = {
+const overlayStyle: CSSProperties = {
   position: "fixed",
   inset: 0,
+  pointerEvents: "none",
   background:
-    "linear-gradient(135deg, rgba(0,0,0,0.88), rgba(5,15,30,0.7), rgba(0,0,0,0.9))",
+    "linear-gradient(135deg, rgba(3,7,18,0.25), rgba(8,13,28,0.20), rgba(3,7,18,0.35))",
   zIndex: 0,
 };
 
-const container: React.CSSProperties = {
+const radialOverlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "radial-gradient(circle at 52% 0%, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at 80% 18%, rgba(37,99,235,0.12), transparent 25%)",
+  zIndex: 0,
+};
+
+const pageStyle: CSSProperties = {
   position: "relative",
   zIndex: 1,
   maxWidth: "1250px",
   margin: "0 auto",
   display: "grid",
   gap: "22px",
-  paddingTop: "58px",
 };
 
-const topButton: React.CSSProperties = {
-  position: "absolute",
-  top: "24px",
-  right: "24px",
-  zIndex: 5,
-  padding: "12px 18px",
-  borderRadius: "999px",
+const topButtonRowStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+};
+
+const profileButtonStyle: CSSProperties = {
   color: "white",
   textDecoration: "none",
-  fontWeight: 900,
-  background: "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(14,165,233,0.75))",
-  border: "1px solid rgba(255,255,255,0.25)",
-  boxShadow: "0 15px 35px rgba(0,0,0,0.45)",
-  backdropFilter: "blur(10px)",
-};
-
-const hero: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "24px",
-  alignItems: "center",
-  padding: "28px",
-  borderRadius: "26px",
-  background:
-    "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04))",
-  border: "1px solid rgba(255,255,255,0.16)",
-  boxShadow: "0 25px 70px rgba(0,0,0,0.5)",
+  fontWeight: 950,
+  padding: "12px 18px",
+  borderRadius: "999px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
   backdropFilter: "blur(12px)",
 };
 
-const heroLeft: React.CSSProperties = {
+const heroStyle: CSSProperties = {
   display: "flex",
-  gap: "22px",
+  justifyContent: "space-between",
   alignItems: "center",
+  gap: "25px",
+  padding: "32px",
+  borderRadius: "30px",
+  background: "rgba(8,13,28,0.22)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const heroLeftStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "22px",
   flexWrap: "wrap",
 };
 
-const heroRight: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(110px, 1fr))",
-  gap: "12px",
-};
-
-const avatarBox: React.CSSProperties = {
-  width: "110px",
-  height: "110px",
+const avatarStyle: CSSProperties = {
+  width: "112px",
+  height: "112px",
   borderRadius: "26px",
-  overflow: "hidden",
-  display: "grid",
-  placeItems: "center",
-  background: "rgba(255,255,255,0.1)",
-  border: "1px solid rgba(255,255,255,0.2)",
-  boxShadow: "0 18px 45px rgba(0,0,0,0.55)",
-};
-
-const avatar: React.CSSProperties = {
-  width: "100%",
-  height: "100%",
   objectFit: "cover",
+  border: "1px solid rgba(147,197,253,0.26)",
+  boxShadow: "0 0 30px rgba(37,99,235,0.22)",
+  background: "rgba(255,255,255,0.08)",
 };
 
-const smallText: React.CSSProperties = {
-  opacity: 0.72,
+const kickerStyle: CSSProperties = {
   textTransform: "uppercase",
   letterSpacing: "0.12em",
-  fontSize: "0.78rem",
-  fontWeight: 800,
+  fontSize: "0.82rem",
+  fontWeight: 950,
+  color: "#60a5fa",
+  textShadow: "0 4px 14px rgba(0,0,0,0.9)",
 };
 
-const title: React.CSSProperties = {
-  margin: "8px 0 12px",
-  fontSize: "clamp(2rem, 4vw, 3.6rem)",
+const titleStyle: CSSProperties = {
+  margin: "8px 0 6px",
+  fontSize: "3rem",
   lineHeight: 1,
+  fontWeight: 950,
+  letterSpacing: "-0.05em",
+  textShadow: "0 6px 24px rgba(0,0,0,0.95)",
 };
 
-const tags: React.CSSProperties = {
+const subtitleStyle: CSSProperties = {
+  margin: "0 0 16px",
+  color: "rgba(255,255,255,0.82)",
+  fontWeight: 700,
+};
+
+const tagRowStyle: CSSProperties = {
   display: "flex",
-  gap: "10px",
   flexWrap: "wrap",
+  gap: "10px",
 };
 
-const tag: React.CSSProperties = {
+const tagStyle: CSSProperties = {
   padding: "8px 12px",
   borderRadius: "999px",
-  background: "rgba(255,255,255,0.1)",
-  border: "1px solid rgba(255,255,255,0.14)",
-  fontWeight: 800,
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#dbeafe",
+  fontWeight: 900,
   fontSize: "0.85rem",
 };
 
-const statBox: React.CSSProperties = {
-  padding: "16px",
-  borderRadius: "18px",
-  background: "rgba(0,0,0,0.35)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  textAlign: "center",
-};
-
-const statValue: React.CSSProperties = {
-  display: "block",
-  fontSize: "1.6rem",
-};
-
-const statLabel: React.CSSProperties = {
-  opacity: 0.68,
-  fontSize: "0.8rem",
-};
-
-const grid2: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "22px",
-};
-
-const gridMain: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1.1fr 0.9fr",
-  gap: "22px",
-  alignItems: "start",
-};
-
-const card: React.CSSProperties = {
-  padding: "22px",
-  borderRadius: "24px",
-  background: "rgba(0,0,0,0.55)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  boxShadow: "0 18px 50px rgba(0,0,0,0.42)",
-  backdropFilter: "blur(10px)",
-};
-
-const cardTitle: React.CSSProperties = {
+const statsStyle: CSSProperties = {
   display: "flex",
-  gap: "10px",
-  alignItems: "center",
-  margin: "0 0 18px",
-  fontSize: "1.25rem",
+  gap: "14px",
+  flexWrap: "wrap",
 };
 
-const infoRow: React.CSSProperties = {
+const statBoxStyle: CSSProperties = {
+  width: "110px",
+  minHeight: "86px",
+  display: "grid",
+  placeItems: "center",
+  borderRadius: "18px",
+  background: "rgba(255,255,255,0.065)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.22)",
+};
+
+const statValueStyle: CSSProperties = {
+  fontSize: "1.75rem",
+  lineHeight: 1,
+  fontWeight: 950,
+};
+
+const statLabelStyle: CSSProperties = {
+  fontSize: "0.78rem",
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 800,
+  marginTop: "-16px",
+};
+
+const panelStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "26px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const splitStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "22px",
+};
+
+const cardStyle: CSSProperties = {
+  padding: "20px",
+  borderRadius: "20px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+};
+
+const cardTitleStyle: CSSProperties = {
+  margin: "0 0 22px",
+  fontSize: "1.28rem",
+  fontWeight: 950,
+};
+
+const infoRowStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   gap: "14px",
-  padding: "12px 0",
+  padding: "13px 0",
   borderBottom: "1px solid rgba(255,255,255,0.08)",
 };
 
-const infoLabel: React.CSSProperties = {
-  opacity: 0.62,
+const infoLabelStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.68)",
+  fontWeight: 850,
 };
 
-const infoValue: React.CSSProperties = {
+const infoValueStyle: CSSProperties = {
+  color: "white",
   textAlign: "right",
+  fontWeight: 950,
 };
 
-const descriptionBox: React.CSSProperties = {
+const descriptionBoxStyle: CSSProperties = {
   marginTop: "14px",
   minHeight: "130px",
   padding: "16px",
-  borderRadius: "18px",
+  borderRadius: "16px",
   lineHeight: 1.7,
   whiteSpace: "pre-wrap",
-  background: "rgba(255,255,255,0.07)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(255,255,255,0.075)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  color: "rgba(255,255,255,0.86)",
+  fontWeight: 750,
 };
 
-const actions: React.CSSProperties = {
+const actionsInlineStyle: CSSProperties = {
   display: "flex",
   gap: "12px",
   flexWrap: "wrap",
   marginTop: "18px",
 };
 
-const btn: React.CSSProperties = {
-  padding: "11px 16px",
-  borderRadius: "14px",
+const cancelButtonStyle: CSSProperties = {
+  padding: "13px 18px",
+  borderRadius: "12px",
   color: "white",
   textDecoration: "none",
-  fontWeight: 900,
-  background: "rgba(255,255,255,0.1)",
-  border: "1px solid rgba(255,255,255,0.14)",
+  fontWeight: 950,
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.18)",
 };
 
-const btnBlue: React.CSSProperties = {
-  ...btn,
-  background: "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(59,130,246,0.65))",
+const blueButtonStyle: CSSProperties = {
+  ...cancelButtonStyle,
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
 };
 
-const btnGreen: React.CSSProperties = {
-  ...btn,
-  background: "linear-gradient(135deg, rgba(34,197,94,0.95), rgba(22,163,74,0.65))",
+const greenButtonStyle: CSSProperties = {
+  ...cancelButtonStyle,
+  background: "linear-gradient(135deg, #22c55e, #16a34a)",
+  border: "1px solid rgba(74,222,128,0.45)",
+  boxShadow: "0 0 24px rgba(34,197,94,0.28)",
 };
 
-const dlcTitle: React.CSSProperties = {
+const dlcTitleStyle: CSSProperties = {
   margin: "0 0 10px",
   fontSize: "1rem",
+  fontWeight: 950,
+  color: "#dbeafe",
 };
 
-const dlcList: React.CSSProperties = {
+const dlcListStyle: CSSProperties = {
   display: "grid",
   gap: "8px",
   maxHeight: "230px",
@@ -435,15 +471,19 @@ const dlcList: React.CSSProperties = {
   paddingRight: "6px",
 };
 
-const dlcItem: React.CSSProperties = {
+const dlcItemStyle: CSSProperties = {
   padding: "10px 12px",
   borderRadius: "12px",
-  background: "rgba(255,255,255,0.07)",
-  border: "1px solid rgba(255,255,255,0.09)",
-  fontWeight: 700,
+  background: "rgba(255,255,255,0.075)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  fontWeight: 850,
 };
 
-const empty: React.CSSProperties = {
-  opacity: 0.65,
+const emptyStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.65)",
   padding: "10px 12px",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,0.045)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  fontWeight: 800,
 };

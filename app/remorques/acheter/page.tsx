@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 import { put } from "@vercel/blob";
 import {
@@ -247,7 +246,7 @@ export default async function AcheterRemorquePage() {
           display: "flex",
         }}
       >
-        <Menu />
+        
 
         <div style={{ flex: 1, padding: "24px", minWidth: 0 }}>
           <section

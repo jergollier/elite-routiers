@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -23,6 +23,7 @@ function km(value?: number | null) {
 
 function date(value?: Date | null) {
   if (!value) return "Non terminé";
+
   return new Intl.DateTimeFormat("fr-FR", {
     day: "2-digit",
     month: "2-digit",
@@ -36,6 +37,30 @@ function statusLabel(status: string) {
   if (status === "TERMINEE" || status === "FINISHED") return "Terminée";
   if (status === "ANNULEE" || status === "CANCELLED") return "Annulée";
   return "En cours";
+}
+
+function statusConfig(status: string) {
+  if (status === "TERMINEE" || status === "FINISHED") {
+    return {
+      color: "#22c55e",
+      bg: "rgba(34,197,94,0.14)",
+      border: "rgba(34,197,94,0.35)",
+    };
+  }
+
+  if (status === "ANNULEE" || status === "CANCELLED") {
+    return {
+      color: "#ef4444",
+      bg: "rgba(239,68,68,0.14)",
+      border: "rgba(239,68,68,0.35)",
+    };
+  }
+
+  return {
+    color: "#f59e0b",
+    bg: "rgba(245,158,11,0.14)",
+    border: "rgba(245,158,11,0.35)",
+  };
 }
 
 export default async function LivraisonDetailPage({ params }: PageProps) {
@@ -85,7 +110,8 @@ export default async function LivraisonDetailPage({ params }: PageProps) {
       ? Math.max(
           0,
           Math.round(
-            (livraison.finishedAt.getTime() - livraison.startedAt.getTime()) /
+            (livraison.finishedAt.getTime() -
+              livraison.startedAt.getTime()) /
               60000
           )
         )
@@ -96,55 +122,103 @@ export default async function LivraisonDetailPage({ params }: PageProps) {
       ? "Mission en cours"
       : `${Math.floor(dureeMinutes / 60)}h ${dureeMinutes % 60}min`;
 
+  const statut = statusConfig(livraison.status);
+
   return (
     <main style={mainStyle}>
-      <div style={overlayStyle}>
+      <div style={overlayStyle} />
+      <div style={radialOverlayStyle} />
+
+      <div style={layoutStyle}>
         <Menu />
 
         <section style={contentStyle}>
-          <div style={topStyle}>
+          <div style={topButtonRowStyle}>
+            <Link href="/livraisons" style={profileButtonStyle}>
+              ← Retour livraisons
+            </Link>
+
+            <Link href="/monentreprise" style={secondaryTopButtonStyle}>
+              Mon entreprise
+            </Link>
+          </div>
+
+          <section style={heroStyle}>
             <div>
-              <p style={eyebrowStyle}>Feuille de route</p>
+              <div style={kickerStyle}>Elite Routiers • Feuille de route</div>
+
               <h1 style={titleStyle}>
                 {livraison.sourceCity ?? "Départ inconnu"} →{" "}
                 {livraison.destinationCity ?? "Arrivée inconnue"}
               </h1>
+
               <p style={subtitleStyle}>
-                Mission #{livraison.id.slice(0, 8)} • {statusLabel(livraison.status)}
+                Mission #{livraison.id.slice(0, 8)} •{" "}
+                {statusLabel(livraison.status)}
               </p>
+
+              <div style={tagRowStyle}>
+                <Tag>{entreprise.nom}</Tag>
+                <Tag>[{entreprise.abreviation}]</Tag>
+                <Tag>{livraison.user.username ?? livraison.user.steamId}</Tag>
+              </div>
             </div>
 
-            <div style={actionsStyle}>
-              <Link href="/livraisons" style={ghostButtonStyle}>
-                Retour livraisons
-              </Link>
-              <Link href="/monentreprise" style={goldButtonStyle}>
-                Mon entreprise
-              </Link>
+            <div
+              style={{
+                ...walletStyle,
+                background: `linear-gradient(135deg, ${statut.bg}, rgba(255,255,255,0.04))`,
+                border: `1px solid ${statut.border}`,
+              }}
+            >
+              <span style={walletLabelStyle}>Statut</span>
+              <strong style={{ ...walletValueStyle, color: statut.color }}>
+                {statusLabel(livraison.status)}
+              </strong>
+              <span style={walletHintStyle}>État de la mission</span>
             </div>
-          </div>
+          </section>
 
-          <div style={heroStyle}>
-            <div>
-              <p style={heroLabelStyle}>Société</p>
-              <h2 style={heroTitleStyle}>
-                {entreprise.nom}{" "}
-                <span style={{ color: "#f59e0b" }}>[{entreprise.abreviation}]</span>
-              </h2>
-              <p style={heroTextStyle}>
-                Chauffeur :{" "}
-                <strong>{livraison.user.username ?? livraison.user.steamId}</strong>
-              </p>
+          <section style={panelStyle}>
+            <div style={statsGridStyle}>
+              <BigStat
+                title="Argent brut"
+                value={money(livraison.income)}
+                detail="Montant total gagné"
+                color="#22c55e"
+                icon="💶"
+              />
+
+              <BigStat
+                title="Part société"
+                value={money(livraison.gainSociete)}
+                detail="Gain entreprise"
+                color="#60a5fa"
+                icon="🏢"
+              />
+
+              <BigStat
+                title="Part chauffeur"
+                value={money(livraison.gainChauffeur)}
+                detail="Gain personnel"
+                color="#93c5fd"
+                icon="👤"
+              />
+
+              <BigStat
+                title="Distance réelle"
+                value={km(livraison.distanceReelleKm)}
+                detail={`Écart : ${ecartKm > 0 ? "+" : ""}${ecartKm.toLocaleString(
+                  "fr-FR"
+                )} km`}
+                color="#f59e0b"
+                icon="🛣️"
+              />
             </div>
+          </section>
 
-            <div style={statusBoxStyle}>
-              <span style={statusMiniStyle}>Statut</span>
-              <strong>{statusLabel(livraison.status)}</strong>
-            </div>
-          </div>
-
-          <div style={gridStyle}>
-            <Card title="Trajet">
+          <section style={gridStyle}>
+            <Card title="🛣️ Trajet">
               <Line label="Départ" value={livraison.sourceCity ?? "Non renseigné"} />
               <Line label="Arrivée" value={livraison.destinationCity ?? "Non renseigné"} />
               <Line label="Cargaison" value={livraison.cargo ?? "Non renseignée"} />
@@ -153,19 +227,22 @@ export default async function LivraisonDetailPage({ params }: PageProps) {
               <Line label="Km réels" value={km(livraison.distanceReelleKm)} />
               <Line
                 label="Écart"
-                value={`${ecartKm > 0 ? "+" : ""}${ecartKm.toLocaleString("fr-FR")} km`}
+                value={`${ecartKm > 0 ? "+" : ""}${ecartKm.toLocaleString(
+                  "fr-FR"
+                )} km`}
+                highlight
               />
             </Card>
 
-            <Card title="Horaires">
+            <Card title="⏱️ Horaires">
               <Line label="Début mission" value={date(livraison.startedAt)} />
               <Line label="Fin mission" value={date(livraison.finishedAt)} />
-              <Line label="Durée totale" value={dureeTexte} />
+              <Line label="Durée totale" value={dureeTexte} highlight />
               <Line label="Créée le" value={date(livraison.createdAt)} />
               <Line label="Dernière mise à jour" value={date(livraison.updatedAt)} />
             </Card>
 
-            <Card title="Véhicule">
+            <Card title="🚛 Véhicule">
               <Line label="Camion télémétrie" value={livraison.truck || "Non renseigné"} />
               <Line label="Marque" value={livraison.truckBrand ?? "Non renseignée"} />
               <Line label="Modèle" value={livraison.truckModel ?? "Non renseigné"} />
@@ -187,7 +264,7 @@ export default async function LivraisonDetailPage({ params }: PageProps) {
               />
             </Card>
 
-            <Card title="Finances">
+            <Card title="💶 Finances">
               <Line label="Argent brut gagné" value={money(livraison.income)} highlight />
               <Line label="Charges" value={money(livraison.charges)} />
               <Line label="Part société" value={money(livraison.gainSociete)} highlight />
@@ -198,7 +275,7 @@ export default async function LivraisonDetailPage({ params }: PageProps) {
               />
             </Card>
 
-            <Card title="Dégâts remorque">
+            <Card title="💥 Dégâts remorque">
               <Line
                 label="Châssis"
                 value={`${Math.round(livraison.trailerDamageChassis ?? 0)}%`}
@@ -222,7 +299,7 @@ export default async function LivraisonDetailPage({ params }: PageProps) {
               />
             </Card>
 
-            <Card title="Carburant / suivi">
+            <Card title="⛽ Carburant / suivi">
               <Line label="Pleins détectés" value={`${livraison.pleins.length}`} />
               <Line
                 label="Livraison carburant site"
@@ -235,52 +312,57 @@ export default async function LivraisonDetailPage({ params }: PageProps) {
                 value={livraison.validatedByServer ? "Oui" : "Non"}
               />
             </Card>
-          </div>
+          </section>
 
-          <div style={roadmapStyle}>
-            <h2 style={roadmapTitleStyle}>Résumé feuille de route</h2>
+          <section style={panelStyle}>
+            <div style={sectionHeaderStyle}>
+              <div>
+                <h2 style={sectionTitleStyle}>📋 Résumé feuille de route</h2>
+                <p style={sectionSubtitleStyle}>
+                  Synthèse complète de la mission enregistrée.
+                </p>
+              </div>
+            </div>
 
-            <p style={roadmapTextStyle}>
-              Le chauffeur{" "}
-              <strong>{livraison.user.username ?? livraison.user.steamId}</strong>{" "}
-              est parti de <strong>{livraison.sourceCity ?? "ville inconnue"}</strong>{" "}
-              pour rejoindre{" "}
-              <strong>{livraison.destinationCity ?? "ville inconnue"}</strong>{" "}
-              avec la cargaison{" "}
-              <strong>{livraison.cargo ?? "non renseignée"}</strong>.
-            </p>
+            <div style={roadmapTextBoxStyle}>
+              <p>
+                Le chauffeur{" "}
+                <strong>{livraison.user.username ?? livraison.user.steamId}</strong>{" "}
+                est parti de{" "}
+                <strong>{livraison.sourceCity ?? "ville inconnue"}</strong> pour
+                rejoindre{" "}
+                <strong>{livraison.destinationCity ?? "ville inconnue"}</strong>{" "}
+                avec la cargaison{" "}
+                <strong>{livraison.cargo ?? "non renseignée"}</strong>.
+              </p>
 
-            <p style={roadmapTextStyle}>
-              Distance prévue : <strong>{km(livraison.kmPrevu)}</strong>. Distance
-              réellement effectuée :{" "}
-              <strong>{km(livraison.distanceReelleKm)}</strong>. Argent brut gagné :{" "}
-              <strong>{money(livraison.income)}</strong>.
-            </p>
+              <p>
+                Distance prévue : <strong>{km(livraison.kmPrevu)}</strong>.
+                Distance réellement effectuée :{" "}
+                <strong>{km(livraison.distanceReelleKm)}</strong>. Argent brut
+                gagné : <strong>{money(livraison.income)}</strong>.
+              </p>
 
-            <p style={roadmapTextStyle}>
-              Part société : <strong>{money(livraison.gainSociete)}</strong>. Part
-              chauffeur : <strong>{money(livraison.gainChauffeur)}</strong>. Charges :{" "}
-              <strong>{money(livraison.charges)}</strong>.
-            </p>
-          </div>
+              <p>
+                Part société : <strong>{money(livraison.gainSociete)}</strong>.
+                Part chauffeur :{" "}
+                <strong>{money(livraison.gainChauffeur)}</strong>. Charges :{" "}
+                <strong>{money(livraison.charges)}</strong>.
+              </p>
+            </div>
+          </section>
         </section>
       </div>
     </main>
   );
 }
 
-function Card({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div style={cardStyle}>
+    <section style={cardStyle}>
       <h2 style={cardTitleStyle}>{title}</h2>
       <div style={cardContentStyle}>{children}</div>
-    </div>
+    </section>
   );
 }
 
@@ -296,150 +378,274 @@ function Line({
   return (
     <div style={lineStyle}>
       <span style={lineLabelStyle}>{label}</span>
-      <strong style={highlight ? lineValueGoldStyle : lineValueStyle}>{value}</strong>
+      <strong style={highlight ? lineValueHighlightStyle : lineValueStyle}>
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+function Tag({ children }: { children: ReactNode }) {
+  return <span style={tagStyle}>{children}</span>;
+}
+
+function BigStat({
+  title,
+  value,
+  detail,
+  color,
+  icon,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  color: string;
+  icon: string;
+}) {
+  return (
+    <div style={bigStatStyle}>
+      <div style={bigStatTopStyle}>
+        <span style={bigIconStyle}>{icon}</span>
+        <span style={bigStatTitleStyle}>{title}</span>
+      </div>
+
+      <strong style={{ ...bigStatValueStyle, color }}>{value}</strong>
+      <span style={bigStatDetailStyle}>{detail}</span>
     </div>
   );
 }
 
 const mainStyle: CSSProperties = {
   minHeight: "100vh",
-  backgroundImage: "url('/truck.jpg')",
+  backgroundImage:
+    "linear-gradient(180deg, rgba(3,7,18,0.15), rgba(3,7,18,0.55) 520px), url('/truck.jpg')",
   backgroundSize: "cover",
-  backgroundPosition: "center",
+  backgroundPosition: "center top",
   backgroundAttachment: "fixed",
   color: "white",
+  position: "relative",
+  fontFamily: "Arial, sans-serif",
 };
 
 const overlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "linear-gradient(135deg, rgba(3,7,18,0.25), rgba(8,13,28,0.20), rgba(3,7,18,0.35))",
+  zIndex: 0,
+};
+
+const radialOverlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "radial-gradient(circle at 52% 0%, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at 80% 18%, rgba(37,99,235,0.12), transparent 25%)",
+  zIndex: 0,
+};
+
+const layoutStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
   minHeight: "100vh",
   display: "flex",
-  background:
-    "linear-gradient(120deg, rgba(0,0,0,0.94), rgba(0,0,0,0.78), rgba(15,23,42,0.92))",
 };
 
 const contentStyle: CSSProperties = {
   width: "100%",
-  padding: "34px",
+  padding: "22px",
+  display: "grid",
+  gap: "22px",
 };
 
-const topStyle: CSSProperties = {
+const topButtonRowStyle: CSSProperties = {
   display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "20px",
-  marginBottom: "24px",
-};
-
-const eyebrowStyle: CSSProperties = {
-  margin: 0,
-  color: "#f59e0b",
-  fontSize: "13px",
-  fontWeight: 950,
-  textTransform: "uppercase",
-  letterSpacing: "0.16em",
-};
-
-const titleStyle: CSSProperties = {
-  margin: "6px 0",
-  fontSize: "34px",
-  fontWeight: 950,
-};
-
-const subtitleStyle: CSSProperties = {
-  margin: 0,
-  color: "rgba(255,255,255,0.66)",
-};
-
-const actionsStyle: CSSProperties = {
-  display: "flex",
+  justifyContent: "flex-end",
   gap: "12px",
+  flexWrap: "wrap",
 };
 
-const ghostButtonStyle: CSSProperties = {
-  textDecoration: "none",
+const profileButtonStyle: CSSProperties = {
   color: "white",
-  padding: "12px 16px",
-  borderRadius: "14px",
-  background: "rgba(255,255,255,0.08)",
-  border: "1px solid rgba(255,255,255,0.14)",
-  fontWeight: 850,
+  textDecoration: "none",
+  fontWeight: 950,
+  padding: "12px 18px",
+  borderRadius: "999px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
+  backdropFilter: "blur(12px)",
 };
 
-const goldButtonStyle: CSSProperties = {
-  textDecoration: "none",
-  color: "black",
-  padding: "12px 16px",
-  borderRadius: "14px",
-  background: "linear-gradient(135deg, #f59e0b, #fbbf24)",
-  fontWeight: 950,
+const secondaryTopButtonStyle: CSSProperties = {
+  ...profileButtonStyle,
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
 const heroStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "20px",
   alignItems: "center",
-  padding: "28px",
-  borderRadius: "26px",
-  background:
-    "linear-gradient(135deg, rgba(245,158,11,0.22), rgba(15,23,42,0.78))",
-  border: "1px solid rgba(245,158,11,0.28)",
-  boxShadow: "0 24px 80px rgba(0,0,0,0.36)",
-  marginBottom: "22px",
+  gap: "25px",
+  padding: "32px",
+  borderRadius: "30px",
+  background: "rgba(8,13,28,0.22)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
-const heroLabelStyle: CSSProperties = {
-  margin: 0,
-  color: "#fbbf24",
-  fontWeight: 950,
+const kickerStyle: CSSProperties = {
   textTransform: "uppercase",
-  letterSpacing: "0.14em",
-  fontSize: "12px",
+  letterSpacing: "0.12em",
+  fontSize: "0.82rem",
+  fontWeight: 950,
+  color: "#60a5fa",
+  textShadow: "0 4px 14px rgba(0,0,0,0.9)",
 };
 
-const heroTitleStyle: CSSProperties = {
-  margin: "6px 0",
-  fontSize: "28px",
+const titleStyle: CSSProperties = {
+  margin: "8px 0 6px",
+  fontSize: "3rem",
+  lineHeight: 1,
+  fontWeight: 950,
+  letterSpacing: "-0.05em",
+  textShadow: "0 6px 24px rgba(0,0,0,0.95)",
 };
 
-const heroTextStyle: CSSProperties = {
-  margin: 0,
-  color: "rgba(255,255,255,0.72)",
+const subtitleStyle: CSSProperties = {
+  margin: "0 0 16px",
+  color: "rgba(255,255,255,0.82)",
+  fontWeight: 700,
 };
 
-const statusBoxStyle: CSSProperties = {
-  padding: "16px 20px",
+const tagRowStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+};
+
+const tagStyle: CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#dbeafe",
+  fontWeight: 900,
+  fontSize: "0.85rem",
+};
+
+const walletStyle: CSSProperties = {
+  minWidth: "270px",
+  borderRadius: "22px",
+  padding: "20px",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  boxShadow: "0 0 24px rgba(245,158,11,0.18)",
+};
+
+const walletLabelStyle: CSSProperties = {
+  opacity: 0.78,
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  fontWeight: 900,
+};
+
+const walletValueStyle: CSSProperties = {
+  fontSize: "32px",
+  marginTop: "8px",
+};
+
+const walletHintStyle: CSSProperties = {
+  opacity: 0.7,
+  fontSize: "13px",
+  marginTop: "6px",
+  fontWeight: 800,
+};
+
+const panelStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "26px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const statsGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+  gap: "14px",
+};
+
+const bigStatStyle: CSSProperties = {
+  padding: "18px",
   borderRadius: "18px",
-  background: "rgba(0,0,0,0.32)",
-  border: "1px solid rgba(255,255,255,0.13)",
-  textAlign: "right",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.22)",
 };
 
-const statusMiniStyle: CSSProperties = {
+const bigStatTopStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  marginBottom: "12px",
+};
+
+const bigIconStyle: CSSProperties = {
+  width: "38px",
+  height: "38px",
+  borderRadius: "13px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.25)",
+};
+
+const bigStatTitleStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 850,
+};
+
+const bigStatValueStyle: CSSProperties = {
   display: "block",
-  color: "rgba(255,255,255,0.55)",
-  fontSize: "12px",
-  marginBottom: "5px",
+  fontSize: "25px",
+  marginBottom: "6px",
+  fontWeight: 950,
+};
+
+const bigStatDetailStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.62)",
+  fontSize: "13px",
+  fontWeight: 750,
 };
 
 const gridStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))",
   gap: "16px",
-  marginBottom: "22px",
 };
 
 const cardStyle: CSSProperties = {
   padding: "20px",
   borderRadius: "24px",
-  background: "rgba(0,0,0,0.5)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
   backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
 const cardTitleStyle: CSSProperties = {
   margin: "0 0 16px",
-  fontSize: "20px",
+  fontSize: "1.25rem",
+  fontWeight: 950,
 };
 
 const cardContentStyle: CSSProperties = {
@@ -452,41 +658,55 @@ const lineStyle: CSSProperties = {
   justifyContent: "space-between",
   gap: "14px",
   padding: "11px 0",
-  borderBottom: "1px solid rgba(255,255,255,0.075)",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
 };
 
 const lineLabelStyle: CSSProperties = {
-  color: "rgba(255,255,255,0.56)",
+  color: "rgba(255,255,255,0.62)",
   fontSize: "14px",
+  fontWeight: 800,
 };
 
 const lineValueStyle: CSSProperties = {
   color: "white",
   fontSize: "14px",
   textAlign: "right",
+  fontWeight: 950,
 };
 
-const lineValueGoldStyle: CSSProperties = {
+const lineValueHighlightStyle: CSSProperties = {
   color: "#fbbf24",
   fontSize: "14px",
   textAlign: "right",
+  fontWeight: 950,
 };
 
-const roadmapStyle: CSSProperties = {
-  padding: "24px",
-  borderRadius: "26px",
-  background: "rgba(15,23,42,0.74)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  backdropFilter: "blur(10px)",
+const sectionHeaderStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "14px",
+  alignItems: "flex-start",
+  marginBottom: "18px",
 };
 
-const roadmapTitleStyle: CSSProperties = {
-  margin: "0 0 14px",
-  fontSize: "24px",
+const sectionTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: "1.35rem",
+  fontWeight: 950,
 };
 
-const roadmapTextStyle: CSSProperties = {
-  margin: "10px 0",
-  color: "rgba(255,255,255,0.74)",
+const sectionSubtitleStyle: CSSProperties = {
+  margin: "6px 0 0",
+  color: "rgba(255,255,255,0.68)",
+  fontWeight: 750,
+};
+
+const roadmapTextBoxStyle: CSSProperties = {
+  padding: "16px",
+  borderRadius: "18px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "rgba(255,255,255,0.82)",
   lineHeight: 1.7,
+  fontWeight: 750,
 };

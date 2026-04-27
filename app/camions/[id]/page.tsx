@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 
 type Props = {
@@ -160,7 +159,7 @@ export default async function VoirCamionPage({ params }: Props) {
           display: "flex",
         }}
       >
-        <Menu />
+        
 
         <div
           style={{

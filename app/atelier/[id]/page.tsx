@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import Menu from "@/app/components/Menu";
 import { prisma } from "@/lib/prisma";
 
 const ROLES_AUTORISES_ATELIER = [
@@ -699,7 +698,7 @@ export default async function AtelierCamionPage({ params }: PageProps) {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#080b10" }}>
-      <Menu />
+      
 
       <div
         style={{

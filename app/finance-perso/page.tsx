@@ -4,59 +4,31 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 function euro(value: number) {
   return `${value.toLocaleString("fr-FR")} €`;
 }
 
 function getMovementConfig(type: string, montant: number) {
   if (type === "GAIN_LIVRAISON") {
-    return {
-      label: "Gain livraison",
-      icon: "📦",
-      color: "#22c55e",
-      bg: "rgba(34,197,94,0.12)",
-      border: "rgba(34,197,94,0.35)",
-    };
+    return { label: "Gain livraison", icon: "📦", color: "#22c55e", bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)" };
   }
 
   if (type === "DEPENSE_CARBURANT") {
-    return {
-      label: "Carburant",
-      icon: "⛽",
-      color: "#f59e0b",
-      bg: "rgba(245,158,11,0.12)",
-      border: "rgba(245,158,11,0.35)",
-    };
+    return { label: "Carburant", icon: "⛽", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.35)" };
   }
 
   if (type === "DEPENSE_ENTRETIEN") {
-    return {
-      label: "Entretien",
-      icon: "🔧",
-      color: "#ef4444",
-      bg: "rgba(239,68,68,0.12)",
-      border: "rgba(239,68,68,0.35)",
-    };
+    return { label: "Entretien", icon: "🔧", color: "#ef4444", bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.35)" };
   }
 
   if (type === "BONUS") {
-    return {
-      label: "Bonus",
-      icon: "🎁",
-      color: "#22c55e",
-      bg: "rgba(34,197,94,0.12)",
-      border: "rgba(34,197,94,0.35)",
-    };
+    return { label: "Bonus", icon: "🎁", color: "#22c55e", bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)" };
   }
 
   if (type === "MALUS") {
-    return {
-      label: "Malus",
-      icon: "⚠️",
-      color: "#ef4444",
-      bg: "rgba(239,68,68,0.12)",
-      border: "rgba(239,68,68,0.35)",
-    };
+    return { label: "Malus", icon: "⚠️", color: "#ef4444", bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.35)" };
   }
 
   return {
@@ -78,21 +50,15 @@ export default async function FinancePersoPage() {
     where: { steamId },
     include: {
       financesPerso: {
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
         take: 120,
       },
       livraisons: {
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
         take: 10,
       },
       memberships: {
-        include: {
-          entreprise: true,
-        },
+        include: { entreprise: true },
       },
     },
   });
@@ -101,12 +67,12 @@ export default async function FinancePersoPage() {
 
   const mouvements = user.financesPerso;
 
-const membershipActif = Array.isArray(user.memberships)
-  ? user.memberships[0] ?? null
-  : user.memberships ?? null;
+  const membershipActif = Array.isArray(user.memberships)
+    ? user.memberships[0] ?? null
+    : user.memberships ?? null;
 
-const entreprise = membershipActif?.entreprise ?? null;
-const roleEntreprise = membershipActif?.role ?? "CHAUFFEUR";
+  const entreprise = membershipActif?.entreprise ?? null;
+  const roleEntreprise = membershipActif?.role ?? "CHAUFFEUR";
 
   const totalGains = mouvements
     .filter((m) => m.montant > 0)
@@ -153,170 +119,104 @@ const roleEntreprise = membershipActif?.role ?? "CHAUFFEUR";
   return (
     <main style={mainStyle}>
       <div style={overlayStyle} />
+      <div style={radialOverlayStyle} />
 
-      <div style={topButtonsStyle}>
-        <Link href="/profil" style={topButtonStyle}>
-          👤 Profil
-        </Link>
+      <div style={pageStyle}>
+        <div style={topButtonRowStyle}>
+          <Link href="/profil" style={secondaryTopButtonStyle}>
+            👤 Profil
+          </Link>
 
-        <Link href="/societe" style={topButtonBlueStyle}>
-          🏢 Société
-        </Link>
-      </div>
+          <Link href="/societe" style={profileButtonStyle}>
+            🏢 Société
+          </Link>
+        </div>
 
-      <div style={layoutStyle}>
-        <div style={contentStyle}>
-          <section style={proHeaderStyle}>
-            <div style={headerGlowStyle} />
+        <section style={heroStyle}>
+          <div style={heroLeftStyle}>
+            <img
+              src={user.avatar || "/truck.jpg"}
+              alt={user.username || "Chauffeur"}
+              style={avatarStyle}
+            />
 
-            <div style={profileLeftStyle}>
-              <div style={avatarFrameStyle}>
-                <img
-                  src={user.avatar || "/truck.jpg"}
-                  alt={user.username || "Chauffeur"}
-                  style={avatarStyle}
-                />
-              </div>
+            <div>
+              <div style={kickerStyle}>Elite Routiers • Finance chauffeur</div>
 
-              <div style={profileTextStyle}>
-                <div style={kickerStyle}>Elite Routiers • Espace chauffeur</div>
+              <h1 style={titleStyle}>{user.username || "Chauffeur"}</h1>
 
-                <h1 style={pseudoStyle}>{user.username || "Chauffeur"}</h1>
+              <p style={subtitleStyle}>
+                Suivi de ton argent perso, livraisons, carburant et entretien.
+              </p>
 
-                <div style={identityRowStyle}>
-                  <Badge>{entreprise?.nom || "Aucune entreprise"}</Badge>
-                  <Badge>{roleEntreprise}</Badge>
-                  <Badge>{user.jeuPrincipal || "Jeu non renseigné"}</Badge>
-                </div>
+              <div style={tagRowStyle}>
+                <Tag>{entreprise?.nom || "Aucune entreprise"}</Tag>
+                <Tag>{roleEntreprise}</Tag>
+                <Tag>{user.jeuPrincipal || "Jeu non renseigné"}</Tag>
               </div>
             </div>
+          </div>
 
-            <div style={heroWalletStyle}>
-              <span style={walletLabelStyle}>Solde disponible</span>
-              <strong style={walletValueStyle}>{euro(argentPerso)}</strong>
-              <span style={walletHintStyle}>Argent perso chauffeur</span>
-            </div>
-          </section>
+          <div style={walletStyle}>
+            <span style={walletLabelStyle}>Solde disponible</span>
+            <strong style={walletValueStyle}>{euro(argentPerso)}</strong>
+            <span style={walletHintStyle}>Argent perso chauffeur</span>
+          </div>
+        </section>
 
-          <section style={quickActionsStyle}>
-            <Link href="/chauffeur" style={actionButtonStyle}>
-              ← Retour chauffeur
-            </Link>
+        <section style={actionsStyle}>
+          <Link href="/chauffeur" style={cancelButtonStyle}>
+            ← Retour chauffeur
+          </Link>
 
-            <Link href="/camions/atelier-perso" style={actionButtonBlueStyle}>
-              🏭 Atelier perso
-            </Link>
+          <Link href="/camions/atelier-perso" style={blueButtonStyle}>
+            🏭 Atelier perso
+          </Link>
 
-            <Link href="/camions/parking" style={actionButtonStyle}>
-              🚚 Parking
-            </Link>
-          </section>
+          <Link href="/camions/parking" style={cancelButtonStyle}>
+            🚚 Parking
+          </Link>
+        </section>
 
-          <section style={statsGridStyle}>
-            <BigStat
-              title="Gains totaux"
-              value={`+ ${euro(totalGains)}`}
-              detail="Livraisons, bonus et entrées"
-              color="#22c55e"
-              icon="📈"
-            />
+        <section style={panelStyle}>
+          <div style={statsGridStyle}>
+            <BigStat title="Gains totaux" value={`+ ${euro(totalGains)}`} detail="Livraisons, bonus et entrées" color="#22c55e" icon="📈" />
+            <BigStat title="Dépenses totales" value={`- ${euro(totalDepenses)}`} detail="Carburant, entretien et malus" color="#ef4444" icon="📉" />
+            <BigStat title="Balance nette" value={`${balanceNette >= 0 ? "+" : "-"} ${euro(Math.abs(balanceNette))}`} detail="Gains - dépenses" color={balanceNette >= 0 ? "#22c55e" : "#ef4444"} icon="⚖️" />
+            <BigStat title="Carburant payé" value={euro(totalCarburant)} detail="Tous les pleins payés perso" color="#f59e0b" icon="⛽" />
+            <BigStat title="Entretien" value={euro(totalEntretien)} detail="Réparations, pneus, vidange..." color="#fb7185" icon="🔧" />
+            <BigStat title="Livraisons récentes" value={livraisonsTerminees.length.toString()} detail={`${totalKm.toLocaleString("fr-FR")} km enregistrés`} color="#60a5fa" icon="🛣️" />
+          </div>
+        </section>
 
-            <BigStat
-              title="Dépenses totales"
-              value={`- ${euro(totalDepenses)}`}
-              detail="Carburant, entretien et malus"
-              color="#ef4444"
-              icon="📉"
-            />
-
-            <BigStat
-              title="Balance nette"
-              value={`${balanceNette >= 0 ? "+" : "-"} ${euro(
-                Math.abs(balanceNette)
-              )}`}
-              detail="Gains - dépenses"
-              color={balanceNette >= 0 ? "#22c55e" : "#ef4444"}
-              icon="⚖️"
-            />
-
-            <BigStat
-              title="Carburant payé"
-              value={euro(totalCarburant)}
-              detail="Tous les pleins payés perso"
-              color="#f59e0b"
-              icon="⛽"
-            />
-
-            <BigStat
-              title="Entretien"
-              value={euro(totalEntretien)}
-              detail="Réparations, pneus, vidange..."
-              color="#fb7185"
-              icon="🔧"
-            />
-
-            <BigStat
-              title="Livraisons récentes"
-              value={livraisonsTerminees.length.toString()}
-              detail={`${totalKm.toLocaleString("fr-FR")} km enregistrés`}
-              color="#60a5fa"
-              icon="🛣️"
-            />
-          </section>
-
-          <section style={dashboardGridStyle}>
-            <article style={panelStyle}>
-              <div style={panelHeaderStyle}>
-                <div>
-                  <h2 style={panelTitleStyle}>📊 Analyse chauffeur</h2>
-                  <p style={panelSubtitleStyle}>
-                    Résumé réaliste de ta rentabilité personnelle.
-                  </p>
-                </div>
-              </div>
+        <section style={panelStyle}>
+          <div style={splitStyle}>
+            <Card title="📊 Analyse chauffeur">
+              <p style={cardSubtitleStyle}>
+                Résumé réaliste de ta rentabilité personnelle.
+              </p>
 
               <div style={analysisGridStyle}>
-                <MiniStat
-                  label="Gain moyen / livraison"
-                  value={euro(moyenneGain)}
-                  color="#22c55e"
-                />
-                <MiniStat
-                  label="Carburant moyen / mission"
-                  value={euro(coutMoyenCarburant)}
-                  color="#f59e0b"
-                />
-                <MiniStat
-                  label="Dépense entretien"
-                  value={euro(totalEntretien)}
-                  color="#ef4444"
-                />
-                <MiniStat
-                  label="Mouvements enregistrés"
-                  value={mouvements.length.toString()}
-                  color="#93c5fd"
-                />
+                <MiniStat label="Gain moyen / livraison" value={euro(moyenneGain)} color="#22c55e" />
+                <MiniStat label="Carburant moyen / mission" value={euro(coutMoyenCarburant)} color="#f59e0b" />
+                <MiniStat label="Dépense entretien" value={euro(totalEntretien)} color="#ef4444" />
+                <MiniStat label="Mouvements enregistrés" value={mouvements.length.toString()} color="#93c5fd" />
               </div>
 
               <div style={realismBoxStyle}>
                 <strong>🧾 Logique actuelle</strong>
-                <p>
+                <p style={{ margin: "8px 0 0" }}>
                   Tes pleins sont payés avec ton argent perso. Si tu prends dans
                   la cuve de la société, elle vend son carburant et ton solde est
                   débité. Les entretiens personnels sont aussi suivis ici.
                 </p>
               </div>
-            </article>
+            </Card>
 
-            <article style={panelStyle}>
-              <div style={panelHeaderStyle}>
-                <div>
-                  <h2 style={panelTitleStyle}>🚚 Dernières livraisons</h2>
-                  <p style={panelSubtitleStyle}>
-                    Aperçu des dernières missions enregistrées.
-                  </p>
-                </div>
-              </div>
+            <Card title="🚚 Dernières livraisons">
+              <p style={cardSubtitleStyle}>
+                Aperçu des dernières missions enregistrées.
+              </p>
 
               {user.livraisons.length === 0 ? (
                 <Empty>Aucune livraison récente.</Empty>
@@ -358,97 +258,104 @@ const roleEntreprise = membershipActif?.role ?? "CHAUFFEUR";
                   })}
                 </div>
               )}
-            </article>
-          </section>
+            </Card>
+          </div>
+        </section>
 
-          <section style={panelStyle}>
-            <div style={panelHeaderStyle}>
-              <div>
-                <h2 style={panelTitleStyle}>🧾 Historique financier</h2>
-                <p style={panelSubtitleStyle}>
-                  Tous les mouvements liés à ton argent perso chauffeur.
-                </p>
-              </div>
-
-              <span style={countStyle}>{mouvements.length} ligne(s)</span>
+        <section style={panelStyle}>
+          <div style={sectionHeaderStyle}>
+            <div>
+              <h2 style={sectionTitleStyle}>🧾 Historique financier</h2>
+              <p style={sectionSubtitleStyle}>
+                Tous les mouvements liés à ton argent perso chauffeur.
+              </p>
             </div>
 
-            {mouvements.length === 0 ? (
-              <Empty>
-                Aucun mouvement financier pour le moment. Fais une livraison,
-                un plein ou un entretien pour voir apparaître l’historique.
-              </Empty>
-            ) : (
-              <div style={movementListStyle}>
-                {mouvements.map((mouvement) => {
-                  const config = getMovementConfig(
-                    mouvement.type,
-                    mouvement.montant
-                  );
+            <span style={countStyle}>{mouvements.length} ligne(s)</span>
+          </div>
 
-                  const isNegative = mouvement.montant < 0;
+          {mouvements.length === 0 ? (
+            <Empty>
+              Aucun mouvement financier pour le moment. Fais une livraison,
+              un plein ou un entretien pour voir apparaître l’historique.
+            </Empty>
+          ) : (
+            <div style={movementListStyle}>
+              {mouvements.map((mouvement) => {
+                const config = getMovementConfig(
+                  mouvement.type,
+                  mouvement.montant
+                );
 
-                  return (
-                    <article key={mouvement.id} style={movementItemStyle}>
-                      <div style={movementLeftStyle}>
-                        <div
-                          style={{
-                            ...movementIconStyle,
-                            background: config.bg,
-                            borderColor: config.border,
-                          }}
-                        >
-                          {config.icon}
-                        </div>
+                const isNegative = mouvement.montant < 0;
 
-                        <div>
-                          <div style={movementTitleStyle}>
-                            <span style={{ color: config.color }}>
-                              {config.label}
-                            </span>
-                          </div>
-
-                          <div style={movementDescStyle}>
-                            {mouvement.description || "Aucune description"}
-                          </div>
-
-                          <div style={movementMetaStyle}>
-                            {new Date(mouvement.createdAt).toLocaleString(
-                              "fr-FR"
-                            )}
-                            {mouvement.camionId
-                              ? ` • Camion #${mouvement.camionId}`
-                              : ""}
-                            {mouvement.pleinId ? " • Plein carburant" : ""}
-                            {mouvement.livraisonId ? " • Livraison" : ""}
-                          </div>
-                        </div>
+                return (
+                  <article key={mouvement.id} style={movementItemStyle}>
+                    <div style={movementLeftStyle}>
+                      <div
+                        style={{
+                          ...movementIconStyle,
+                          background: config.bg,
+                          borderColor: config.border,
+                        }}
+                      >
+                        {config.icon}
                       </div>
 
-                      <div style={movementAmountBoxStyle}>
-                        <strong
-                          style={{
-                            color: isNegative ? "#ef4444" : "#22c55e",
-                            fontSize: "18px",
-                          }}
-                        >
-                          {isNegative ? "-" : "+"}{" "}
-                          {euro(Math.abs(mouvement.montant))}
-                        </strong>
+                      <div>
+                        <div style={movementTitleStyle}>
+                          <span style={{ color: config.color }}>
+                            {config.label}
+                          </span>
+                        </div>
 
-                        <span style={amountHintStyle}>
-                          {isNegative ? "Sortie" : "Entrée"}
-                        </span>
+                        <div style={movementDescStyle}>
+                          {mouvement.description || "Aucune description"}
+                        </div>
+
+                        <div style={movementMetaStyle}>
+                          {new Date(mouvement.createdAt).toLocaleString("fr-FR")}
+                          {mouvement.camionId
+                            ? ` • Camion #${mouvement.camionId}`
+                            : ""}
+                          {mouvement.pleinId ? " • Plein carburant" : ""}
+                          {mouvement.livraisonId ? " • Livraison" : ""}
+                        </div>
                       </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </div>
+                    </div>
+
+                    <div style={movementAmountBoxStyle}>
+                      <strong
+                        style={{
+                          color: isNegative ? "#ef4444" : "#22c55e",
+                          fontSize: "18px",
+                        }}
+                      >
+                        {isNegative ? "-" : "+"}{" "}
+                        {euro(Math.abs(mouvement.montant))}
+                      </strong>
+
+                      <span style={amountHintStyle}>
+                        {isNegative ? "Sortie" : "Entrée"}
+                      </span>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
     </main>
+  );
+}
+
+function Card({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div style={cardStyle}>
+      <h3 style={cardTitleStyle}>{title}</h3>
+      {children}
+    </div>
   );
 }
 
@@ -495,8 +402,8 @@ function MiniStat({
   );
 }
 
-function Badge({ children }: { children: ReactNode }) {
-  return <span style={badgeStyle}>{children}</span>;
+function Tag({ children }: { children: ReactNode }) {
+  return <span style={tagStyle}>{children}</span>;
 }
 
 function Empty({ children }: { children: ReactNode }) {
@@ -506,165 +413,145 @@ function Empty({ children }: { children: ReactNode }) {
 const mainStyle: CSSProperties = {
   minHeight: "100vh",
   backgroundImage:
-    "linear-gradient(120deg, rgba(0,0,0,0.82), rgba(0,0,0,0.62)), url('/truck.jpg')",
+    "linear-gradient(180deg, rgba(3,7,18,0.15), rgba(3,7,18,0.55) 520px), url('/truck.jpg')",
   backgroundSize: "cover",
-  backgroundPosition: "center",
+  backgroundPosition: "center top",
   backgroundAttachment: "fixed",
   color: "white",
+  padding: "22px",
+  position: "relative",
+  fontFamily: "Arial, sans-serif",
 };
 
 const overlayStyle: CSSProperties = {
   position: "fixed",
   inset: 0,
-  background:
-    "radial-gradient(circle at top right, rgba(34,197,94,0.16), transparent 34%), radial-gradient(circle at bottom left, rgba(37,99,235,0.14), transparent 36%)",
   pointerEvents: "none",
+  background:
+    "linear-gradient(135deg, rgba(3,7,18,0.25), rgba(8,13,28,0.20), rgba(3,7,18,0.35))",
+  zIndex: 0,
 };
 
-const topButtonsStyle: CSSProperties = {
+const radialOverlayStyle: CSSProperties = {
   position: "fixed",
-  top: "22px",
-  right: "24px",
-  zIndex: 20,
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "radial-gradient(circle at 52% 0%, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at 80% 18%, rgba(37,99,235,0.12), transparent 25%)",
+  zIndex: 0,
+};
+
+const pageStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  maxWidth: "1250px",
+  margin: "0 auto",
+  display: "grid",
+  gap: "22px",
+};
+
+const topButtonRowStyle: CSSProperties = {
   display: "flex",
-  gap: "10px",
+  justifyContent: "flex-end",
+  gap: "12px",
   flexWrap: "wrap",
 };
 
-const topButtonStyle: CSSProperties = {
+const profileButtonStyle: CSSProperties = {
   color: "white",
   textDecoration: "none",
-  padding: "11px 15px",
-  borderRadius: "14px",
+  fontWeight: 950,
+  padding: "12px 18px",
+  borderRadius: "999px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
+  backdropFilter: "blur(12px)",
+};
+
+const secondaryTopButtonStyle: CSSProperties = {
+  ...profileButtonStyle,
   background: "rgba(255,255,255,0.08)",
-  border: "1px solid rgba(255,255,255,0.14)",
-  fontWeight: 900,
-  backdropFilter: "blur(10px)",
-  boxShadow: "0 12px 28px rgba(0,0,0,0.28)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
-const topButtonBlueStyle: CSSProperties = {
-  ...topButtonStyle,
-  background: "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(29,78,216,0.9))",
-  border: "1px solid rgba(147,197,253,0.28)",
-};
-
-const layoutStyle: CSSProperties = {
-  position: "relative",
-  zIndex: 1,
-  minHeight: "100vh",
-  display: "flex",
-};
-
-const contentStyle: CSSProperties = {
-  flex: 1,
-  padding: "78px 24px 24px",
-  minWidth: 0,
-  display: "grid",
-  gap: "18px",
-};
-
-const proHeaderStyle: CSSProperties = {
-  position: "relative",
-  overflow: "hidden",
+const heroStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "stretch",
-  gap: "20px",
-  flexWrap: "wrap",
-  padding: "28px",
-  borderRadius: "28px",
-  background:
-    "linear-gradient(120deg, rgba(255,255,255,0.13), rgba(15,23,42,0.74) 46%, rgba(0,0,0,0.62))",
-  border: "1px solid rgba(255,255,255,0.16)",
-  boxShadow:
-    "0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)",
-  backdropFilter: "blur(14px)",
+  alignItems: "center",
+  gap: "25px",
+  padding: "32px",
+  borderRadius: "30px",
+  background: "rgba(8,13,28,0.22)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
-const headerGlowStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background:
-    "radial-gradient(circle at 18% 35%, rgba(255,255,255,0.18), transparent 24%), radial-gradient(circle at 78% 20%, rgba(34,197,94,0.14), transparent 28%)",
-  pointerEvents: "none",
-};
-
-const profileLeftStyle: CSSProperties = {
-  position: "relative",
-  zIndex: 1,
+const heroLeftStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "22px",
-  minWidth: 0,
-};
-
-const avatarFrameStyle: CSSProperties = {
-  width: "112px",
-  height: "112px",
-  borderRadius: "26px",
-  padding: "4px",
-  background:
-    "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.25))",
-  boxShadow: "0 18px 40px rgba(0,0,0,0.42)",
-  flex: "0 0 auto",
+  flexWrap: "wrap",
 };
 
 const avatarStyle: CSSProperties = {
-  width: "100%",
-  height: "100%",
-  borderRadius: "22px",
+  width: "112px",
+  height: "112px",
+  borderRadius: "26px",
   objectFit: "cover",
-  display: "block",
-};
-
-const profileTextStyle: CSSProperties = {
-  minWidth: 0,
+  border: "1px solid rgba(147,197,253,0.26)",
+  boxShadow: "0 0 30px rgba(37,99,235,0.22)",
+  background: "rgba(255,255,255,0.08)",
 };
 
 const kickerStyle: CSSProperties = {
-  opacity: 0.82,
-  fontSize: "13px",
   textTransform: "uppercase",
-  letterSpacing: "0.18em",
-  fontWeight: 900,
-};
-
-const pseudoStyle: CSSProperties = {
-  margin: "8px 0 0",
-  fontSize: "58px",
-  lineHeight: 0.95,
+  letterSpacing: "0.12em",
+  fontSize: "0.82rem",
   fontWeight: 950,
-  letterSpacing: "-0.04em",
-  textShadow: "0 8px 28px rgba(0,0,0,0.48)",
+  color: "#60a5fa",
+  textShadow: "0 4px 14px rgba(0,0,0,0.9)",
 };
 
-const identityRowStyle: CSSProperties = {
+const titleStyle: CSSProperties = {
+  margin: "8px 0 6px",
+  fontSize: "3rem",
+  lineHeight: 1,
+  fontWeight: 950,
+  letterSpacing: "-0.05em",
+  textShadow: "0 6px 24px rgba(0,0,0,0.95)",
+};
+
+const subtitleStyle: CSSProperties = {
+  margin: "0 0 16px",
+  color: "rgba(255,255,255,0.82)",
+  fontWeight: 700,
+};
+
+const tagRowStyle: CSSProperties = {
   display: "flex",
-  gap: "10px",
   flexWrap: "wrap",
-  marginTop: "18px",
+  gap: "10px",
 };
 
-const badgeStyle: CSSProperties = {
-  padding: "9px 14px",
+const tagStyle: CSSProperties = {
+  padding: "8px 12px",
   borderRadius: "999px",
-  background: "rgba(255,255,255,0.1)",
-  border: "1px solid rgba(255,255,255,0.16)",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#dbeafe",
   fontWeight: 900,
-  fontSize: "13px",
-  textTransform: "uppercase",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+  fontSize: "0.85rem",
 };
 
-const heroWalletStyle: CSSProperties = {
-  position: "relative",
-  zIndex: 1,
+const walletStyle: CSSProperties = {
   minWidth: "270px",
   borderRadius: "22px",
   padding: "20px",
   background:
-    "linear-gradient(135deg, rgba(22,163,74,0.25), rgba(34,197,94,0.08))",
+    "linear-gradient(135deg, rgba(34,197,94,0.20), rgba(34,197,94,0.07))",
   border: "1px solid rgba(34,197,94,0.28)",
   display: "flex",
   flexDirection: "column",
@@ -677,6 +564,7 @@ const walletLabelStyle: CSSProperties = {
   fontSize: "13px",
   textTransform: "uppercase",
   letterSpacing: "0.12em",
+  fontWeight: 900,
 };
 
 const walletValueStyle: CSSProperties = {
@@ -689,27 +577,72 @@ const walletHintStyle: CSSProperties = {
   opacity: 0.7,
   fontSize: "13px",
   marginTop: "6px",
-};
-
-const quickActionsStyle: CSSProperties = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-};
-
-const actionButtonStyle: CSSProperties = {
-  color: "white",
-  textDecoration: "none",
-  padding: "12px 16px",
-  borderRadius: "14px",
-  background: "rgba(255,255,255,0.08)",
-  border: "1px solid rgba(255,255,255,0.1)",
   fontWeight: 800,
 };
 
-const actionButtonBlueStyle: CSSProperties = {
-  ...actionButtonStyle,
+const actionsStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "14px",
+  padding: "18px",
+  borderRadius: "20px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+  flexWrap: "wrap",
+};
+
+const cancelButtonStyle: CSSProperties = {
+  textAlign: "center",
+  padding: "13px 22px",
+  borderRadius: "12px",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 950,
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.18)",
+};
+
+const blueButtonStyle: CSSProperties = {
+  ...cancelButtonStyle,
   background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
+};
+
+const panelStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "26px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const splitStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "22px",
+};
+
+const cardStyle: CSSProperties = {
+  padding: "20px",
+  borderRadius: "20px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+};
+
+const cardTitleStyle: CSSProperties = {
+  margin: "0 0 10px",
+  fontSize: "1.28rem",
+  fontWeight: 950,
+};
+
+const cardSubtitleStyle: CSSProperties = {
+  margin: "0 0 18px",
+  color: "rgba(255,255,255,0.68)",
+  fontWeight: 750,
 };
 
 const statsGridStyle: CSSProperties = {
@@ -720,10 +653,10 @@ const statsGridStyle: CSSProperties = {
 
 const bigStatStyle: CSSProperties = {
   padding: "18px",
-  borderRadius: "20px",
-  background: "rgba(0,0,0,0.5)",
-  border: "1px solid rgba(255,255,255,0.09)",
-  boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
+  borderRadius: "18px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.22)",
 };
 
 const bigStatTopStyle: CSSProperties = {
@@ -734,63 +667,32 @@ const bigStatTopStyle: CSSProperties = {
 };
 
 const bigIconStyle: CSSProperties = {
-  width: "34px",
-  height: "34px",
-  borderRadius: "12px",
+  width: "38px",
+  height: "38px",
+  borderRadius: "13px",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "rgba(255,255,255,0.08)",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.25)",
 };
 
 const bigStatTitleStyle: CSSProperties = {
-  opacity: 0.75,
-  fontWeight: 800,
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 850,
 };
 
 const bigStatValueStyle: CSSProperties = {
   display: "block",
   fontSize: "25px",
   marginBottom: "6px",
+  fontWeight: 950,
 };
 
 const bigStatDetailStyle: CSSProperties = {
-  opacity: 0.62,
+  color: "rgba(255,255,255,0.62)",
   fontSize: "13px",
-};
-
-const dashboardGridStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1.1fr 0.9fr",
-  gap: "18px",
-};
-
-const panelStyle: CSSProperties = {
-  background: "rgba(0,0,0,0.52)",
-  borderRadius: "22px",
-  padding: "20px",
-  backdropFilter: "blur(8px)",
-  border: "1px solid rgba(255,255,255,0.09)",
-  boxShadow: "0 18px 50px rgba(0,0,0,0.34)",
-};
-
-const panelHeaderStyle: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "12px",
-  alignItems: "flex-start",
-  marginBottom: "16px",
-};
-
-const panelTitleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "22px",
-};
-
-const panelSubtitleStyle: CSSProperties = {
-  margin: "6px 0 0",
-  opacity: 0.68,
-  fontSize: "14px",
+  fontWeight: 750,
 };
 
 const analysisGridStyle: CSSProperties = {
@@ -802,15 +704,16 @@ const analysisGridStyle: CSSProperties = {
 const miniStatStyle: CSSProperties = {
   padding: "14px",
   borderRadius: "16px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.075)",
+  border: "1px solid rgba(255,255,255,0.10)",
 };
 
 const miniLabelStyle: CSSProperties = {
   display: "block",
-  opacity: 0.66,
+  color: "rgba(255,255,255,0.66)",
   fontSize: "13px",
   marginBottom: "8px",
+  fontWeight: 800,
 };
 
 const realismBoxStyle: CSSProperties = {
@@ -820,7 +723,8 @@ const realismBoxStyle: CSSProperties = {
   background: "rgba(34,197,94,0.08)",
   border: "1px solid rgba(34,197,94,0.22)",
   lineHeight: 1.55,
-  opacity: 0.92,
+  color: "rgba(255,255,255,0.88)",
+  fontWeight: 750,
 };
 
 const deliveryListStyle: CSSProperties = {
@@ -834,23 +738,45 @@ const deliveryItemStyle: CSSProperties = {
   gap: "12px",
   padding: "12px",
   borderRadius: "14px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.075)",
+  border: "1px solid rgba(255,255,255,0.10)",
 };
 
 const mutedSmallStyle: CSSProperties = {
-  opacity: 0.62,
+  color: "rgba(255,255,255,0.62)",
   fontSize: "13px",
   marginTop: "4px",
+  fontWeight: 750,
+};
+
+const sectionHeaderStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "14px",
+  alignItems: "flex-start",
+  marginBottom: "18px",
+};
+
+const sectionTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: "1.35rem",
+  fontWeight: 950,
+};
+
+const sectionSubtitleStyle: CSSProperties = {
+  margin: "6px 0 0",
+  color: "rgba(255,255,255,0.68)",
+  fontWeight: 750,
 };
 
 const countStyle: CSSProperties = {
-  opacity: 0.68,
+  color: "rgba(255,255,255,0.72)",
   fontSize: "13px",
   background: "rgba(255,255,255,0.08)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid rgba(255,255,255,0.12)",
   borderRadius: "999px",
-  padding: "7px 10px",
+  padding: "8px 12px",
+  fontWeight: 900,
 };
 
 const movementListStyle: CSSProperties = {
@@ -866,7 +792,7 @@ const movementItemStyle: CSSProperties = {
   padding: "14px",
   borderRadius: "18px",
   background: "rgba(255,255,255,0.055)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.12)",
 };
 
 const movementLeftStyle: CSSProperties = {
@@ -888,19 +814,21 @@ const movementIconStyle: CSSProperties = {
 };
 
 const movementTitleStyle: CSSProperties = {
-  fontWeight: 900,
+  fontWeight: 950,
   marginBottom: "4px",
 };
 
 const movementDescStyle: CSSProperties = {
-  opacity: 0.8,
+  color: "rgba(255,255,255,0.80)",
   fontSize: "14px",
+  fontWeight: 750,
 };
 
 const movementMetaStyle: CSSProperties = {
-  opacity: 0.52,
+  color: "rgba(255,255,255,0.52)",
   fontSize: "12px",
   marginTop: "5px",
+  fontWeight: 700,
 };
 
 const movementAmountBoxStyle: CSSProperties = {
@@ -910,16 +838,18 @@ const movementAmountBoxStyle: CSSProperties = {
 
 const amountHintStyle: CSSProperties = {
   display: "block",
-  opacity: 0.55,
+  color: "rgba(255,255,255,0.55)",
   fontSize: "12px",
   marginTop: "4px",
+  fontWeight: 800,
 };
 
 const emptyStyle: CSSProperties = {
   padding: "26px",
   borderRadius: "18px",
   textAlign: "center",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  opacity: 0.78,
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 800,
 };

@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -82,9 +82,7 @@ export default async function MonEntreprisePage() {
   const cookieStore = await cookies();
   const steamId = cookieStore.get("steamId")?.value;
 
-  if (!steamId) {
-    redirect("/");
-  }
+  if (!steamId) redirect("/");
 
   const user = await prisma.user.findUnique({
     where: { steamId },
@@ -95,20 +93,12 @@ export default async function MonEntreprisePage() {
             include: {
               owner: true,
               membres: {
-                include: {
-                  user: true,
-                },
-                orderBy: {
-                  createdAt: "asc",
-                },
+                include: { user: true },
+                orderBy: { createdAt: "asc" },
               },
               livraisons: {
-                include: {
-                  user: true,
-                },
-                orderBy: {
-                  createdAt: "desc",
-                },
+                include: { user: true },
+                orderBy: { createdAt: "desc" },
                 take: 12,
               },
             },
@@ -145,87 +135,145 @@ export default async function MonEntreprisePage() {
 
   return (
     <main style={mainStyle}>
-      <div style={backgroundOverlayStyle} />
+      <div style={overlayStyle} />
+      <div style={radialOverlayStyle} />
 
       <div style={pageStyle}>
+        <div style={topButtonRowStyle}>
+          <Link href="/societe" style={profileButtonStyle}>
+            🏠 Accueil
+          </Link>
+
+          <Link href="/profil" style={secondaryTopButtonStyle}>
+            👤 Profil
+          </Link>
+        </div>
+
         <section style={heroStyle}>
-          <img
-            src={entreprise.banniere || "/truck.jpg"}
-            alt="Photo de la société"
-            style={heroImageStyle}
-          />
+          <div style={heroLeftStyle}>
+            <img
+              src={entreprise.banniere || "/truck.jpg"}
+              alt="Photo de la société"
+              style={companyImageStyle}
+            />
 
-          <div style={heroGradientStyle} />
+            <div>
+              <div style={kickerStyle}>Elite Routiers • Société active</div>
 
-          <div style={heroContentStyle}>
-            <div style={heroTopLineStyle}>
-              <div>
-                <div style={badgeStyle}>Société active</div>
+              <h1 style={titleStyle}>{entreprise.nom}</h1>
 
-                <h1 style={heroTitleStyle}>{entreprise.nom}</h1>
+              <p style={subtitleStyle}>
+                [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)} •{" "}
+                {formatTypeTransport(entreprise.typeTransport)}
+              </p>
 
-                <p style={heroSubtitleStyle}>
-                  [{entreprise.abreviation}] • {formatJeu(entreprise.jeu)} •{" "}
-                  {formatTypeTransport(entreprise.typeTransport)}
-                </p>
-              </div>
-
-              <div style={heroRightActionsStyle}>
-                <Link href="/societe" style={homeButtonStyle}>
-                  🏠 Accueil
-                </Link>
-
-                <Link href="/profil" style={userBoxStyle}>
-                  <div style={userAvatarStyle}>
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt="Avatar utilisateur"
-                        style={avatarImageStyle}
-                      />
-                    ) : (
-                      <span>?</span>
-                    )}
-                  </div>
-
-                  <div style={userInfoStyle}>
-                    <span style={userLabelStyle}>Connecté</span>
-                    <strong style={userNameStyle}>
-                      {user.username || "Utilisateur Steam"}
-                    </strong>
-                  </div>
-                </Link>
-              </div>
-            </div>
-
-            <div style={heroStatsStyle}>
-              <div style={heroStatCardStyle}>
-                <span style={statLabelStyle}>Capital société</span>
-                <strong style={statValueStyle}>
-                  {(entreprise.argent ?? 0).toLocaleString("fr-FR")} €
-                </strong>
-              </div>
-
-              <div style={heroStatCardStyle}>
-                <span style={statLabelStyle}>Chauffeurs</span>
-                <strong style={statValueStyle}>{entreprise.membres.length}</strong>
-              </div>
-
-              <div style={heroStatCardStyle}>
-                <span style={statLabelStyle}>Livraisons récentes</span>
-                <strong style={statValueStyle}>
-                  {entreprise.livraisons.length}
-                </strong>
+              <div style={tagRowStyle}>
+                <Tag>{formatRole(membership.role)}</Tag>
+                <Tag>{entreprise.membres.length} chauffeur(s)</Tag>
+                <Tag>{entreprise.livraisons.length} livraison(s)</Tag>
               </div>
             </div>
           </div>
+
+          <div style={walletStyle}>
+            <span style={walletLabelStyle}>Capital société</span>
+            <strong style={walletValueStyle}>
+              {(entreprise.argent ?? 0).toLocaleString("fr-FR")} €
+            </strong>
+            <span style={walletHintStyle}>Argent disponible</span>
+          </div>
         </section>
 
-        <div style={layoutStyle}>
-          <aside style={boxStyle}>
-            <h2 style={boxTitleStyle}>Infos société</h2>
+        <section style={actionsStyle}>
+          <Link href="/camions" style={cancelButtonStyle}>
+            🚛 Camions
+          </Link>
 
-            <div style={infoListStyle}>
+          <Link href="/remorques" style={cancelButtonStyle}>
+            🚚 Remorques
+          </Link>
+
+          <Link href="/atelier" style={cancelButtonStyle}>
+            🔧 Atelier
+          </Link>
+
+          <Link href="/livraisons" style={cancelButtonStyle}>
+            📋 Livraisons
+          </Link>
+
+          <Link href="/finance" style={blueButtonStyle}>
+            💶 Finance
+          </Link>
+
+          <Link href="/mon-entreprise/classement" style={cancelButtonStyle}>
+            🏆 Classement
+          </Link>
+
+          {peutVoirBureau && (
+            <Link
+              href={`/entreprise/${entreprise.id}/gestion`}
+              style={greenButtonStyle}
+            >
+              🏢 Ouvrir le bureau
+            </Link>
+          )}
+        </section>
+
+        <section style={panelStyle}>
+          <div style={statsGridStyle}>
+            <BigStat
+              title="Capital société"
+              value={`${(entreprise.argent ?? 0).toLocaleString("fr-FR")} €`}
+              detail="Solde actuel"
+              color="#22c55e"
+              icon="💶"
+            />
+
+            <BigStat
+              title="Chauffeurs"
+              value={entreprise.membres.length.toString()}
+              detail="Membres dans la société"
+              color="#60a5fa"
+              icon="👥"
+            />
+
+            <BigStat
+              title="Livraisons récentes"
+              value={entreprise.livraisons.length.toString()}
+              detail="Dernières lignes affichées"
+              color="#f59e0b"
+              icon="📦"
+            />
+
+            <BigStat
+              title="Terminées"
+              value={livraisonsTerminees.toString()}
+              detail="Sur les livraisons récentes"
+              color="#86efac"
+              icon="✅"
+            />
+
+            <BigStat
+              title="Gains affichés"
+              value={`${totalGainsLivraisons.toLocaleString("fr-FR")} €`}
+              detail="Sur les 12 dernières lignes"
+              color="#22c55e"
+              icon="📈"
+            />
+
+            <BigStat
+              title="Votre rôle"
+              value={formatRole(membership.role)}
+              detail="Accès dans la société"
+              color="#93c5fd"
+              icon="🪪"
+            />
+          </div>
+        </section>
+
+        <section style={mainGridStyle}>
+          <aside style={panelStyle}>
+            <Card title="🏢 Infos société">
               <InfoCard label="Nom" value={entreprise.nom} />
               <InfoCard label="Abréviation" value={entreprise.abreviation} />
               <InfoCard label="Jeu principal" value={formatJeu(entreprise.jeu)} />
@@ -242,70 +290,21 @@ export default async function MonEntreprisePage() {
                 label="Membres"
                 value={entreprise.membres.length.toString()}
               />
-            </div>
-
-            {peutVoirBureau && (
-              <Link
-                href={`/entreprise/${entreprise.id}/gestion`}
-                style={buttonBlueStyle}
-              >
-                🏢 Ouvrir le bureau
-              </Link>
-            )}
+            </Card>
           </aside>
 
-          <section style={boxStyle}>
+          <section style={panelStyle}>
             <div style={sectionHeaderStyle}>
               <div>
-                <h2 style={boxTitleStyle}>Livraisons des chauffeurs</h2>
-                <p style={sectionTextStyle}>Activité récente de la société.</p>
+                <h2 style={sectionTitleStyle}>🚚 Livraisons des chauffeurs</h2>
+                <p style={sectionSubtitleStyle}>
+                  Activité récente de la société.
+                </p>
               </div>
 
-              <div style={quickActionsStyle}>
-                <Link href="/camions" style={buttonStyle}>
-                  🚛 Camions
-                </Link>
-
-                <Link href="/remorques" style={buttonStyle}>
-                  🚚 Remorques
-                </Link>
-
-                <Link href="/atelier" style={buttonStyle}>
-                  🔧 Atelier
-                </Link>
-
-                <Link href="/livraisons" style={buttonStyle}>
-                  📋 Livraisons
-                </Link>
-
-                <Link href="/finance" style={buttonStyle}>
-                  💶 Finance
-                </Link>
-
-                <Link href="/mon-entreprise/classement" style={buttonStyle}>
-                  🏆 Classement société
-                </Link>
-              </div>
-            </div>
-
-            <div style={statsGridStyle}>
-              <MiniStat
-                label="Terminées"
-                value={livraisonsTerminees.toString()}
-                detail="sur les dernières livraisons"
-              />
-
-              <MiniStat
-                label="Gains affichés"
-                value={`${totalGainsLivraisons.toLocaleString("fr-FR")} €`}
-                detail="sur les 12 dernières lignes"
-              />
-
-              <MiniStat
-                label="Effectif"
-                value={entreprise.membres.length.toString()}
-                detail="chauffeurs dans la société"
-              />
+              <span style={countStyle}>
+                {entreprise.livraisons.length} ligne(s)
+              </span>
             </div>
 
             {entreprise.livraisons.length > 0 ? (
@@ -386,48 +385,61 @@ export default async function MonEntreprisePage() {
                 ))}
               </div>
             ) : (
-              <div style={emptyCardStyle}>
-                Aucune livraison affichée pour le moment.
-              </div>
+              <Empty>Aucune livraison affichée pour le moment.</Empty>
             )}
           </section>
 
-          <aside style={boxStyle}>
-            <h2 style={boxTitleStyle}>Chauffeurs</h2>
-
-            <div style={driversListStyle}>
-              {entreprise.membres.length > 0 ? (
-                entreprise.membres.map((membre) => (
-                  <div key={membre.id} style={driverCardStyle}>
-                    <div style={avatarStyle}>
-                      {membre.user?.avatar ? (
-                        <img
-                          src={membre.user.avatar}
-                          alt="Avatar"
-                          style={avatarImageStyle}
-                        />
-                      ) : (
-                        <span>?</span>
-                      )}
-                    </div>
-
-                    <div style={{ minWidth: 0 }}>
-                      <div style={driverNameEllipsisStyle}>
-                        {membre.user?.username || "Utilisateur Steam"}
+          <aside style={panelStyle}>
+            <Card title="👥 Chauffeurs">
+              <div style={driversListStyle}>
+                {entreprise.membres.length > 0 ? (
+                  entreprise.membres.map((membre) => (
+                    <div key={membre.id} style={driverCardStyle}>
+                      <div style={avatarStyle}>
+                        {membre.user?.avatar ? (
+                          <img
+                            src={membre.user.avatar}
+                            alt="Avatar"
+                            style={avatarImageStyle}
+                          />
+                        ) : (
+                          <span>?</span>
+                        )}
                       </div>
-                      <div style={driverRoleStyle}>{formatRole(membre.role)}</div>
+
+                      <div style={{ minWidth: 0 }}>
+                        <div style={driverNameEllipsisStyle}>
+                          {membre.user?.username || "Utilisateur Steam"}
+                        </div>
+                        <div style={driverRoleStyle}>
+                          {formatRole(membre.role)}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div style={emptyCardStyle}>Aucun chauffeur dans la société.</div>
-              )}
-            </div>
+                  ))
+                ) : (
+                  <Empty>Aucun chauffeur dans la société.</Empty>
+                )}
+              </div>
+            </Card>
           </aside>
-        </div>
+        </section>
       </div>
     </main>
   );
+}
+
+function Card({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div style={cardStyle}>
+      <h3 style={cardTitleStyle}>{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function Tag({ children }: { children: ReactNode }) {
+  return <span style={tagStyle}>{children}</span>;
 }
 
 function InfoCard({ label, value }: { label: string; value: string }) {
@@ -439,342 +451,384 @@ function InfoCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MiniStat({
-  label,
+function Empty({ children }: { children: ReactNode }) {
+  return <div style={emptyCardStyle}>{children}</div>;
+}
+
+function BigStat({
+  title,
   value,
   detail,
+  color,
+  icon,
 }: {
-  label: string;
+  title: string;
   value: string;
   detail: string;
+  color: string;
+  icon: string;
 }) {
   return (
-    <div style={miniStatStyle}>
-      <span style={labelStyle}>{label}</span>
-      <strong style={miniStatValueStyle}>{value}</strong>
-      <small style={miniStatDetailStyle}>{detail}</small>
+    <div style={bigStatStyle}>
+      <div style={bigStatTopStyle}>
+        <span style={bigIconStyle}>{icon}</span>
+        <span style={bigStatTitleStyle}>{title}</span>
+      </div>
+
+      <strong style={{ ...bigStatValueStyle, color }}>{value}</strong>
+      <span style={bigStatDetailStyle}>{detail}</span>
     </div>
   );
 }
 
 const mainStyle: CSSProperties = {
   minHeight: "100vh",
-  backgroundImage: "url('/truck.jpg')",
+  backgroundImage:
+    "linear-gradient(180deg, rgba(3,7,18,0.15), rgba(3,7,18,0.55) 520px), url('/truck.jpg')",
   backgroundSize: "cover",
-  backgroundPosition: "center",
-  backgroundRepeat: "no-repeat",
-  position: "relative",
+  backgroundPosition: "center top",
+  backgroundAttachment: "fixed",
   color: "white",
+  padding: "22px",
+  position: "relative",
+  fontFamily: "Arial, sans-serif",
 };
 
-const backgroundOverlayStyle: CSSProperties = {
-  position: "absolute",
+const overlayStyle: CSSProperties = {
+  position: "fixed",
   inset: 0,
+  pointerEvents: "none",
   background:
-    "radial-gradient(circle at top, rgba(37,99,235,0.18), transparent 34%), rgba(0,0,0,0.68)",
+    "linear-gradient(135deg, rgba(3,7,18,0.25), rgba(8,13,28,0.20), rgba(3,7,18,0.35))",
+  zIndex: 0,
+};
+
+const radialOverlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  pointerEvents: "none",
+  background:
+    "radial-gradient(circle at 52% 0%, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at 80% 18%, rgba(37,99,235,0.12), transparent 25%)",
+  zIndex: 0,
 };
 
 const pageStyle: CSSProperties = {
   position: "relative",
   zIndex: 1,
-  minHeight: "100vh",
-  padding: "20px",
+  maxWidth: "1450px",
+  margin: "0 auto",
+  display: "grid",
+  gap: "22px",
+};
+
+const topButtonRowStyle: CSSProperties = {
   display: "flex",
-  flexDirection: "column",
-  gap: "20px",
+  justifyContent: "flex-end",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const profileButtonStyle: CSSProperties = {
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 950,
+  padding: "12px 18px",
+  borderRadius: "999px",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
+  backdropFilter: "blur(12px)",
+};
+
+const secondaryTopButtonStyle: CSSProperties = {
+  ...profileButtonStyle,
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
 const heroStyle: CSSProperties = {
-  position: "relative",
-  minHeight: "280px",
-  borderRadius: "22px",
-  overflow: "hidden",
-  background: "rgba(0,0,0,0.55)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  boxShadow: "0 22px 70px rgba(0,0,0,0.45)",
-};
-
-const heroImageStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-};
-
-const heroGradientStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background:
-    "linear-gradient(90deg, rgba(0,0,0,0.88), rgba(0,0,0,0.46), rgba(0,0,0,0.18)), linear-gradient(to top, rgba(0,0,0,0.90), transparent)",
-};
-
-const heroContentStyle: CSSProperties = {
-  position: "relative",
-  zIndex: 2,
-  minHeight: "280px",
-  padding: "26px",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-  gap: "20px",
-};
-
-const heroTopLineStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "16px",
-  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "25px",
+  padding: "32px",
+  borderRadius: "30px",
+  background: "rgba(8,13,28,0.22)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
 };
 
-const heroRightActionsStyle: CSSProperties = {
+const heroLeftStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "12px",
+  gap: "22px",
   flexWrap: "wrap",
 };
 
-const badgeStyle: CSSProperties = {
-  display: "inline-flex",
-  width: "fit-content",
-  padding: "7px 12px",
-  borderRadius: "999px",
-  background: "rgba(34,197,94,0.14)",
-  border: "1px solid rgba(34,197,94,0.38)",
-  color: "#86efac",
-  fontSize: "12px",
-  fontWeight: "bold",
+const companyImageStyle: CSSProperties = {
+  width: "180px",
+  height: "112px",
+  borderRadius: "26px",
+  objectFit: "cover",
+  border: "1px solid rgba(147,197,253,0.26)",
+  boxShadow: "0 0 30px rgba(37,99,235,0.22)",
+  background: "rgba(255,255,255,0.08)",
 };
 
-const heroTitleStyle: CSSProperties = {
-  margin: "14px 0 6px",
-  fontSize: "38px",
+const kickerStyle: CSSProperties = {
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  fontSize: "0.82rem",
+  fontWeight: 950,
+  color: "#60a5fa",
+  textShadow: "0 4px 14px rgba(0,0,0,0.9)",
+};
+
+const titleStyle: CSSProperties = {
+  margin: "8px 0 6px",
+  fontSize: "3rem",
   lineHeight: 1,
+  fontWeight: 950,
+  letterSpacing: "-0.05em",
+  textShadow: "0 6px 24px rgba(0,0,0,0.95)",
+};
+
+const subtitleStyle: CSSProperties = {
+  margin: "0 0 16px",
+  color: "rgba(255,255,255,0.82)",
+  fontWeight: 700,
+};
+
+const tagRowStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+};
+
+const tagStyle: CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: "999px",
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#dbeafe",
+  fontWeight: 900,
+  fontSize: "0.85rem",
+};
+
+const walletStyle: CSSProperties = {
+  minWidth: "270px",
+  borderRadius: "22px",
+  padding: "20px",
+  background:
+    "linear-gradient(135deg, rgba(34,197,94,0.20), rgba(34,197,94,0.07))",
+  border: "1px solid rgba(34,197,94,0.28)",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  boxShadow: "0 0 24px rgba(34,197,94,0.18)",
+};
+
+const walletLabelStyle: CSSProperties = {
+  opacity: 0.78,
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
   fontWeight: 900,
 };
 
-const heroSubtitleStyle: CSSProperties = {
-  margin: 0,
-  opacity: 0.9,
-  fontSize: "15px",
+const walletValueStyle: CSSProperties = {
+  fontSize: "34px",
+  color: "#22c55e",
+  marginTop: "8px",
 };
 
-const homeButtonStyle: CSSProperties = {
-  padding: "12px 16px",
+const walletHintStyle: CSSProperties = {
+  opacity: 0.7,
+  fontSize: "13px",
+  marginTop: "6px",
+  fontWeight: 800,
+};
+
+const actionsStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "14px",
+  padding: "18px",
+  borderRadius: "20px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+  flexWrap: "wrap",
+};
+
+const cancelButtonStyle: CSSProperties = {
+  textAlign: "center",
+  padding: "13px 18px",
   borderRadius: "12px",
-  background: "rgba(255,255,255,0.10)",
   color: "white",
-  fontWeight: "bold",
   textDecoration: "none",
-  border: "1px solid rgba(255,255,255,0.14)",
-  backdropFilter: "blur(8px)",
-  boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
+  fontWeight: 950,
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.18)",
 };
 
-const userBoxStyle: CSSProperties = {
+const blueButtonStyle: CSSProperties = {
+  ...cancelButtonStyle,
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  border: "1px solid rgba(147,197,253,0.45)",
+  boxShadow: "0 0 24px rgba(37,99,235,0.34)",
+};
+
+const greenButtonStyle: CSSProperties = {
+  ...cancelButtonStyle,
+  background: "linear-gradient(135deg, #22c55e, #16a34a)",
+  border: "1px solid rgba(74,222,128,0.45)",
+  boxShadow: "0 0 24px rgba(34,197,94,0.28)",
+};
+
+const panelStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "26px",
+  background: "rgba(8,13,28,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.25)",
+};
+
+const statsGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+  gap: "14px",
+};
+
+const bigStatStyle: CSSProperties = {
+  padding: "18px",
+  borderRadius: "18px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "0 18px 45px rgba(0,0,0,0.22)",
+};
+
+const bigStatTopStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "10px",
-  padding: "8px 12px",
-  borderRadius: "14px",
-  background: "rgba(255,255,255,0.10)",
-  border: "1px solid rgba(255,255,255,0.14)",
-  backdropFilter: "blur(8px)",
-  boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
-  color: "white",
-  textDecoration: "none",
+  marginBottom: "12px",
 };
 
-const userAvatarStyle: CSSProperties = {
+const bigIconStyle: CSSProperties = {
   width: "38px",
   height: "38px",
-  borderRadius: "999px",
-  overflow: "hidden",
-  background: "rgba(255,255,255,0.10)",
-  border: "1px solid rgba(255,255,255,0.16)",
-  display: "flex",
+  borderRadius: "13px",
+  display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  flexShrink: 0,
+  background: "rgba(37,99,235,0.16)",
+  border: "1px solid rgba(96,165,250,0.25)",
 };
 
-const userInfoStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  minWidth: 0,
+const bigStatTitleStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 850,
 };
 
-const userLabelStyle: CSSProperties = {
-  fontSize: "11px",
-  opacity: 0.7,
-  lineHeight: 1.1,
-};
-
-const userNameStyle: CSSProperties = {
-  fontSize: "14px",
-  lineHeight: 1.2,
-  maxWidth: "160px",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const heroStatsStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "12px",
-  maxWidth: "760px",
-};
-
-const heroStatCardStyle: CSSProperties = {
-  padding: "14px",
-  borderRadius: "16px",
-  background: "rgba(0,0,0,0.46)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  backdropFilter: "blur(8px)",
-};
-
-const statLabelStyle: CSSProperties = {
+const bigStatValueStyle: CSSProperties = {
   display: "block",
-  fontSize: "12px",
-  opacity: 0.72,
+  fontSize: "25px",
   marginBottom: "6px",
+  fontWeight: 950,
 };
 
-const statValueStyle: CSSProperties = {
-  fontSize: "20px",
+const bigStatDetailStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.62)",
+  fontSize: "13px",
+  fontWeight: 750,
 };
 
-const layoutStyle: CSSProperties = {
+const mainGridStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "280px minmax(0, 1fr) 300px",
-  gap: "20px",
+  gridTemplateColumns: "290px minmax(0, 1fr) 310px",
+  gap: "22px",
   alignItems: "start",
 };
 
-const boxStyle: CSSProperties = {
-  background: "rgba(0, 0, 0, 0.45)",
-  borderRadius: "16px",
+const cardStyle: CSSProperties = {
   padding: "20px",
-  backdropFilter: "blur(6px)",
-  boxShadow: "0 0 20px rgba(0,0,0,0.4)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "20px",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
 };
 
-const boxTitleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "21px",
-  fontWeight: 900,
+const cardTitleStyle: CSSProperties = {
+  margin: "0 0 18px",
+  fontSize: "1.28rem",
+  fontWeight: 950,
 };
 
 const sectionHeaderStyle: CSSProperties = {
   display: "flex",
-  alignItems: "flex-start",
   justifyContent: "space-between",
-  gap: "16px",
+  gap: "14px",
+  alignItems: "flex-start",
   marginBottom: "18px",
-  flexWrap: "wrap",
 };
 
-const sectionTextStyle: CSSProperties = {
+const sectionTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: "1.35rem",
+  fontWeight: 950,
+};
+
+const sectionSubtitleStyle: CSSProperties = {
   margin: "6px 0 0",
+  color: "rgba(255,255,255,0.68)",
+  fontWeight: 750,
+};
+
+const countStyle: CSSProperties = {
+  color: "rgba(255,255,255,0.72)",
   fontSize: "13px",
-  opacity: 0.72,
-};
-
-const quickActionsStyle: CSSProperties = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-};
-
-const infoListStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "12px",
-  marginTop: "18px",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: "999px",
+  padding: "8px 12px",
+  fontWeight: 900,
 };
 
 const infoCardStyle: CSSProperties = {
-  background: "rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.075)",
   borderRadius: "12px",
   padding: "12px",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  marginBottom: "12px",
 };
 
 const labelStyle: CSSProperties = {
   display: "block",
   fontSize: "12px",
-  opacity: 0.75,
+  color: "rgba(255,255,255,0.68)",
   marginBottom: "5px",
+  fontWeight: 800,
 };
 
 const valueStyle: CSSProperties = {
   fontSize: "15px",
-};
-
-const buttonStyle: CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: "10px",
-  background: "rgba(255,255,255,0.08)",
-  color: "white",
-  fontWeight: "bold",
-  textDecoration: "none",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const buttonBlueStyle: CSSProperties = {
-  marginTop: "16px",
-  padding: "12px 14px",
-  borderRadius: "10px",
-  background: "#2563eb",
-  color: "white",
-  fontWeight: "bold",
-  textDecoration: "none",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const statsGridStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "12px",
-  marginBottom: "16px",
-};
-
-const miniStatStyle: CSSProperties = {
-  padding: "14px",
-  borderRadius: "14px",
-  background: "rgba(255,255,255,0.07)",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const miniStatValueStyle: CSSProperties = {
-  display: "block",
-  fontSize: "20px",
-  marginBottom: "4px",
-};
-
-const miniStatDetailStyle: CSSProperties = {
-  opacity: 0.65,
+  fontWeight: 950,
 };
 
 const deliveriesListStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
+  display: "grid",
   gap: "12px",
 };
 
 const deliveryCardStyle: CSSProperties = {
-  background: "rgba(255,255,255,0.06)",
-  borderRadius: "14px",
+  background: "rgba(255,255,255,0.055)",
+  borderRadius: "18px",
   padding: "16px",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.12)",
 };
 
 const deliveryTopStyle: CSSProperties = {
@@ -827,17 +881,19 @@ const avatarImageStyle: CSSProperties = {
 
 const driverNameStyle: CSSProperties = {
   fontSize: "15px",
+  fontWeight: 950,
 };
 
 const miniTextStyle: CSSProperties = {
   fontSize: "12px",
-  opacity: 0.68,
+  color: "rgba(255,255,255,0.62)",
   marginTop: "2px",
+  fontWeight: 750,
 };
 
 const deliveryStatusStyle: CSSProperties = {
   fontSize: "12px",
-  fontWeight: 900,
+  fontWeight: 950,
   padding: "7px 11px",
   borderRadius: "999px",
   whiteSpace: "nowrap",
@@ -850,15 +906,15 @@ const routeStyle: CSSProperties = {
   alignItems: "center",
   padding: "12px",
   borderRadius: "14px",
-  background: "rgba(0,0,0,0.24)",
-  border: "1px solid rgba(255,255,255,0.07)",
+  background: "rgba(255,255,255,0.045)",
+  border: "1px solid rgba(255,255,255,0.09)",
   marginBottom: "12px",
 };
 
 const routeArrowStyle: CSSProperties = {
   textAlign: "center",
   fontSize: "20px",
-  opacity: 0.75,
+  color: "rgba(255,255,255,0.75)",
 };
 
 const deliveryBottomStyle: CSSProperties = {
@@ -877,26 +933,27 @@ const deliveryActionStyle: CSSProperties = {
 const smallButtonStyle: CSSProperties = {
   padding: "9px 12px",
   borderRadius: "10px",
-  background: "linear-gradient(135deg, #f59e0b, #fbbf24)",
-  color: "black",
-  fontWeight: 900,
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  color: "white",
+  fontWeight: 950,
   textDecoration: "none",
   fontSize: "13px",
+  border: "1px solid rgba(147,197,253,0.45)",
 };
 
 const moneyStyle: CSSProperties = {
   color: "#86efac",
   fontSize: "16px",
+  fontWeight: 950,
 };
 
 const driversListStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "10px",
-  maxHeight: "520px",
+  maxHeight: "620px",
   overflowY: "auto",
   paddingRight: "4px",
-  marginTop: "18px",
 };
 
 const driverCardStyle: CSSProperties = {
@@ -905,12 +962,12 @@ const driverCardStyle: CSSProperties = {
   gap: "12px",
   padding: "11px",
   borderRadius: "14px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.075)",
+  border: "1px solid rgba(255,255,255,0.10)",
 };
 
 const driverNameEllipsisStyle: CSSProperties = {
-  fontWeight: 900,
+  fontWeight: 950,
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -918,15 +975,18 @@ const driverNameEllipsisStyle: CSSProperties = {
 
 const driverRoleStyle: CSSProperties = {
   fontSize: "12px",
-  opacity: 0.72,
+  color: "rgba(255,255,255,0.68)",
   marginTop: "3px",
+  fontWeight: 750,
 };
 
 const emptyCardStyle: CSSProperties = {
-  background: "rgba(255,255,255,0.08)",
-  borderRadius: "12px",
-  padding: "14px",
-  border: "1px solid rgba(255,255,255,0.08)",
+  padding: "26px",
+  borderRadius: "18px",
+  textAlign: "center",
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "rgba(255,255,255,0.72)",
+  fontWeight: 800,
   lineHeight: 1.6,
-  opacity: 0.9,
 };
